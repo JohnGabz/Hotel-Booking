@@ -1,0 +1,195 @@
+@import 'tailwindcss';
+
+@source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
+@source '../../storage/framework/views/*.php';
+@source '../**/*.blade.php';
+@source '../**/*.js';
+
+@theme {
+    --font-sans: 'Manrope', system-ui, sans-serif;
+    --font-display: 'Cormorant Garamond', Georgia, serif;
+    --color-brand-primary: #B6424F;
+    --color-brand-secondary: #B57D59;
+}
+
+@layer base {
+    html {
+        font-family: var(--font-sans);
+        color: #1c1917;
+        background-color: #fbf7f1;
+        scroll-behavior: smooth;
+    }
+
+    body {
+        @apply antialiased;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        font-family: var(--font-display);
+        letter-spacing: -0.02em;
+    }
+
+    a {
+        @apply transition-colors duration-150;
+    }
+
+    input, textarea, select, button {
+        font: inherit;
+    }
+
+    ::selection {
+        background: #B6424F;
+        color: #fff;
+    }
+}
+
+@layer components {
+    .site-shell {
+        @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+    }
+
+    .section-shell {
+        @apply py-16 sm:py-20 lg:py-24;
+    }
+
+    .surface {
+        @apply rounded-[2rem] border border-white/60 bg-white/85 shadow-[0_25px_70px_rgba(80,61,30,0.08)] backdrop-blur;
+    }
+
+    .surface-strong {
+        @apply rounded-[2rem] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(77,56,24,0.12)];
+    }
+
+    .eyebrow {
+        @apply inline-flex items-center gap-2 rounded-full border border-brand-primary/20 bg-brand-primary/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-brand-primary;
+    }
+
+    .btn-primary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-[#B6424F] px-6 py-3 text-sm font-semibold text-white shadow-lg shadow-brand-primary/20 transition hover:bg-[#B57D59] focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 focus:ring-offset-white;
+    }
+
+    .btn-secondary {
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-stone-200 bg-white px-6 py-3 text-sm font-semibold text-stone-800 shadow-sm transition hover:border-stone-300 hover:bg-stone-50 focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2 focus:ring-offset-white;
+    }
+
+    .card {
+        @apply rounded-[1.75rem] border border-stone-200/80 bg-white p-6 shadow-[0_18px_50px_rgba(80,61,30,0.06)];
+    }
+
+    .form-group {
+        @apply flex flex-col gap-2;
+    }
+
+    .form-label {
+        @apply text-sm font-medium text-stone-700;
+    }
+
+    .form-input {
+        @apply w-full rounded-lg border border-stone-300 bg-white px-4 py-3 text-sm text-stone-900 shadow-sm outline-none transition placeholder:text-stone-400 focus:border-brand-primary focus:ring-2 focus:ring-brand-primary/20;
+    }
+
+    .form-error {
+        @apply text-xs font-medium text-red-600;
+    }
+
+    .badge-primary {
+        @apply inline-flex items-center rounded-full bg-brand-primary/10 px-3 py-1 text-xs font-semibold text-brand-primary;
+    }
+
+    .nav-link {
+        @apply rounded-lg px-4 py-2 text-sm font-medium text-stone-700 transition hover:bg-brand-primary/5 hover:text-brand-primary;
+    }
+
+    .nav-link-active {
+        @apply bg-stone-900 text-white hover:bg-stone-900 hover:text-white;
+    }
+
+    .stat-chip {
+        @apply rounded-full border border-white/50 bg-white/75 px-4 py-2 shadow-sm backdrop-blur;
+    }
+
+    .icon-grid {
+        @apply grid gap-4 sm:grid-cols-2 lg:grid-cols-4;
+    }
+
+    /* Scroll Animations */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideUp {
+        from {
+            opacity: 0;
+            transform: translateY(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @keyframes slideInLeft {
+        from {
+            opacity: 0;
+            transform: translateX(-30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    @keyframes slideInRight {
+        from {
+            opacity: 0;
+            transform: translateX(30px);
+        }
+        to {
+            opacity: 1;
+            transform: translateX(0);
+        }
+    }
+
+    .scroll-animate-in {
+        opacity: 0;
+        animation: fadeIn 0.6s ease-out forwards;
+    }
+
+    .scroll-animate-up {
+        opacity: 0;
+        animation: slideUp 0.6s ease-out forwards;
+    }
+
+    .scroll-animate-in-left {
+        opacity: 0;
+        animation: slideInLeft 0.6s ease-out forwards;
+    }
+
+    .scroll-animate-in-right {
+        opacity: 0;
+        animation: slideInRight 0.6s ease-out forwards;
+    }
+
+    /* Stagger animations for groups */
+    .scroll-animate-stagger > * {
+        opacity: 0;
+        animation: slideUp 0.6s ease-out forwards;
+    }
+
+    .scroll-animate-stagger > :nth-child(1) { animation-delay: 0.1s; }
+    .scroll-animate-stagger > :nth-child(2) { animation-delay: 0.2s; }
+    .scroll-animate-stagger > :nth-child(3) { animation-delay: 0.3s; }
+    .scroll-animate-stagger > :nth-child(4) { animation-delay: 0.4s; }
+    .scroll-animate-stagger > :nth-child(5) { animation-delay: 0.5s; }
+    .scroll-animate-stagger > :nth-child(6) { animation-delay: 0.6s; }
+
+    /* Smooth scroll behavior */
+    html {
+        scroll-behavior: smooth;
+    }
+}
