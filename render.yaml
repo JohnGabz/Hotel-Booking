@@ -4,38 +4,43 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    startCommand: php artisan serve --host=0.0.0.0 --port=8000
+    startCommand: php artisan optimize:clear && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
     autoDeploy: true
     envVars:
       - key: APP_ENV
         value: production
       - key: APP_DEBUG
         value: false
+      - key: APP_KEY
+        sync: false
+      - key: APP_URL
+        sync: false
       - key: APP_NAME
         value: Villa Estella
       - key: MAIL_FROM_NAME
         value: Villa Estella
-      # Neon PostgreSQL connection. Fill these in Render's Environment tab.
+      - key: LOG_LEVEL
+        value: info
+      # Neon PostgreSQL connection. Set real values in Render Dashboard.
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        value: your-neon-host.neon.tech
+        sync: false
       - key: DB_PORT
         value: "5432"
       - key: DB_DATABASE
-        value: villa_estella
+        sync: false
       - key: DB_USERNAME
-        value: your_neon_user
+        sync: false
       - key: DB_PASSWORD
-        value: your_neon_password
+        sync: false
       - key: DB_SSLMODE
         value: require
-      # Add these as environment variables if needed
       - key: SESSION_DRIVER
-        value: database
+        value: file
       - key: QUEUE_CONNECTION
-        value: database
+        value: sync
       - key: CACHE_STORE
-        value: database
+        value: file
       - key: FILESYSTEM_DISK
         value: local
