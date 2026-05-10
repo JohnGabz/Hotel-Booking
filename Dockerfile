@@ -33,12 +33,14 @@ RUN composer dump-autoload --optimize && php artisan package:discover --ansi
 # Install and build frontend assets
 RUN npm ci && npm run build
 
-# Create and set proper permissions for cache directories
-RUN mkdir -p /var/www/html/storage/framework/{views,cache} && \
+# Create storage/framework subdirectories and set permissions
+RUN mkdir -p /var/www/html/storage/framework/views && \
+    mkdir -p /var/www/html/storage/framework/cache && \
+    mkdir -p /var/www/html/storage/framework/sessions && \
     mkdir -p /var/www/html/storage/logs && \
     mkdir -p /var/www/html/bootstrap/cache && \
-    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache && \
-    chmod -R 755 /var/www/html/storage /var/www/html/bootstrap/cache
+    chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap && \
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
