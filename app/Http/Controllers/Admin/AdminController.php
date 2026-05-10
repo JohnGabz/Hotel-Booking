@@ -8,10 +8,12 @@ use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
 use App\Models\User;
+use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\View\View;
 
 class AdminController extends Controller
@@ -35,7 +37,12 @@ class AdminController extends Controller
 
     public function bookings(Request $request): View
     {
+        $rooms = Room::latest()->get();
+        $selectedRoom = $rooms->firstWhere('id', (int) $request->query('room')) ?? $rooms->first();
+
         return $this->renderAdminPage('bookings', [
+            'selectedRoom' => $selectedRoom,
+            'calendar' => $selectedRoom ? $this->buildBookingCalendar($selectedRoom, $request->query('month')) : null,
             'filters' => [
                 'status' => $request->query('status', 'all'),
                 'room' => $request->query('room', 'all'),
@@ -58,6 +65,44 @@ class AdminController extends Controller
                 'description' => 'View room cards, availability, pricing, and quick room actions.',
             ],
         ]);
+    }
+
+    public function storeRoom(Request $request): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'description' => 'required|string|max:3000',
+            'capacity' => 'required|integer|min:1|max:20',
+            'price' => 'required|numeric|min:0',
+            'status' => 'required|in:available,occupied,maintenance',
+            'amenities' => 'nullable|string|max:3000',
+            'images' => 'required|array|min:1',
+            'images.*' => 'image|max:5120',
+        ]);
+
+        $imagePaths = collect($request->file('images', []))
+            ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+            ->values()
+            ->all();
+
+        Room::create([
+            'name' => $validated['name'],
+            'slug' => $this->makeUniqueRoomSlug($validated['name']),
+            'description' => $validated['description'],
+            'capacity' => $validated['capacity'],
+            'price' => $validated['price'],
+            'status' => $validated['status'],
+            'amenities' => collect(explode(',', $validated['amenities'] ?? ''))
+                ->map(fn ($amenity) => trim($amenity))
+                ->filter()
+                ->values()
+                ->all(),
+            'images' => $imagePaths,
+        ]);
+
+        return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
     }
 
     public function guests(): View
@@ -145,6 +190,95 @@ class AdminController extends Controller
         return view('pages.admin.' . $page, array_merge($baseData, $extra));
     }
 
+    protected function buildBookingCalendar(Room $room, ?string $monthInput): array
+    {
+        try {
+            $monthStart = $monthInput
+                ? Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth()
+                : now()->startOfMonth();
+        } catch (\Throwable) {
+            $monthStart = now()->startOfMonth();
+        }
+
+        $monthEnd = $monthStart->copy()->endOfMonth();
+        $previousMonth = $monthStart->copy()->subMonthNoOverflow()->format('Y-m');
+        $nextMonth = $monthStart->copy()->addMonthNoOverflow()->format('Y-m');
+
+        $bookings = Booking::query()
+            ->where('room_id', $room->id)
+            ->where('status', 'confirmed')
+            ->whereDate('check_in', '<=', $monthEnd)
+            ->whereDate('check_out', '>=', $monthStart)
+            ->orderBy('check_in')
+            ->get();
+
+        $calendarStart = $monthStart->copy()->startOfWeek(Carbon::MONDAY);
+        $calendarEnd = $monthEnd->copy()->endOfWeek(Carbon::SUNDAY);
+
+        $weeks = [];
+        $week = [];
+        $summary = [
+            'open' => 0,
+            'occupied' => 0,
+            'unavailable' => 0,
+            'past' => 0,
+            'outside' => 0,
+        ];
+
+        for ($date = $calendarStart->copy(); $date->lte($calendarEnd); $date->addDay()) {
+            $matchingBooking = $bookings->first(function (Booking $booking) use ($date) {
+                return $date->betweenIncluded(
+                    Carbon::parse($booking->check_in)->startOfDay(),
+                    Carbon::parse($booking->check_out)->endOfDay()
+                );
+            });
+
+            $isCurrentMonth = $date->month === $monthStart->month && $date->year === $monthStart->year;
+
+            if (! $isCurrentMonth) {
+                $status = 'outside';
+            } elseif ($date->isPast() && ! $date->isToday()) {
+                $status = 'past';
+            } elseif ($room->status !== 'available') {
+                $status = 'unavailable';
+            } elseif ($matchingBooking) {
+                $status = 'occupied';
+            } else {
+                $status = 'open';
+            }
+
+            $summary[$status]++;
+
+            $week[] = [
+                'date' => $date->copy(),
+                'isCurrentMonth' => $isCurrentMonth,
+                'isToday' => $date->isToday(),
+                'status' => $status,
+                'booking' => $matchingBooking ? [
+                    'check_in' => Carbon::parse($matchingBooking->check_in),
+                    'check_out' => Carbon::parse($matchingBooking->check_out),
+                ] : null,
+            ];
+
+            if (count($week) === 7) {
+                $weeks[] = $week;
+                $week = [];
+            }
+        }
+
+        return [
+            'label' => $monthStart->translatedFormat('F Y'),
+            'previousMonth' => $previousMonth,
+            'nextMonth' => $nextMonth,
+            'weeks' => $weeks,
+            'summary' => $summary,
+            'bookings' => $bookings->map(fn (Booking $booking) => [
+                'check_in' => Carbon::parse($booking->check_in),
+                'check_out' => Carbon::parse($booking->check_out),
+            ])->values(),
+        ];
+    }
+
     public function updateRoomStatus(Request $request, Room $room): RedirectResponse
     {
         $this->ensureAdmin();
@@ -156,6 +290,52 @@ class AdminController extends Controller
         $room->update(['status' => $request->status]);
 
         return redirect()->route('admin.dashboard')->with('success', 'Room status updated successfully.');
+    }
+
+    public function updateRoom(Request $request, Room $room): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:150',
+            'description' => 'required|string|max:3000',
+            'capacity' => 'required|integer|min:1|max:20',
+            'price' => 'required|numeric|min:0',
+            'status' => 'required|in:available,occupied,maintenance',
+            'amenities' => 'nullable|string|max:3000',
+            'images' => 'nullable|array',
+            'images.*' => 'image|max:5120',
+        ]);
+
+        $images = $room->images ?? [];
+
+        if ($request->hasFile('images')) {
+            foreach ($images as $existingImage) {
+                Storage::disk('public')->delete($existingImage);
+            }
+
+            $images = collect($request->file('images', []))
+                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+                ->values()
+                ->all();
+        }
+
+        $room->update([
+            'name' => $validated['name'],
+            'slug' => $this->makeUniqueRoomSlug($validated['name'], $room),
+            'description' => $validated['description'],
+            'capacity' => $validated['capacity'],
+            'price' => $validated['price'],
+            'status' => $validated['status'],
+            'amenities' => collect(explode(',', $validated['amenities'] ?? ''))
+                ->map(fn ($amenity) => trim($amenity))
+                ->filter()
+                ->values()
+                ->all(),
+            'images' => $images,
+        ]);
+
+        return redirect()->route('admin.rooms')->with('success', 'Room updated successfully.');
     }
 
     public function approveReview(Review $review): RedirectResponse
@@ -226,5 +406,22 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings', ['tab' => 'landing'])->with('success', 'Site content updated successfully.');
+    }
+
+    protected function makeUniqueRoomSlug(string $name, ?Room $ignoreRoom = null): string
+    {
+        $baseSlug = Str::slug($name) ?: 'room';
+        $slug = $baseSlug;
+        $counter = 2;
+
+        while (Room::query()
+            ->when($ignoreRoom, fn ($query) => $query->where('id', '!=', $ignoreRoom->id))
+            ->where('slug', $slug)
+            ->exists()) {
+            $slug = $baseSlug . '-' . $counter;
+            $counter++;
+        }
+
+        return $slug;
     }
 }

@@ -1,10 +1,9 @@
 <header class="sticky top-0 z-50 border-b border-stone-200/70 bg-white/82 backdrop-blur-xl">
     <nav class="site-shell">
         <div class="flex h-20 items-center justify-between gap-4">
-            <a href="{{ route('home') }}" class="flex items-center gap-3 text-stone-900 transition hover:text-brand-primary">
-                <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-brand-primary text-sm font-semibold tracking-[0.25em] text-white shadow-lg shadow-brand-primary/20">VE</span>
+            <a href="{{ route('home') }}" class="flex items-center text-stone-900 transition hover:text-brand-primary">
                 <span class="flex flex-col leading-none">
-                    <span class="text-lg font-semibold tracking-[0.18em] uppercase">{{ config('app.name') }}</span>
+                    <span class="font-display text-lg font-semibold tracking-[0.08em] text-stone-950 sm:text-xl">{{ config('app.name') }}</span>
                     <span class="text-xs font-medium text-stone-500">Fine Inn</span>
                 </span>
             </a>

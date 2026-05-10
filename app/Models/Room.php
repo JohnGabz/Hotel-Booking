@@ -6,13 +6,14 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['name', 'slug', 'description', 'capacity', 'price', 'status', 'amenities'])]
+#[\Illuminate\Database\Eloquent\Attributes\Fillable(['name', 'slug', 'description', 'capacity', 'price', 'status', 'amenities', 'images'])]
 class Room extends Model
 {
     use HasFactory;
 
     protected $casts = [
         'amenities' => 'array',
+        'images' => 'array',
         'price' => 'decimal:2',
     ];
 

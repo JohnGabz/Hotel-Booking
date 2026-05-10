@@ -10,11 +10,14 @@ return new class extends Migration
     {
         Schema::create('bookings', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->constrained()->cascadeOnDelete();
+            $table->foreignId('user_id')->nullable()->constrained()->nullOnDelete();
             $table->foreignId('room_id')->constrained()->cascadeOnDelete();
             $table->date('check_in');
             $table->date('check_out');
             $table->integer('guests')->default(1);
+            $table->string('contact_name');
+            $table->string('contact_email');
+            $table->string('contact_phone', 80);
             $table->string('status')->default('confirmed');
             $table->string('payment_method');
             $table->string('payment_status')->default('pending');

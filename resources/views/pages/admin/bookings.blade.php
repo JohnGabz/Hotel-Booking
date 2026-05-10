@@ -45,7 +45,72 @@
         </form>
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+    <section class="space-y-6">
+        <div class="surface p-6 sm:p-8">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <span class="eyebrow">Room calendar</span>
+                        <p class="mt-3 text-sm text-stone-600">Inspect occupancy directly inside the bookings tab.</p>
+                    </div>
+                    <form method="GET" action="{{ route('admin.bookings') }}">
+                        <select name="room" class="form-input min-w-40" onchange="this.form.submit()">
+                            @foreach ($rooms as $r)
+                                <option value="{{ $r->id }}" @selected(($selectedRoom?->id ?? null) === $r->id)>{{ $r->name }}</option>
+                            @endforeach
+                        </select>
+                    </form>
+                </div>
+
+                @if ($selectedRoom && $calendar)
+                    <div class="mt-5 flex items-center justify-between gap-2">
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
+                        <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-7 gap-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-stone-400 sm:text-xs">
+                        <span>Mon</span>
+                        <span>Tue</span>
+                        <span>Wed</span>
+                        <span>Thu</span>
+                        <span>Fri</span>
+                        <span>Sat</span>
+                        <span>Sun</span>
+                    </div>
+
+                    <div class="mt-3 grid grid-cols-7 gap-2">
+                        @foreach ($calendar['weeks'] as $week)
+                            @foreach ($week as $day)
+                                @php
+                                    $cellClasses = match ($day['status']) {
+                                        'open' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                                        'occupied' => 'border-rose-200 bg-rose-50 text-rose-700',
+                                        'unavailable' => 'border-slate-300 bg-slate-100 text-slate-500',
+                                        'past' => 'border-gray-300 bg-gray-100 text-gray-400',
+                                        default => 'border-stone-200 bg-stone-100 text-stone-400',
+                                    };
+                                @endphp
+                                <div class="min-h-20 rounded-2xl border p-3 {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-45' }}">
+                                    <div class="flex items-start justify-between gap-2">
+                                        <span class="text-sm font-semibold">{{ $day['date']->format('j') }}</span>
+                                        @if ($day['isToday'])
+                                            <span class="rounded-full bg-brand-primary px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white">Today</span>
+                                        @endif
+                                    </div>
+                                    @if ($day['isCurrentMonth'])
+                                        <div class="mt-4 text-xs font-semibold uppercase tracking-[0.18em]">
+                                            {{ ucfirst($day['status']) }}
+                                        </div>
+                                    @endif
+                                </div>
+                            @endforeach
+                        @endforeach
+                    </div>
+                @else
+                    <p class="mt-4 text-sm text-stone-500">No room is available to display.</p>
+                @endif
+        </div>
+
         <div class="surface p-6 sm:p-8">
             <div class="flex items-center justify-between gap-3">
                 <div>
@@ -70,7 +135,7 @@
                         @forelse ($bookings as $booking)
                             <tr class="align-top transition hover:bg-stone-50/80">
                                 <td class="px-5 py-4">
-                                    <p class="font-semibold text-stone-950">{{ $booking->user?->name ?? 'Guest' }}</p>
+                                    <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
                                     <p class="text-xs uppercase tracking-[0.2em] text-stone-400">#{{ $booking->id }}</p>
                                 </td>
                                 <td class="px-5 py-4 text-stone-700">{{ $booking->room?->name ?? 'Room' }}</td>
@@ -92,13 +157,12 @@
             </div>
         </div>
 
-        <aside class="space-y-6">
-            <div class="surface p-6 sm:p-8">
+        <div class="surface p-6 sm:p-8">
                 <span class="eyebrow">Booking detail</span>
                 @php($primaryBooking = $bookings->first())
                 @if ($primaryBooking)
                     <h3 class="mt-4 text-2xl font-semibold text-stone-950">{{ $primaryBooking->room?->name ?? 'Room' }}</h3>
-                    <p class="mt-2 text-sm text-stone-600">{{ $primaryBooking->user?->name ?? 'Guest' }} · {{ $primaryBooking->check_in->format('F j') }} - {{ $primaryBooking->check_out->format('F j') }}</p>
+                    <p class="mt-2 text-sm text-stone-600">{{ $primaryBooking->contact_name ?? $primaryBooking->user?->name ?? 'Guest' }} · {{ $primaryBooking->check_in->format('F j') }} - {{ $primaryBooking->check_out->format('F j') }}</p>
                     <div class="mt-4 grid gap-3 text-sm text-stone-600">
                         <div class="rounded-2xl bg-stone-50 p-4">Payment method: <strong>{{ strtoupper($primaryBooking->payment_method) }}</strong></div>
                         <div class="rounded-2xl bg-stone-50 p-4">Payment status: <strong>{{ ucfirst(str_replace('_', ' ', $primaryBooking->payment_status)) }}</strong></div>
@@ -107,16 +171,15 @@
                 @else
                     <p class="mt-4 text-sm text-stone-500">No booking details available yet.</p>
                 @endif
-            </div>
+        </div>
 
-            <div class="surface p-6 sm:p-8">
+        <div class="surface p-6 sm:p-8">
                 <span class="eyebrow">Actions</span>
                 <div class="mt-4 space-y-3">
                     <a href="{{ route('admin.reports') }}" class="btn-secondary w-full justify-start">Open reports</a>
                     <a href="{{ route('admin.rooms') }}" class="btn-secondary w-full justify-start">Review room availability</a>
                 </div>
-            </div>
-        </aside>
+        </div>
     </section>
 </div>
 @endsection

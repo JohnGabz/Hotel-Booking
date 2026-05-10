@@ -1,3 +1,103 @@
+const html = document.documentElement;
+const globalLoader = document.getElementById('global-loader');
+
+let loaderCompletionTimer = null;
+let pendingFetchCount = 0;
+
+function showGlobalLoader() {
+    if (!globalLoader) return;
+
+    window.clearTimeout(loaderCompletionTimer);
+    html.classList.add('is-loading');
+    html.classList.remove('is-completing');
+}
+
+function completeGlobalLoader() {
+    if (!globalLoader || !html.classList.contains('is-loading')) return;
+
+    html.classList.add('is-completing');
+    window.clearTimeout(loaderCompletionTimer);
+    loaderCompletionTimer = window.setTimeout(() => {
+        html.classList.remove('is-loading', 'is-completing');
+    }, 320);
+}
+
+window.VillaLoader = {
+    show: showGlobalLoader,
+    complete: completeGlobalLoader,
+    fetch: (...args) => originalFetch(...args),
+};
+
+window.addEventListener('load', () => {
+    if (pendingFetchCount === 0) {
+        completeGlobalLoader();
+    }
+});
+
+window.addEventListener('pageshow', (event) => {
+    if (event.persisted && pendingFetchCount === 0) {
+        completeGlobalLoader();
+    }
+});
+
+const originalFetch = window.fetch.bind(window);
+
+window.fetch = async (...args) => {
+    pendingFetchCount += 1;
+    showGlobalLoader();
+
+    try {
+        return await originalFetch(...args);
+    } finally {
+        pendingFetchCount = Math.max(0, pendingFetchCount - 1);
+
+        if (pendingFetchCount === 0) {
+            completeGlobalLoader();
+        }
+    }
+};
+
+document.addEventListener('click', (event) => {
+    const link = event.target.closest('a[href]');
+    if (!link) return;
+
+    if (
+        link.hasAttribute('download') ||
+        link.target && link.target !== '_self' ||
+        link.hasAttribute('data-no-loader')
+    ) {
+        return;
+    }
+
+    const href = link.getAttribute('href') || '';
+    if (
+        href.startsWith('#') ||
+        href.startsWith('mailto:') ||
+        href.startsWith('tel:') ||
+        href.startsWith('javascript:')
+    ) {
+        return;
+    }
+
+    try {
+        const url = new URL(link.href, window.location.href);
+        if (url.origin !== window.location.origin) return;
+    } catch {
+        return;
+    }
+
+    showGlobalLoader();
+});
+
+document.addEventListener('submit', (event) => {
+    const form = event.target;
+
+    if (!(form instanceof HTMLFormElement)) return;
+    if (form.hasAttribute('data-no-loader') || form.target && form.target !== '_self') return;
+
+    showGlobalLoader();
+});
+
 const mobileToggle = document.getElementById('mobile-menu-btn');
 const mobileMenu = document.getElementById('mobile-menu');
 const menuOpenIcon = document.getElementById('menu-open-icon');

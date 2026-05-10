@@ -17,6 +17,7 @@ return new class extends Migration
             $table->decimal('price', 8, 2)->default(0);
             $table->string('status')->default('available');
             $table->json('amenities')->nullable();
+            $table->json('images')->nullable();
             $table->timestamps();
         });
     }

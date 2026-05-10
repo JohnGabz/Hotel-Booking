@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes'])]
+#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes'])]
 class Booking extends Model
 {
     use HasFactory;

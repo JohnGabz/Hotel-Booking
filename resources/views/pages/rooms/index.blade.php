@@ -8,6 +8,7 @@
         'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
     ];
+    $resolveRoomImage = fn (?string $image) => $image ? (str_starts_with($image, 'http') ? $image : asset('storage/' . $image)) : null;
 @endphp
 
 <section class="section-shell pt-8 sm:pt-10">
@@ -49,7 +50,8 @@
         <div class="mt-10 grid gap-6 lg:grid-cols-3">
             @forelse ($rooms as $room)
                 @php
-                    $image = $roomImages[$loop->index % count($roomImages)];
+                    $image = collect($room->images ?? [])->first();
+                    $image = $resolveRoomImage($image) ?? $roomImages[$loop->index % count($roomImages)];
                     $amenities = collect($room->amenities ?? [])->take(3);
                 @endphp
                 <article class="overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(80,61,30,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_70px_rgba(80,61,30,0.14)]">

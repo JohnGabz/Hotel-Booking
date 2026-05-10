@@ -22,7 +22,9 @@ class BookingController extends Controller
         $validated = $request->validate([
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
-            'guests' => 'required|integer|min:1|max:' . $room->capacity,
+            'contact_name' => 'required|string|max:150',
+            'contact_email' => 'required|email|max:150',
+            'contact_phone' => 'required|string|max:80',
             'payment_method' => 'required|in:gcash,landbank',
         ]);
 
@@ -50,14 +52,21 @@ class BookingController extends Controller
             'room_id' => $room->id,
             'check_in' => $validated['check_in'],
             'check_out' => $validated['check_out'],
-            'guests' => $validated['guests'],
+            'guests' => 1,
+            'contact_name' => $validated['contact_name'],
+            'contact_email' => $validated['contact_email'],
+            'contact_phone' => $validated['contact_phone'],
             'status' => 'confirmed',
             'payment_method' => $validated['payment_method'],
             'payment_status' => 'pending',
             'total' => $total,
         ]);
 
-        return redirect()->route('dashboard')->with('success', 'Your reservation is confirmed. Please complete payment via your selected method.');
+        if (Auth::check()) {
+            return redirect()->route('dashboard')->with('success', 'Your reservation is confirmed. Please complete payment via your selected method.');
+        }
+
+        return redirect()->route('rooms.show', $room)->with('success', 'Your reservation is confirmed. We will contact you using the details provided.');
     }
 
     public function uploadPaymentProof(Request $request, Booking $booking): RedirectResponse

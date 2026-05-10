@@ -8,17 +8,19 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>{{ $seo['title'] ?? config('app.name') }}</title>
+    <script>document.documentElement.classList.add('is-loading');</script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-stone-50 font-sans text-stone-900">
+    <x-global-loader />
+
     <div id="mobile-menu" class="fixed inset-0 z-40 hidden md:hidden">
         <div class="absolute inset-0 bg-stone-950/45" data-mobile-close></div>
         <aside class="relative z-10 h-full w-80 max-w-[85vw] bg-white shadow-[0_24px_60px_rgba(0,0,0,0.2)]">
             <div class="flex items-center justify-between border-b border-stone-200/80 px-5 py-5">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-11 w-11 items-center justify-center rounded-2xl text-white font-semibold" style="background-color: #B6424F;">VE</div>
+                <div class="flex items-center">
                     <div>
-                        <p class="font-display text-xl font-bold text-stone-950">Villa Estella</p>
+                        <p class="font-display text-lg font-semibold tracking-[0.08em] text-stone-950 sm:text-xl">{{ config('app.name') }}</p>
                         <p class="text-xs uppercase tracking-[0.22em] text-stone-500">Admin panel</p>
                     </div>
                 </div>
@@ -60,12 +62,9 @@
     </x-modal>
     <div class="min-h-screen flex flex-col md:flex-row">
         <aside class="hidden md:block md:w-72 lg:w-80 bg-white border-b md:border-b-0 md:border-r border-stone-200/80 shadow-[0_18px_40px_rgba(80,61,30,0.05)]">
-            <div class="flex items-center gap-3 px-5 py-5 border-b border-stone-200/80">
-                <div class="flex h-11 w-11 items-center justify-center rounded-2xl text-white font-semibold" style="background-color: #B6424F;">
-                    VE
-                </div>
+            <div class="flex items-center px-5 py-5 border-b border-stone-200/80">
                 <div>
-                    <p class="font-display text-xl font-bold text-stone-950">Villa Estella</p>
+                    <p class="font-display text-lg font-semibold tracking-[0.08em] text-stone-950 sm:text-xl">{{ config('app.name') }}</p>
                     <p class="text-xs uppercase tracking-[0.22em] text-stone-500">Admin panel</p>
                 </div>
             </div>

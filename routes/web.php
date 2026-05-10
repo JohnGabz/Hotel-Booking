@@ -20,6 +20,7 @@ Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
 Route::get('/rooms/{room:slug}', [RoomController::class, 'show'])->name('rooms.show');
 Route::get('/rooms/{room:slug}/availability', [RoomController::class, 'availability'])->name('rooms.availability');
 Route::get('/bookings/search', [BookingController::class, 'search'])->name('bookings.search');
+Route::post('/rooms/{room:slug}/book', [BookingController::class, 'store'])->name('bookings.store');
  
 
 Route::middleware('guest')->group(function () {
@@ -50,7 +51,6 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 
     Route::middleware('verified')->group(function () {
-        Route::post('/rooms/{room:slug}/book', [BookingController::class, 'store'])->name('bookings.store');
         Route::post('/rooms/{room:slug}/review', [ReviewController::class, 'store'])->name('reviews.store');
         Route::get('/dashboard', [BookingController::class, 'dashboard'])->name('dashboard');
         Route::post('/bookings/{booking}/payment-proof', [BookingController::class, 'uploadPaymentProof'])->name('bookings.payment-proof');
@@ -66,6 +66,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
         Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+        Route::post('/rooms', [AdminController::class, 'storeRoom'])->name('rooms.store');
+        Route::put('/rooms/{room}', [AdminController::class, 'updateRoom'])->name('rooms.update');
         Route::post('/rooms/{room}/status', [AdminController::class, 'updateRoomStatus'])->name('rooms.status');
         Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
         Route::post('/bookings/{booking}/payment-status', [AdminController::class, 'updatePaymentStatus'])->name('bookings.payment-status');
