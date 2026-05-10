@@ -31,12 +31,12 @@
             <div class="flex justify-between items-center h-20">
                 <!-- Logo -->
                 <div class="flex-shrink-0 flex items-center">
-                    <a href="#" class="text-2xl font-bold text-[#B6424F]">Villa Estela</a>
+                    <a href="{{ route('home') }}" class="text-2xl font-bold text-[#B6424F]">Villa Estela</a>
                 </div>
                 
                 <!-- Desktop Menu -->
                 <div class="hidden md:flex space-x-8 items-center">
-                    <a href="#" class="text-[#989B88] hover:text-[#B6424F] font-medium transition-colors">Home</a>
+                    <a href="{{ route('home') }}" class="text-[#989B88] hover:text-[#B6424F] font-medium transition-colors">Home</a>
                     <a href="#rooms" class="text-[#989B88] hover:text-[#B6424F] font-medium transition-colors">Rooms</a>
                     <a href="#amenities" class="text-[#989B88] hover:text-[#B6424F] font-medium transition-colors">Amenities</a>
                     <a href="#contact" class="text-[#989B88] hover:text-[#B6424F] font-medium transition-colors">Contact</a>
@@ -336,8 +336,8 @@
             <div class="flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
                 <p>&copy; {{ date('Y') }} Villa Estela Fine Inn. All rights reserved.</p>
                 <div class="flex space-x-4 mt-4 md:mt-0">
-                    <a href="#" class="hover:text-white transition-colors">Privacy Policy</a>
-                    <a href="#" class="hover:text-white transition-colors">Terms of Service</a>
+                    <a href="/privacy" class="hover:text-white transition-colors">Privacy Policy</a>
+                    <a href="/terms" class="hover:text-white transition-colors">Terms of Service</a>
                 </div>
             </div>
         </div>

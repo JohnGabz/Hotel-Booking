@@ -199,6 +199,34 @@ document.querySelectorAll('.btn-create, .btn-edit, .btn-delete, [data-action-mod
             const h = modal.querySelector('h3');
             if (h) h.textContent = title;
         }
+        // If a generic action form exists, populate its action and method from data attributes
+        const genericForm = document.getElementById('generic-action-form');
+        if (genericForm) {
+            const actionUrl = btn.getAttribute('data-action-url') || btn.getAttribute('href') || genericForm.getAttribute('action') || '';
+            const actionMethod = (btn.getAttribute('data-action-method') || btn.getAttribute('data-method') || 'POST').toUpperCase();
+
+            // Set form action
+            try { genericForm.action = actionUrl; } catch (err) { /* ignore */ }
+
+            // Ensure method override input exists when method is not POST
+            let methodInput = genericForm.querySelector('input[name="_method"]');
+            if (actionMethod !== 'POST') {
+                if (!methodInput) {
+                    methodInput = document.createElement('input');
+                    methodInput.type = 'hidden';
+                    methodInput.name = '_method';
+                    genericForm.appendChild(methodInput);
+                }
+                methodInput.value = actionMethod;
+                genericForm.method = 'POST';
+            } else {
+                if (methodInput) {
+                    methodInput.remove();
+                }
+                genericForm.method = 'POST';
+            }
+        }
+
         openModalById(target);
     });
 });
