@@ -3,7 +3,6 @@
         <div class="grid gap-10 lg:grid-cols-[1.4fr_0.8fr_0.8fr]">
             <div>
                 <a href="{{ route('home') }}" class="inline-flex items-center gap-3 text-white">
-                    <span class="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-white text-sm font-semibold tracking-[0.25em] text-stone-950">VE</span>
                     <span class="flex flex-col leading-none">
                         <span class="text-lg font-semibold tracking-[0.18em] uppercase">{{ config('app.name') }}</span>
                         <span class="text-xs font-medium text-stone-400">Luxury hospitality with a calm, modern edge.</span>

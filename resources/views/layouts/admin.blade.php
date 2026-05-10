@@ -1,6 +1,6 @@
 @php
-    $brandPrimary = '#FF7551';
-    $brandSecondary = '#FF7551';
+    $brandPrimary = '#B6424F';
+    $brandSecondary = '#B57D59';
 @endphp
 <!doctype html>
 <html lang="en">
@@ -90,11 +90,11 @@
                         Guests
                     </a>
                     <a href="{{ route('admin.amenities') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.amenities') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.104v5.714a2.409 2.409 0 0 0 2.427 2.409h3.882c1.518.003 2.674 1.186 2.674 2.704v6.228m-16.5-12.75a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Zm16.5 0a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0ZM9 18.75a.75.75 0 1 1 1.5 0 .75.75 0 0 1-1.5 0Z"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         Amenities
                     </a>
                     <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 0 1 3 19.875v-6.75Zm9.75 0c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v6.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125v-6.75Zm9.75 0c0-.621.504-1.125 1.125-1.125h2.25C23.496 12 24 12.504 24 13.125v6.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125v-6.75ZM3 4.875c0-.621.504-1.125 1.125-1.125h2.25C7.496 3.75 8 4.254 8 4.875v2.25c0 .621-.504 1.125-1.125 1.125h-2.25A1.125 1.125 0 0 1 3 7.125V4.875Zm9.75 0c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v2.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.875Zm9.75 0c0-.621.504-1.125 1.125-1.125h2.25C23.496 3.75 24 4.254 24 4.875v2.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 0 1-1.125-1.125V4.875Z"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                         Reports
                     </a>
                     <a href="{{ route('admin.messages') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.messages') ? 'nav-link-active' : '' }}">
@@ -102,7 +102,7 @@
                         Messages
                     </a>
                     <a href="{{ route('admin.settings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.settings') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.592c.55 0 1.02.398 1.11.94a6.474 6.474 0 0 0 1.629 1.31c.476.33 1.04.446 1.576.271l.556-.182c.492-.16 1.022.062 1.321.446l1.83 2.332c.3.384.277.991-.06 1.510a6.334 6.334 0 0 0 .916 2.4c.331.483.645 1.035.916 1.4.271.364.586.916 1.11.916.55 0 1.02.398 1.11.94v2.592c0 .55-.398 1.02-.94 1.11a6.474 6.474 0 0 0-1.31 1.629c-.33.476-.446 1.04-.271 1.576l.182.556c.16.492-.062 1.022-.446 1.321l-2.332 1.83c-.384.3-.991.277-1.51-.06a6.334 6.334 0 0 0-2.4.916c-.483.331-1.035.645-1.4.916-.364.271-.916.586-.916 1.11 0 .55-.398 1.02-.94 1.11h-2.592c-.55 0-1.02-.398-1.11-.94a6.474 6.474 0 0 0-1.629-1.31c-.476-.33-1.04-.446-1.576-.271l-.556.182c-.492.16-1.022-.062-1.321-.446l-1.83-2.332c-.3-.384-.277-.991.06-1.51a6.334 6.334 0 0 0-.916-2.4c-.331-.483-.645-1.035-.916-1.4-.271-.364-.586-.916-1.11-.916-.55 0-1.02-.398-1.11-.94V9.594c0-.55.398-1.02.94-1.11a6.474 6.474 0 0 0 1.31-1.629c.33-.476.446-1.04.271-1.576l-.182-.556c-.16-.492.062-1.022.446-1.321l2.332-1.83c.384-.3.991-.277 1.51.06a6.334 6.334 0 0 0 2.4-.916c.483-.331 1.035-.645 1.4-.916.364-.271.916-.586.916-1.11 0-.55.398-1.02.94-1.11h2.592ZM12 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6Z"></path></svg>
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                         Settings
                     </a>
                 </div>
