@@ -23,24 +23,56 @@ return new class extends Migration
             }
         });
 
-        DB::statement('ALTER TABLE bookings DROP FOREIGN KEY bookings_user_id_foreign');
-        DB::statement('ALTER TABLE bookings MODIFY user_id BIGINT UNSIGNED NULL');
-        DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL');
+        $driver = DB::getDriverName();
+
+        if ($driver === 'mysql') {
+            DB::statement('ALTER TABLE bookings DROP FOREIGN KEY bookings_user_id_foreign');
+            DB::statement('ALTER TABLE bookings MODIFY user_id BIGINT UNSIGNED NULL');
+            DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL');
+        } elseif ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_user_id_foreign');
+            DB::statement('ALTER TABLE bookings ALTER COLUMN user_id TYPE bigint');
+            DB::statement('ALTER TABLE bookings ALTER COLUMN user_id DROP NOT NULL');
+            DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE SET NULL');
+        } else {
+            Schema::table('bookings', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable()->change();
+            });
+            Schema::table('bookings', function (Blueprint $table) {
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('set null');
+            });
+        }
 
         DB::table('bookings')
             ->whereNull('contact_name')
             ->update([
-                'contact_name' => DB::raw('COALESCE(contact_name, "Guest")'),
-                'contact_email' => DB::raw('COALESCE(contact_email, "guest@villaestella.test")'),
-                'contact_phone' => DB::raw('COALESCE(contact_phone, "+63 900 000 0000")'),
+                'contact_name' => DB::raw("COALESCE(contact_name, 'Guest')"),
+                'contact_email' => DB::raw("COALESCE(contact_email, 'guest@villaestella.test')"),
+                'contact_phone' => DB::raw("COALESCE(contact_phone, '+63 900 000 0000')"),
             ]);
     }
 
     public function down(): void
     {
-        DB::statement('ALTER TABLE bookings DROP FOREIGN KEY bookings_user_id_foreign');
-        DB::statement('ALTER TABLE bookings MODIFY user_id BIGINT UNSIGNED NOT NULL');
-        DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE');
+        $driver = DB::getDriverName();
+
+        if ($driver === 'mysql') {
+            DB::statement('ALTER TABLE bookings DROP FOREIGN KEY bookings_user_id_foreign');
+            DB::statement('ALTER TABLE bookings MODIFY user_id BIGINT UNSIGNED NOT NULL');
+            DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE');
+        } elseif ($driver === 'pgsql') {
+            DB::statement('ALTER TABLE bookings DROP CONSTRAINT IF EXISTS bookings_user_id_foreign');
+            DB::statement('ALTER TABLE bookings ALTER COLUMN user_id TYPE bigint');
+            DB::statement('ALTER TABLE bookings ALTER COLUMN user_id SET NOT NULL');
+            DB::statement('ALTER TABLE bookings ADD CONSTRAINT bookings_user_id_foreign FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE');
+        } else {
+            Schema::table('bookings', function (Blueprint $table) {
+                $table->unsignedBigInteger('user_id')->nullable(false)->change();
+            });
+            Schema::table('bookings', function (Blueprint $table) {
+                $table->foreign('user_id')->references('id')->on('users')->onDelete('cascade');
+            });
+        }
 
         Schema::table('bookings', function (Blueprint $table) {
             $table->dropColumn(['contact_name', 'contact_email', 'contact_phone']);
