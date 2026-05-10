@@ -28,6 +28,51 @@ window.VillaLoader = {
     fetch: (...args) => originalFetch(...args),
 };
 
+// Provide a helper to fetch without triggering the global loader
+window.fetchWithoutLoader = (...args) => originalFetch(...args);
+
+// AJAX calendar navigation: intercept clicks on calendar nav links, fetch fragment,
+// and replace the `#room-calendar` container without showing the full-page loader.
+document.addEventListener('click', (event) => {
+    const ajaxLink = event.target.closest('a.ajax-calendar-nav');
+    if (!ajaxLink) return;
+    event.preventDefault();
+
+    const url = ajaxLink.href;
+    const transport = window.fetchWithoutLoader || originalFetch;
+
+    transport(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(resp => resp.text())
+        .then(html => {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const newCal = doc.querySelector('#room-calendar');
+                const curCal = document.querySelector('#room-calendar');
+                if (newCal && curCal) {
+                    curCal.innerHTML = newCal.innerHTML;
+
+                    // Execute any inline scripts inside the new calendar fragment
+                    newCal.querySelectorAll('script').forEach(s => {
+                        const script = document.createElement('script');
+                        if (s.src) {
+                            script.src = s.src;
+                            script.async = false;
+                            document.head.appendChild(script);
+                        } else {
+                            script.textContent = s.textContent;
+                            document.body.appendChild(script);
+                            document.body.removeChild(script);
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to replace calendar fragment', err);
+            }
+        })
+        .catch(err => console.error(err));
+});
+
 window.addEventListener('load', () => {
     if (pendingFetchCount === 0) {
         completeGlobalLoader();

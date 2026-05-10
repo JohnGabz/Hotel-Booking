@@ -118,9 +118,9 @@
                         <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month at a glance to see when this room is open, occupied, or outside the selected month.</p>
                     </div>
                     <div class="flex items-center gap-2">
-                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
+                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
                         <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
-                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
+                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
                     </div>
                 </div>
 
@@ -134,7 +134,7 @@
                     <span>Sun</span>
                 </div>
 
-                <div class="mt-3 grid grid-cols-7 gap-2">
+                <div id="room-calendar" class="mt-3 grid grid-cols-7 gap-2">
                     @foreach ($calendar['weeks'] as $week)
                         @foreach ($week as $day)
                             @php

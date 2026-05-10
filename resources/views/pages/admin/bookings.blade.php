@@ -63,9 +63,9 @@
 
                 @if ($selectedRoom && $calendar)
                     <div class="mt-5 flex items-center justify-between gap-2">
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
                         <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
                     </div>
 
                     <div class="mt-5 grid grid-cols-7 gap-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-stone-400 sm:text-xs">
@@ -78,7 +78,7 @@
                         <span>Sun</span>
                     </div>
 
-                    <div class="mt-3 grid grid-cols-7 gap-2">
+                    <div id="room-calendar" class="mt-3 grid grid-cols-7 gap-2">
                         @foreach ($calendar['weeks'] as $week)
                             @foreach ($week as $day)
                                 @php
