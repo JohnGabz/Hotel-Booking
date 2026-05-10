@@ -1,4 +1,4 @@
-FROM php:8.2-fpm
+FROM php:8.3-fpm
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install \
     pdo_pgsql pdo_mysql mbstring zip exif pcntl bcmath intl gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+# Composer prefers a clean worktree; keep the local vendor tree out of the image.
+ENV COMPOSER_ALLOW_SUPERUSER=1
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -17,11 +20,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
 
 WORKDIR /var/www/html
 
-# Copy application files
+# Install PHP dependencies
+COPY composer.json composer.lock ./
+RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist --no-scripts
+
+# Copy the rest of the application after dependencies are installed.
 COPY . /var/www/html
 
-# Install PHP dependencies
-RUN composer install --no-dev --optimize-autoloader --no-interaction --prefer-dist
+# Let Laravel finish its Composer hooks once the app code is present.
+RUN composer dump-autoload --optimize && php artisan package:discover --ansi
 
 # Install and build frontend assets
 RUN npm ci && npm run build

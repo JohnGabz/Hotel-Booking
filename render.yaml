@@ -15,30 +15,22 @@ services:
         value: Villa Estella
       - key: MAIL_FROM_NAME
         value: Villa Estella
-      # Neon PostgreSQL connection
+      # Neon PostgreSQL connection. Fill these in Render's Environment tab.
       - key: DB_CONNECTION
         value: pgsql
       - key: DB_HOST
-        fromDatabase:
-          name: villa-estella-db
-          property: host
+        value: your-neon-host.neon.tech
       - key: DB_PORT
-        fromDatabase:
-          name: villa-estella-db
-          property: port
+        value: "5432"
       - key: DB_DATABASE
-        fromDatabase:
-          name: villa-estella-db
-          property: database
+        value: villa_estella
       - key: DB_USERNAME
-        fromDatabase:
-          name: villa-estella-db
-          property: user
+        value: your_neon_user
       - key: DB_PASSWORD
-        fromDatabase:
-          name: villa-estella-db
-          property: password
-      # Add these as environment variables (not secrets) if needed
+        value: your_neon_password
+      - key: DB_SSLMODE
+        value: require
+      # Add these as environment variables if needed
       - key: SESSION_DRIVER
         value: database
       - key: QUEUE_CONNECTION
@@ -47,16 +39,3 @@ services:
         value: database
       - key: FILESYSTEM_DISK
         value: local
-
-databases:
-  - name: villa-estella-db
-    # Note: Render's managed Postgres is ~$7/month on starter plan
-    # For FREE tier, use Neon instead (see instructions below)
-    # Uncomment the lines below if you want to use Render's managed database:
-    # databaseEngine: postgresql
-    # version: "15"
-    # plan: starter
-    # postgresSQLVersion: "15"
-    # ipAllowList:
-    #   - source: "%"
-    #     description: "Allow all"
