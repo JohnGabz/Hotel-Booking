@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: villa-estella
+    name: villa-estela
     env: docker
     dockerfilePath: ./Dockerfile
     plan: free
@@ -16,7 +16,7 @@ services:
       - key: APP_URL
         sync: false
       - key: APP_NAME
-        value: Villa Estella
+        value: Villa Estela
       - key: MAIL_FROM_NAME
         value: Villa Estella
       - key: LOG_LEVEL
