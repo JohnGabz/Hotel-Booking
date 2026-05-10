@@ -11,15 +11,6 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'home'])->name('home');
 
-// Temporary route to run migrations (REMOVE AFTER SETUP)
-Route::get('/setup-db', function () {
-    if (app()->environment('production')) {
-        \Artisan::call('migrate:fresh --force --seed');
-        return 'Migrations completed! Tables created and seeded.';
-    }
-    return 'Setup only works in production.';
-});
-
 Route::get('/about', [PageController::class, 'about'])->name('about');
 Route::get('/services', [PageController::class, 'services'])->name('services');
 Route::get('/faqs', [PageController::class, 'faqs'])->name('faqs');
