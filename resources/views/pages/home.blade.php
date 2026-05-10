@@ -90,7 +90,18 @@
     $ctaBody = $content['cta_body'] ?? 'Browse our curated collection of rooms, compare amenities, and complete your booking with instant confirmation. Experience luxury at Villa Estella today.';
     $ctaButtonText = $content['cta_button_text'] ?? 'Explore All Rooms';
 
-    $heroBackground = $heroBackground ?? ($content['hero_background_image'] ?? 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80');
+    $rawHero = $heroBackground ?? ($content['hero_background_image'] ?? '');
+
+    if (filter_var($rawHero, FILTER_VALIDATE_URL)) {
+        $heroBackground = $rawHero;
+    } elseif (filled($rawHero)) {
+        $candidate = ltrim($rawHero, '/');
+        $heroBackground = str_starts_with($candidate, 'storage/')
+            ? asset($candidate)
+            : asset('storage/' . $candidate);
+    } else {
+        $heroBackground = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80';
+    }
 @endphp
 
 <!-- Hero Section -->
