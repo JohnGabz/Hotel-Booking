@@ -56,7 +56,7 @@
                 ['key' => 'about_heading', 'label' => 'Heading', 'span' => 'xl:col-span-2'],
                 ['key' => 'about_body', 'label' => 'Body', 'type' => 'textarea', 'rows' => 4, 'span' => 'xl:col-span-2'],
                 ['key' => 'about_secondary', 'label' => 'Secondary body', 'type' => 'textarea', 'rows' => 3, 'span' => 'xl:col-span-2'],
-                ['key' => 'about_image', 'label' => 'Image URL', 'span' => 'xl:col-span-2'],
+                ['key' => 'about_image', 'label' => 'Image', 'span' => 'xl:col-span-2'],
             ],
         ],
         [
@@ -74,17 +74,17 @@
         ],
         [
             'title' => 'Gallery',
-            'description' => 'The gallery heading and six image URLs used in the masonry grid.',
+            'description' => 'The gallery heading and six images used in the masonry grid.',
             'fields' => [
                 ['key' => 'gallery_eyebrow', 'label' => 'Eyebrow'],
                 ['key' => 'gallery_title', 'label' => 'Title', 'span' => 'xl:col-span-2'],
                 ['key' => 'gallery_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_1', 'label' => 'Image 1 URL', 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_2', 'label' => 'Image 2 URL', 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_3', 'label' => 'Image 3 URL', 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_4', 'label' => 'Image 4 URL', 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_5', 'label' => 'Image 5 URL', 'span' => 'xl:col-span-2'],
-                ['key' => 'gallery_image_6', 'label' => 'Image 6 URL', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_1', 'label' => 'Image 1', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_2', 'label' => 'Image 2', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_3', 'label' => 'Image 3', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_4', 'label' => 'Image 4', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_5', 'label' => 'Image 5', 'span' => 'xl:col-span-2'],
+                ['key' => 'gallery_image_6', 'label' => 'Image 6', 'span' => 'xl:col-span-2'],
             ],
         ],
         [
@@ -205,6 +205,21 @@
                                     <label class="form-label" for="{{ $field['key'] }}">{{ $field['label'] }}</label>
                                     @if (($field['type'] ?? 'text') === 'textarea')
                                         <textarea id="{{ $field['key'] }}" name="{{ $field['key'] }}" rows="{{ $field['rows'] ?? 3 }}" class="form-input">{{ old($field['key'], $siteContent[$field['key']] ?? '') }}</textarea>
+                                    @elseif(str_contains($field['key'], 'image'))
+                                        @php
+                                            $current = $siteContent[$field['key']] ?? '';
+                                            $preview = str_starts_with($current, 'http://') || str_starts_with($current, 'https://')
+                                                ? $current
+                                                : (filled($current) ? (str_starts_with(ltrim($current, '/'), 'storage/') ? asset(ltrim($current, '/')) : asset('storage/' . ltrim($current, '/'))) : '');
+                                        @endphp
+                                        <input id="{{ $field['key'] }}_upload" name="{{ $field['key'] }}_upload" type="file" accept="image/*" class="form-input pt-2">
+                                        @if($preview)
+                                            <div class="mt-3">
+                                                <img src="{{ $preview }}" alt="{{ $field['label'] }}" class="h-40 w-full object-cover rounded-2xl border border-stone-200">
+                                            </div>
+                                        @else
+                                            <p class="mt-2 text-sm text-stone-500">No image uploaded yet.</p>
+                                        @endif
                                     @else
                                         <input id="{{ $field['key'] }}" name="{{ $field['key'] }}" class="form-input" value="{{ old($field['key'], $siteContent[$field['key']] ?? '') }}">
                                     @endif

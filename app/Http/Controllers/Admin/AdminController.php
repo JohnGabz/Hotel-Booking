@@ -384,21 +384,46 @@ class AdminController extends Controller
         foreach (array_keys(SiteContent::landingPageDefaults()) as $key) {
             $rules[$key] = match (true) {
                 str_contains($key, 'email') => 'nullable|email|max:150',
-                str_contains($key, 'url') || str_contains($key, 'image') => 'nullable|string|max:2048',
+                str_contains($key, 'url') => 'nullable|string|max:2048',
+                str_contains($key, 'image') => 'nullable|string|max:2048',
                 str_contains($key, 'body'), str_contains($key, 'intro'), str_contains($key, 'quote') => 'nullable|string|max:3000',
                 default => 'nullable|string|max:500',
             };
         }
 
+        // Allow file uploads for any site-content image fields using the convention: {key}_upload
+        // Add validation rules for *_upload fields
+        foreach (array_keys(SiteContent::landingPageDefaults()) as $key) {
+            if (str_contains($key, 'image')) {
+                $rules[$key . '_upload'] = 'nullable|image|max:5120';
+            }
+        }
+
         $validated = $request->validate($rules);
 
+        // Handle hero background upload (existing behaviour)
         if ($request->hasFile('hero_background_upload')) {
             $path = $request->file('hero_background_upload')->storePublicly('site-content', 'public');
             $validated['hero_background_image'] = $path;
         }
 
+        // Generic image upload handling: for any SiteContent key containing 'image', accept a file named {key}_upload
+        foreach (array_keys(SiteContent::landingPageDefaults()) as $key) {
+            if (! str_contains($key, 'image')) {
+                continue;
+            }
+
+            $uploadField = $key . '_upload';
+            if ($request->hasFile($uploadField)) {
+                $path = $request->file($uploadField)->storePublicly('site-content', 'public');
+                // override the logical image value to the stored path
+                $validated[$key] = $path;
+            }
+        }
+
+        // Persist validated values (skip upload fields)
         foreach ($validated as $key => $value) {
-            if ($key === 'hero_background_upload') {
+            if (str_ends_with($key, '_upload')) {
                 continue;
             }
 
