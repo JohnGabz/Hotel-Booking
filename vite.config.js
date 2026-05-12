@@ -12,7 +12,6 @@ export default defineConfig({
     ],
     build: {
         sourcemap: false,
-        minify: 'terser',
     },
     server: {
         watch: {
