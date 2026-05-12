@@ -112,55 +112,99 @@
 
         <div class="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <section class="surface p-6 sm:p-8">
-                <div class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-                    <div>
-                        <span class="eyebrow">Booking calendar</span>
-                        <h2 class="mt-4 text-3xl font-semibold text-stone-950">Open and occupied dates</h2>
-                        <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month at a glance to see when this room is open, occupied, or outside the selected month.</p>
+                <div
+                    id="room-calendar"
+                    class="room-calendar-shell"
+                    data-calendar-swipe
+                    data-calendar-prev-url="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}"
+                    data-calendar-next-url="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}"
+                >
+                    <div class="room-calendar-header">
+                        <div>
+                            <span class="eyebrow">Booking calendar</span>
+                            <h2 class="mt-4 text-3xl font-semibold text-stone-950">Open and occupied dates</h2>
+                            <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month to see when this room is open, occupied, unavailable, or outside the selected month.</p>
+                        </div>
+                        <div class="room-calendar-nav">
+                            <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-3 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
+                            <span class="room-calendar-month">{{ $calendar['label'] }}</span>
+                            <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-3 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
-                        <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
-                        <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
-                    </div>
-                </div>
 
-                <div class="mt-6 grid grid-cols-7 gap-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-stone-400 sm:text-xs">
-                    <span>Mon</span>
-                    <span>Tue</span>
-                    <span>Wed</span>
-                    <span>Thu</span>
-                    <span>Fri</span>
-                    <span>Sat</span>
-                    <span>Sun</span>
-                </div>
-
-                <div id="room-calendar" class="mt-3 grid grid-cols-7 gap-2">
-                        <div class="overflow-x-auto">
-                            <div class="min-w-[560px] md:min-w-0">
-                                @foreach ($calendar['weeks'] as $week)
-                        @foreach ($week as $day)
-                            @php
-                                $cellClasses = match ($day['status']) {
-                                    'open' => 'border-emerald-200 bg-emerald-50 text-emerald-700',
-                                    'occupied' => 'border-rose-200 bg-rose-50 text-rose-700',
-                                    'unavailable' => 'border-slate-300 bg-slate-100 text-slate-500 cursor-not-allowed',
-                                    'past' => 'border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed',
-                                    default => 'border-stone-200 bg-stone-100 text-stone-400',
-                                };
-                            @endphp
-                            <div class="min-h-24 rounded-2xl border p-3 transition calendar-day {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-45' }}" data-date="{{ $day['date']->format('Y-m-d') }}" data-status="{{ $day['status'] }}" data-current-month="{{ $day['isCurrentMonth'] ? '1' : '0' }}">
-                                <div class="flex items-start justify-between gap-2">
-                                    <span class="text-sm font-semibold">{{ $day['date']->format('j') }}</span>
-                                    @if ($day['isToday'])
-                                        <span class="text-xs font-semibold uppercase">Today</span>
-                                    @endif
-                                </div>
+                    <div class="room-calendar-scroll">
+                        <div class="room-calendar-track">
+                            <div class="room-calendar-weekdays" role="presentation" aria-hidden="true">
+                                <span>Mon</span>
+                                <span>Tue</span>
+                                <span>Wed</span>
+                                <span>Thu</span>
+                                <span>Fri</span>
+                                <span>Sat</span>
+                                <span>Sun</span>
                             </div>
-                        @endforeach
-                    @endforeach
+
+                            <div class="room-calendar-grid" role="grid" aria-label="Room booking calendar">
+                                @foreach ($calendar['weeks'] as $week)
+                                    @foreach ($week as $day)
+                                        @php
+                                            $cellClasses = match ($day['status']) {
+                                                'open' => 'border-[#B57D59]/40 bg-[#B57D59]/12 text-[#7D4D2D]',
+                                                'occupied' => 'border-[#B6424F]/45 bg-[#B6424F]/12 text-[#8F3340]',
+                                                'unavailable' => 'border-[#9FAAAC]/45 bg-[#9FAAAC]/18 text-[#56656A]',
+                                                'past' => 'border-[#989B88]/45 bg-[#989B88]/18 text-[#6D715F]',
+                                                default => 'border-stone-300 bg-stone-100 text-stone-500',
+                                            };
+
+                                            $statusDotClasses = match ($day['status']) {
+                                                'open' => 'bg-[#B57D59]',
+                                                'occupied' => 'bg-[#B6424F]',
+                                                'unavailable' => 'bg-[#9FAAAC]',
+                                                'past' => 'bg-[#989B88]',
+                                                default => 'bg-stone-400',
+                                            };
+
+                                            $statusLabel = match ($day['status']) {
+                                                'open' => 'Open',
+                                                'occupied' => 'Occupied',
+                                                'unavailable' => 'Unavailable',
+                                                'past' => 'Past',
+                                                default => 'Other month',
+                                            };
+                                        @endphp
+                                        <button
+                                            type="button"
+                                            class="room-calendar-cell {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-[#B6424F] ring-offset-1 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-50' }}"
+                                            data-calendar-day
+                                            data-date="{{ $day['date']->format('Y-m-d') }}"
+                                            data-status="{{ $day['status'] }}"
+                                            data-current-month="{{ $day['isCurrentMonth'] ? '1' : '0' }}"
+                                            data-selectable="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? '1' : '0' }}"
+                                            role="gridcell"
+                                            aria-label="{{ $day['date']->format('F j, Y') }} - {{ $statusLabel }}"
+                                            aria-disabled="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? 'false' : 'true' }}"
+                                        >
+                                            <div class="room-calendar-cell-top">
+                                                <span class="room-calendar-day-number">{{ $day['date']->format('j') }}</span>
+                                                @if ($day['isToday'])
+                                                    <span class="room-calendar-today">Today</span>
+                                                @endif
+                                            </div>
+                                            <div class="room-calendar-cell-status">
+                                                <span class="room-calendar-status-dot {{ $statusDotClasses }}" aria-hidden="true"></span>
+                                                <span class="room-calendar-status-label">{{ $statusLabel }}</span>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                @endforeach
                             </div>
                         </div>
+                    </div>
+                </div>
+
+                <div id="calendar-selected-bar" class="calendar-selected-bar hidden" aria-live="polite">
+                    <p class="text-sm font-semibold text-stone-900">Selected date: <span id="calendar-selected-date">None</span></p>
+                    <p class="text-xs text-stone-600">Choose an open date to start booking.</p>
                 </div>
             </section>
 

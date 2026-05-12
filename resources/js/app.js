@@ -3,6 +3,7 @@ const globalLoader = document.getElementById('global-loader');
 
 let loaderCompletionTimer = null;
 let pendingFetchCount = 0;
+const originalFetch = window.fetch.bind(window);
 
 function showGlobalLoader() {
     if (!globalLoader) return;
@@ -31,46 +32,135 @@ window.VillaLoader = {
 // Provide a helper to fetch without triggering the global loader
 window.fetchWithoutLoader = (...args) => originalFetch(...args);
 
-// AJAX calendar navigation: intercept clicks on calendar nav links, fetch fragment,
-// and replace the `#room-calendar` container without showing the full-page loader.
+let calendarTouchStartX = null;
+let calendarTouchStartY = null;
+let selectedCalendarDate = null;
+
+function updateSelectedDateBar(dateString) {
+    const selectedBar = document.getElementById('calendar-selected-bar');
+    const selectedDateLabel = document.getElementById('calendar-selected-date');
+    if (!selectedBar || !selectedDateLabel) return;
+
+    if (!dateString) {
+        selectedDateLabel.textContent = 'None';
+        selectedBar.classList.add('hidden');
+        return;
+    }
+
+    const parsed = new Date(`${dateString}T00:00:00`);
+    const formatted = Number.isNaN(parsed.getTime())
+        ? dateString
+        : parsed.toLocaleDateString(undefined, {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+        });
+
+    selectedDateLabel.textContent = formatted;
+    selectedBar.classList.remove('hidden');
+}
+
+function applyCalendarSelection() {
+    document.querySelectorAll('[data-calendar-day]').forEach((dayEl) => {
+        const isSelected = selectedCalendarDate && dayEl.getAttribute('data-date') === selectedCalendarDate;
+        dayEl.classList.toggle('is-selected', Boolean(isSelected));
+        dayEl.setAttribute('aria-selected', isSelected ? 'true' : 'false');
+    });
+
+    updateSelectedDateBar(selectedCalendarDate);
+}
+
+function replaceCalendarFromHtml(html) {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    const newCal = doc.querySelector('#room-calendar');
+    const curCal = document.querySelector('#room-calendar');
+    if (!newCal || !curCal) return false;
+
+    curCal.replaceWith(newCal);
+    newCal.classList.add('calendar-anim-enter');
+    window.setTimeout(() => newCal.classList.remove('calendar-anim-enter'), 280);
+
+    // Reset selection when month changes and keep UI states in sync.
+    selectedCalendarDate = null;
+    applyCalendarSelection();
+    return true;
+}
+
+function loadCalendar(url, pushHistory = true) {
+    const transport = window.fetchWithoutLoader || originalFetch;
+    return transport(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        .then(resp => resp.text())
+        .then(html => {
+            const replaced = replaceCalendarFromHtml(html);
+            if (replaced && pushHistory) {
+                window.history.pushState({}, '', url);
+            }
+            return replaced;
+        })
+        .catch(err => {
+            console.error('Failed to load calendar', err);
+            return false;
+        });
+}
+
+// AJAX calendar navigation: intercept clicks and replace full calendar shell.
 document.addEventListener('click', (event) => {
     const ajaxLink = event.target.closest('a.ajax-calendar-nav');
     if (!ajaxLink) return;
     event.preventDefault();
+    loadCalendar(ajaxLink.href, true);
+});
 
-    const url = ajaxLink.href;
-    const transport = window.fetchWithoutLoader || originalFetch;
+// Select open dates with clear, persistent highlighting.
+document.addEventListener('click', (event) => {
+    const dayEl = event.target.closest('[data-calendar-day]');
+    if (!dayEl) return;
 
-    transport(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-        .then(resp => resp.text())
-        .then(html => {
-            try {
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-                const newCal = doc.querySelector('#room-calendar');
-                const curCal = document.querySelector('#room-calendar');
-                if (newCal && curCal) {
-                    curCal.innerHTML = newCal.innerHTML;
+    if (dayEl.getAttribute('data-selectable') !== '1') {
+        return;
+    }
 
-                    // Execute any inline scripts inside the new calendar fragment
-                    newCal.querySelectorAll('script').forEach(s => {
-                        const script = document.createElement('script');
-                        if (s.src) {
-                            script.src = s.src;
-                            script.async = false;
-                            document.head.appendChild(script);
-                        } else {
-                            script.textContent = s.textContent;
-                            document.body.appendChild(script);
-                            document.body.removeChild(script);
-                        }
-                    });
-                }
-            } catch (err) {
-                console.error('Failed to replace calendar fragment', err);
-            }
-        })
-        .catch(err => console.error(err));
+    selectedCalendarDate = dayEl.getAttribute('data-date');
+    applyCalendarSelection();
+});
+
+// Swipe gesture support for mobile month navigation.
+document.addEventListener('touchstart', (event) => {
+    const shell = event.target.closest('[data-calendar-swipe]');
+    if (!shell || !event.touches[0]) return;
+    calendarTouchStartX = event.touches[0].clientX;
+    calendarTouchStartY = event.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchend', (event) => {
+    const shell = event.target.closest('[data-calendar-swipe]');
+    if (!shell || calendarTouchStartX === null || calendarTouchStartY === null || !event.changedTouches[0]) {
+        calendarTouchStartX = null;
+        calendarTouchStartY = null;
+        return;
+    }
+
+    const dx = event.changedTouches[0].clientX - calendarTouchStartX;
+    const dy = event.changedTouches[0].clientY - calendarTouchStartY;
+    calendarTouchStartX = null;
+    calendarTouchStartY = null;
+
+    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy)) return;
+
+    const targetUrl = dx > 0
+        ? shell.getAttribute('data-calendar-prev-url')
+        : shell.getAttribute('data-calendar-next-url');
+
+    if (targetUrl) {
+        loadCalendar(targetUrl, true);
+    }
+}, { passive: true });
+
+window.addEventListener('popstate', () => {
+    const path = `${window.location.pathname}${window.location.search}`;
+    loadCalendar(path, false);
 });
 
 window.addEventListener('load', () => {
@@ -84,8 +174,6 @@ window.addEventListener('pageshow', (event) => {
         completeGlobalLoader();
     }
 });
-
-const originalFetch = window.fetch.bind(window);
 
 window.fetch = async (...args) => {
     pendingFetchCount += 1;
