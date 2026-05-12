@@ -26,6 +26,7 @@
         <div
             id="room-availability-meta"
             data-availability-url="{{ route('rooms.availability', $room) }}"
+            data-form-enabled="{{ $room->status === 'available' ? '1' : '0' }}"
         >
         </div>
 

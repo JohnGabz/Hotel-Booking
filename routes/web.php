@@ -76,5 +76,5 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// Webhook endpoint for payment provider(s)
-Route::post('/webhooks/paymongo', [App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhooks.paymongo');
+// Webhook endpoint for Xendit payment updates
+Route::post('/webhooks/xendit', [App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhooks.xendit');

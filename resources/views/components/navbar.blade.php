@@ -10,7 +10,10 @@
 
             <div class="hidden items-center gap-1 lg:flex">
                 @foreach (config('nav.main', []) as $item)
-                    <a href="{{ $item['url'] }}" class="nav-link">
+                    @php
+                        $isActive = request()->path() === trim($item['url'], '/') || (request()->path() === '/' && $item['url'] === '/');
+                    @endphp
+                    <a href="{{ $item['url'] }}" class="nav-link {{ $isActive ? 'text-brand-primary font-semibold border-b-2 border-brand-primary' : '' }}">
                         {{ $item['label'] }}
                     </a>
                 @endforeach
@@ -42,7 +45,10 @@
         <div id="mobile-menu" class="hidden border-t border-stone-200/70 pb-5 lg:hidden">
             <div class="grid gap-1 py-4">
                 @foreach (config('nav.main', []) as $item)
-                    <a href="{{ $item['url'] }}" class="rounded-2xl px-4 py-3 text-sm font-medium text-stone-700 transition hover:bg-stone-100 hover:text-stone-950">
+                    @php
+                        $isActive = request()->path() === trim($item['url'], '/') || (request()->path() === '/' && $item['url'] === '/');
+                    @endphp
+                    <a href="{{ $item['url'] }}" class="rounded-2xl px-4 py-3 text-sm font-medium transition {{ $isActive ? 'bg-brand-primary text-white font-semibold' : 'text-stone-700 hover:bg-stone-100 hover:text-stone-950' }}">
                         {{ $item['label'] }}
                     </a>
                 @endforeach

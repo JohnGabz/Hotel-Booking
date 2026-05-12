@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Http;
@@ -17,90 +18,92 @@ class PaymentController extends Controller
             abort(403);
         }
 
-        $provider = env('PAYMENT_PROVIDER', 'paymongo');
-        if ($provider !== 'paymongo') {
-            return back()->with('error', 'No payment provider configured.');
+        $apiKey = config('services.xendit.key');
+        if (! $apiKey) {
+            return back()->with('error', 'Xendit API key not configured in .env');
         }
 
-        $secret = env('PAYMONGO_SECRET');
-        if (! $secret) {
-            return back()->with('error', 'PayMongo secret not configured in .env');
-        }
-
-        // Amount in centavos
         $amount = (int) round($booking->total * 100);
+        $externalId = 'villa-estela-booking-' . $booking->id;
 
         $payload = [
-            'data' => [
-                'attributes' => [
-                    'amount' => $amount,
-                    'currency' => 'PHP',
-                    'description' => 'Booking #' . $booking->id . ' — ' . $booking->room->name,
-                    'redirect' => [
-                        'success' => route('dashboard'),
-                        'failed' => route('dashboard'),
-                    ],
-                    'metadata' => [
-                        'booking_id' => $booking->id,
-                    ],
-                ],
+            'external_id' => $externalId,
+            'amount' => $amount,
+            'currency' => 'PHP',
+            'description' => 'Booking #' . $booking->id . ' - ' . $booking->room->name,
+            'invoice_duration' => 86400,
+            'success_redirect_url' => route('dashboard'),
+            'failure_redirect_url' => route('dashboard'),
+            'customer' => [
+                'given_names' => $booking->contact_name,
+                'email' => $booking->contact_email,
+                'mobile_number' => $booking->contact_phone,
             ],
         ];
 
         try {
-            $response = Http::withBasicAuth($secret, '')
-                ->post('https://api.paymongo.com/v1/payment_links', $payload);
+            $response = Http::withBasicAuth($apiKey, '')
+                ->acceptJson()
+                ->post('https://api.xendit.co/invoices', $payload);
 
             if (! $response->successful()) {
-                Log::error('PayMongo create payment link failed', ['resp' => $response->body()]);
+                Log::error('Xendit create invoice failed', ['resp' => $response->body()]);
                 return back()->with('error', 'Could not create payment session. Try uploading a payment proof instead.');
             }
 
-            $data = $response->json('data.attributes');
-            $checkoutUrl = $data['checkout_url'] ?? ($data['checkout_url'] ?? null);
+            $data = $response->json();
+            $checkoutUrl = data_get($data, 'invoice_url');
+            $invoiceId = data_get($data, 'id');
 
             if (! $checkoutUrl) {
-                Log::error('PayMongo missing checkout_url', ['resp' => $response->body()]);
+                Log::error('Xendit missing invoice_url', ['resp' => $response->body()]);
                 return back()->with('error', 'Payment gateway did not return a checkout URL.');
             }
 
-            // mark booking as pending payment link created
             $booking->update([
                 'payment_status' => 'pending',
+                'payment_reference' => $invoiceId ?: $externalId,
             ]);
 
             return redirect($checkoutUrl);
         } catch (\Exception $e) {
-            Log::error('PayMongo exception', ['message' => $e->getMessage()]);
+            Log::error('Xendit exception', ['message' => $e->getMessage()]);
             return back()->with('error', 'Payment creation failed: ' . $e->getMessage());
         }
     }
 
-    // Webhook endpoint for PayMongo
-    public function webhook(Request $request)
+    public function webhook(Request $request): JsonResponse
     {
+        $expectedToken = config('services.xendit.webhook_token');
+        if ($expectedToken && $request->header('X-Callback-Token') !== $expectedToken) {
+            return response()->json(['status' => 'unauthorized'], 401);
+        }
+
         $payload = $request->all();
 
-        // Try to extract booking ID from metadata
-        $bookingId = data_get($payload, 'data.attributes.metadata.booking_id') ?? data_get($payload, 'data.metadata.booking_id');
+        $externalId = data_get($payload, 'external_id')
+            ?? data_get($payload, 'data.external_id')
+            ?? data_get($payload, 'invoice.external_id');
+        $status = data_get($payload, 'status') ?? data_get($payload, 'data.status');
+        $eventType = data_get($payload, 'event') ?? data_get($payload, 'type');
 
-        // event name could be in 'type' or nested
-        $eventType = data_get($payload, 'type') ?? data_get($payload, 'data.type');
+        Log::info('Xendit webhook received', [
+            'event' => $eventType,
+            'status' => $status,
+            'external_id' => $externalId,
+        ]);
 
-        Log::info('PayMongo webhook received', ['type' => $eventType, 'booking_id' => $bookingId]);
-
-        if (! $bookingId) {
+        if (! $externalId) {
             return response()->json(['status' => 'ignored']);
         }
 
+        $bookingId = (int) preg_replace('/^villa-estela-booking-/', '', (string) $externalId);
         $booking = Booking::find($bookingId);
         if (! $booking) {
             return response()->json(['status' => 'not_found'], 404);
         }
 
-        // Handle a generic paid event: set booking paid
-        // Different providers use different event names; accept common keywords
-        if (str_contains((string) $eventType, 'paid') || data_get($payload, 'data.attributes.status') === 'paid') {
+        if ($status === 'PAID' || $status === 'paid' || str_contains(strtolower((string) $eventType), 'paid')) {
             $booking->update([
                 'payment_status' => 'paid',
                 'paid_at' => now(),

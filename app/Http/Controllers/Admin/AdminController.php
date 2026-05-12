@@ -83,7 +83,7 @@ class AdminController extends Controller
         ]);
 
         $imagePaths = collect($request->file('images', []))
-            ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+            ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
             ->values()
             ->all();
 
