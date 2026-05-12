@@ -78,14 +78,34 @@ class AdminController extends Controller
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
             'amenities' => 'nullable|string|max:3000',
-            'images' => 'required|array|min:1',
+            'images' => 'nullable|array|min:1',
             'images.*' => 'image|max:5120',
+            'image_links' => 'nullable|string|max:5000',
         ]);
 
-        $imagePaths = collect($request->file('images', []))
-            ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
-            ->values()
-            ->all();
+        $imagePaths = [];
+
+        // Handle file uploads
+        if ($request->hasFile('images') && $request->file('images')) {
+            $imagePaths = collect($request->file('images', []))
+                ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
+                ->values()
+                ->all();
+        }
+
+        // Handle image URLs
+        if ($request->filled('image_links')) {
+            $imageLinks = collect(explode("\n", $validated['image_links'] ?? ''))
+                ->map(fn ($url) => trim($url))
+                ->filter(fn ($url) => $url && filter_var($url, FILTER_VALIDATE_URL))
+                ->values()
+                ->all();
+            $imagePaths = array_merge($imagePaths, $imageLinks);
+        }
+
+        if (empty($imagePaths)) {
+            return redirect()->back()->withErrors(['images' => 'At least one image is required (upload or link).']);
+        }
 
         Room::create([
             'name' => $validated['name'],
@@ -305,19 +325,40 @@ class AdminController extends Controller
             'amenities' => 'nullable|string|max:3000',
             'images' => 'nullable|array',
             'images.*' => 'image|max:5120',
+            'image_links' => 'nullable|string|max:5000',
         ]);
 
-        $images = $room->images ?? [];
+        $images = [];
 
-        if ($request->hasFile('images')) {
-            foreach ($images as $existingImage) {
-                Storage::disk('public')->delete($existingImage);
+        // Handle file uploads
+        if ($request->hasFile('images') && $request->file('images')) {
+            // Delete old uploaded images (those starting with 'rooms/')
+            foreach (($room->images ?? []) as $existingImage) {
+                if (str_starts_with($existingImage, 'rooms/') || !str_starts_with($existingImage, 'http')) {
+                    Storage::disk('public')->delete($existingImage);
+                }
             }
 
             $images = collect($request->file('images', []))
-                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+                ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
                 ->values()
                 ->all();
+        } else {
+            // Preserve existing uploaded images if no new uploads
+            $images = collect($room->images ?? [])
+                ->filter(fn ($image) => str_starts_with($image, 'http') || str_starts_with($image, 'rooms/'))
+                ->values()
+                ->all();
+        }
+
+        // Handle image URLs
+        if ($request->filled('image_links')) {
+            $imageLinks = collect(explode("\n", $validated['image_links'] ?? ''))
+                ->map(fn ($url) => trim($url))
+                ->filter(fn ($url) => $url && filter_var($url, FILTER_VALIDATE_URL))
+                ->values()
+                ->all();
+            $images = array_merge($images, $imageLinks);
         }
 
         $room->update([

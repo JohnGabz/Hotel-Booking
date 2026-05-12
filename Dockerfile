@@ -38,10 +38,10 @@ RUN mkdir -p /var/www/html/storage/framework/views && \
     mkdir -p /var/www/html/storage/framework/cache && \
     mkdir -p /var/www/html/storage/framework/sessions && \
     mkdir -p /var/www/html/storage/logs && \
+    mkdir -p /var/www/html/storage/app/public && \
     mkdir -p /var/www/html/bootstrap/cache && \
     chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap && \
-    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache && \
-        php artisan storage:link
+    chmod -R 775 /var/www/html/storage /var/www/html/bootstrap/cache
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \

@@ -186,9 +186,6 @@
                                         >
                                             <div class="room-calendar-cell-top">
                                                 <span class="room-calendar-day-number">{{ $day['date']->format('j') }}</span>
-                                                @if ($day['isToday'])
-                                                    <span class="room-calendar-today">Today</span>
-                                                @endif
                                             </div>
                                             <div class="room-calendar-cell-status">
                                                 <span class="room-calendar-status-dot {{ $statusDotClasses }}" aria-hidden="true"></span>

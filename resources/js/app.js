@@ -101,10 +101,7 @@ function loadCalendar(url, pushHistory = true) {
             }
             return replaced;
         })
-        .catch(err => {
-            console.error('Failed to load calendar', err);
-            return false;
-        });
+        .catch(() => false);
 }
 
 // AJAX calendar navigation: intercept clicks and replace full calendar shell.

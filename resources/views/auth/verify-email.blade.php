@@ -11,6 +11,13 @@
                     <p class="mt-4 text-sm text-slate-600">Please check your inbox and click the verification link before booking rooms or leaving reviews.</p>
                 </div>
 
+                @if ($errors->any())
+                    <div class="mb-6 rounded-lg bg-red-50 border border-red-200 p-4">
+                        <p class="text-sm text-red-700 font-semibold">Verification link error</p>
+                        <p class="text-sm text-red-600 mt-2">{{ $errors->first() ?? 'The verification link is invalid or has expired.' }}</p>
+                    </div>
+                @endif
+
                 <form action="{{ route('verification.send') }}" method="POST" class="space-y-4">
                     @csrf
                     <button type="submit" class="btn-primary w-full">Resend verification email</button>
