@@ -229,11 +229,11 @@
                         
                         <div class="flex items-center gap-4 mb-6 text-xs text-stone-500 font-medium">
                             <span class="flex items-center">
-                                <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292m0 0H8.646m3.354 0H16m-4 5.292v4" /></svg>
+                                <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20a3 3 0 00-3-3H10a3 3 0 00-3 3M12 12a4 4 0 100-8 4 4 0 000 8z"/></svg>
                                 {{ $room->capacity }} Guest{{ $room->capacity > 1 ? 's' : '' }}
                             </span>
                             <span class="flex items-center">
-                                <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+                                <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2"/></svg>
                                 {{ $room->size_sqm }}m²
                             </span>
                         </div>
@@ -387,7 +387,14 @@
         </div>
 
         <div class="grid md:grid-cols-2 gap-8 lg:gap-12 items-stretch">
-            <div class="scroll-animate-in-left">
+            <div class="col-span-full mb-6">
+                <div class="inline-flex rounded-lg bg-stone-100 p-1">
+                    <button type="button" class="px-4 py-2 rounded-lg font-medium text-stone-800" data-location-tab data-location-target="map" aria-pressed="true">Map</button>
+                    <button type="button" class="px-4 py-2 rounded-lg font-medium text-stone-600" data-location-tab data-location-target="details" aria-pressed="false">Details</button>
+                </div>
+            </div>
+
+            <div class="scroll-animate-in-left" data-location-panel="map">
                 <div class="relative rounded-2xl overflow-hidden shadow-2xl border border-stone-200 h-96 md:h-full min-h-96 hover:shadow-2xl transition-shadow duration-300">
                     <iframe
                         width="100%"
@@ -401,7 +408,7 @@
                 </div>
             </div>
 
-            <div class="scroll-animate-in-right flex flex-col justify-center bg-white rounded-2xl border border-stone-200 shadow-lg p-8 md:p-10">
+            <div class="scroll-animate-in-right flex flex-col justify-center bg-white rounded-2xl border border-stone-200 shadow-lg p-8 md:p-10" data-location-panel="details">
                 <div class="space-y-6">
                     <div class="group">
                         <div class="flex items-start gap-4 mb-3">

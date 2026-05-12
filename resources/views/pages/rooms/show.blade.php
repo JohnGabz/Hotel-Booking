@@ -136,7 +136,9 @@
                 </div>
 
                 <div id="room-calendar" class="mt-3 grid grid-cols-7 gap-2">
-                    @foreach ($calendar['weeks'] as $week)
+                        <div class="overflow-x-auto">
+                            <div class="min-w-[560px] md:min-w-0">
+                                @foreach ($calendar['weeks'] as $week)
                         @foreach ($week as $day)
                             @php
                                 $cellClasses = match ($day['status']) {
@@ -157,6 +159,8 @@
                             </div>
                         @endforeach
                     @endforeach
+                            </div>
+                        </div>
                 </div>
             </section>
 

@@ -12,13 +12,13 @@
 @endphp
 
 <div class="space-y-8">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <span class="eyebrow">Dashboard</span>
             <h1 class="mt-3 text-3xl font-bold text-stone-950 sm:text-4xl">Welcome back</h1>
             <p class="mt-2 text-sm text-stone-600">Monitor performance and manage operations at a glance</p>
         </div>
-        <a href="{{ route('admin.settings', ['tab' => 'landing']) }}" class="btn-secondary text-sm">Settings</a>
+        
     </div>
 
     <section class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">

@@ -378,3 +378,149 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
     });
 }
 
+// Global image fallback: replace broken images with a sensible default
+(() => {
+    const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505691723518-36a4cdbb1f2a?auto=format&fit=crop&w=1400&q=80';
+
+    // Use capture phase so we catch load errors from delegated images
+    document.addEventListener('error', (ev) => {
+        const el = ev.target;
+        if (!(el instanceof HTMLImageElement)) return;
+        if (el.dataset.fallbackApplied === '1') return;
+
+        el.dataset.fallbackApplied = '1';
+        try { el.src = FALLBACK_IMAGE; } catch (e) { /* ignore */ }
+    }, true);
+})();
+
+// Simple carousel auto-advance + controls for any element with `data-room-carousel`
+(() => {
+    const CAROUSEL_INTERVAL = 4000; // ms
+
+    document.querySelectorAll('[data-room-carousel]').forEach((carouselEl) => {
+        const slides = Array.from(carouselEl.querySelectorAll('[data-carousel-slide]'));
+        if (!slides.length) return;
+
+        const thumbs = Array.from(carouselEl.querySelectorAll('[data-carousel-thumb]'));
+        const prevBtn = carouselEl.querySelector('[data-carousel-prev]');
+        const nextBtn = carouselEl.querySelector('[data-carousel-next]');
+
+        let current = 0;
+        let timerId = null;
+
+        const show = (index) => {
+            index = (index + slides.length) % slides.length;
+            current = index;
+
+            slides.forEach((s, i) => {
+                if (i === index) {
+                    s.classList.remove('opacity-0', 'pointer-events-none');
+                    s.classList.add('opacity-100');
+                } else {
+                    s.classList.remove('opacity-100');
+                    s.classList.add('opacity-0', 'pointer-events-none');
+                }
+            });
+
+            thumbs.forEach((t, i) => {
+                if (i === index) {
+                    t.classList.add('ring-2', 'ring-white');
+                    t.classList.remove('opacity-70');
+                } else {
+                    t.classList.remove('ring-2', 'ring-white');
+                    t.classList.add('opacity-70');
+                }
+            });
+        };
+
+        const next = () => show(current + 1);
+        const prev = () => show(current - 1);
+
+        const start = () => {
+            stop();
+            timerId = window.setInterval(next, CAROUSEL_INTERVAL);
+        };
+
+        const stop = () => {
+            if (timerId) {
+                window.clearInterval(timerId);
+                timerId = null;
+            }
+        };
+
+        // Wire controls
+        if (nextBtn) nextBtn.addEventListener('click', (e) => { e.preventDefault(); next(); start(); });
+        if (prevBtn) prevBtn.addEventListener('click', (e) => { e.preventDefault(); prev(); start(); });
+
+        thumbs.forEach((t, i) => {
+            t.addEventListener('click', (e) => { e.preventDefault(); show(i); start(); });
+        });
+
+        // Pause on hover/focus
+        carouselEl.addEventListener('mouseenter', stop);
+        carouselEl.addEventListener('mouseleave', start);
+        carouselEl.addEventListener('focusin', stop);
+        carouselEl.addEventListener('focusout', start);
+
+        // Initialize
+        show(0);
+        if (slides.length > 1) start();
+    });
+})();
+
+// Location tab toggle for landing page (Map / Details)
+(() => {
+    const tabButtons = Array.from(document.querySelectorAll('[data-location-tab]'));
+    const panels = Array.from(document.querySelectorAll('[data-location-panel]'));
+
+    if (!tabButtons.length || !panels.length) return;
+
+    const isDesktop = () => window.matchMedia('(min-width: 768px)').matches;
+
+    const showPanel = (name) => {
+        panels.forEach(p => {
+            const pName = p.getAttribute('data-location-panel');
+            if (isDesktop()) {
+                // on desktop show both panels side-by-side
+                p.classList.remove('hidden');
+            } else {
+                if (pName === name) {
+                    p.classList.remove('hidden');
+                } else {
+                    p.classList.add('hidden');
+                }
+            }
+        });
+
+        tabButtons.forEach(b => {
+            const target = b.getAttribute('data-location-target');
+            const pressed = target === name ? 'true' : 'false';
+            b.setAttribute('aria-pressed', pressed);
+            if (pressed === 'true') {
+                b.classList.remove('text-stone-600');
+                b.classList.add('text-stone-800');
+            } else {
+                b.classList.remove('text-stone-800');
+                b.classList.add('text-stone-600');
+            }
+        });
+    };
+
+    tabButtons.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const target = btn.getAttribute('data-location-target');
+            showPanel(target);
+        });
+    });
+
+    // ensure panels update on resize
+    let resizeTimer = null;
+    window.addEventListener('resize', () => {
+        window.clearTimeout(resizeTimer);
+        resizeTimer = window.setTimeout(() => showPanel(document.querySelector('[data-location-tab][aria-pressed="true"]')?.getAttribute('data-location-target') || 'map'), 120);
+    });
+
+    // initial state
+    showPanel('map');
+})();
+
