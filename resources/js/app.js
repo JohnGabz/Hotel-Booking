@@ -34,6 +34,7 @@ window.fetchWithoutLoader = (...args) => originalFetch(...args);
 
 let calendarTouchStartX = null;
 let calendarTouchStartY = null;
+let calendarTouchFromScrollable = false;
 let selectedCalendarDate = null;
 
 function updateSelectedDateBar(dateString) {
@@ -124,6 +125,16 @@ document.addEventListener('click', (event) => {
 
     selectedCalendarDate = dayEl.getAttribute('data-date');
     applyCalendarSelection();
+
+    // Populate and open booking modal after selecting an open day.
+    if (window.bookingModal && selectedCalendarDate) {
+        const start = new Date(`${selectedCalendarDate}T00:00:00`);
+        const end = new Date(start);
+        end.setDate(end.getDate() + 1);
+        const checkOut = end.toISOString().slice(0, 10);
+        window.bookingModal.setDates(selectedCalendarDate, checkOut);
+        window.bookingModal.open();
+    }
 });
 
 // Swipe gesture support for mobile month navigation.
@@ -132,6 +143,7 @@ document.addEventListener('touchstart', (event) => {
     if (!shell || !event.touches[0]) return;
     calendarTouchStartX = event.touches[0].clientX;
     calendarTouchStartY = event.touches[0].clientY;
+    calendarTouchFromScrollable = Boolean(event.target.closest('.room-calendar-scroll'));
 }, { passive: true });
 
 document.addEventListener('touchend', (event) => {
@@ -139,6 +151,7 @@ document.addEventListener('touchend', (event) => {
     if (!shell || calendarTouchStartX === null || calendarTouchStartY === null || !event.changedTouches[0]) {
         calendarTouchStartX = null;
         calendarTouchStartY = null;
+        calendarTouchFromScrollable = false;
         return;
     }
 
@@ -147,7 +160,14 @@ document.addEventListener('touchend', (event) => {
     calendarTouchStartX = null;
     calendarTouchStartY = null;
 
-    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy)) return;
+    // Do not trigger month navigation when user is panning the scrollable calendar track.
+    if (calendarTouchFromScrollable) {
+        calendarTouchFromScrollable = false;
+        return;
+    }
+    calendarTouchFromScrollable = false;
+
+    if (Math.abs(dx) < 90 || Math.abs(dx) < Math.abs(dy) * 1.2) return;
 
     const targetUrl = dx > 0
         ? shell.getAttribute('data-calendar-prev-url')

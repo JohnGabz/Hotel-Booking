@@ -149,7 +149,7 @@
                                     @foreach ($week as $day)
                                         @php
                                             $cellClasses = match ($day['status']) {
-                                                'open' => 'border-[#B57D59]/40 bg-[#B57D59]/12 text-[#7D4D2D]',
+                                                'open' => 'border-emerald-300 bg-emerald-50 text-emerald-700',
                                                 'occupied' => 'border-[#B6424F]/45 bg-[#B6424F]/12 text-[#8F3340]',
                                                 'unavailable' => 'border-[#9FAAAC]/45 bg-[#9FAAAC]/18 text-[#56656A]',
                                                 'past' => 'border-[#989B88]/45 bg-[#989B88]/18 text-[#6D715F]',
@@ -157,7 +157,7 @@
                                             };
 
                                             $statusDotClasses = match ($day['status']) {
-                                                'open' => 'bg-[#B57D59]',
+                                                'open' => 'bg-emerald-500',
                                                 'occupied' => 'bg-[#B6424F]',
                                                 'unavailable' => 'bg-[#9FAAAC]',
                                                 'past' => 'bg-[#989B88]',
@@ -546,106 +546,6 @@
                 checkAvailability();
             }
         };
-    })();
-</script>
-<script>
-    (() => {
-        // Calendar interactivity: click to select check-in/check-out range and open modal
-        const dayNodes = Array.from(document.querySelectorAll('.calendar-day'));
-        const checkIn = document.getElementById('check_in');
-        const checkOut = document.getElementById('check_out');
-
-        if (!dayNodes.length || !checkIn || !checkOut) return;
-
-        let rangeStart = null;
-        let rangeEnd = null;
-
-        const parseDate = (d) => new Date(d + 'T00:00:00');
-        const formatDate = (dt) => dt.toISOString().slice(0,10);
-
-        const clearSelectionVisual = () => {
-            dayNodes.forEach(n => {
-                n.classList.remove('selected-day');
-                n.classList.remove('in-range');
-                n.style.boxShadow = '';
-                n.style.background = '';
-            });
-        };
-
-        const applySelectionVisual = () => {
-            clearSelectionVisual();
-            if (!rangeStart) return;
-            const start = parseDate(rangeStart);
-            const end = rangeEnd ? parseDate(rangeEnd) : start;
-
-            dayNodes.forEach(n => {
-                const d = parseDate(n.dataset.date);
-                if (d < start || d > end) return;
-                if (d.getTime() === start.getTime()) {
-                    n.classList.add('selected-day');
-                    n.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)';
-                } else if (d.getTime() === end.getTime()) {
-                    n.classList.add('selected-day');
-                    n.style.boxShadow = '0 0 0 3px rgba(59,130,246,0.12)';
-                } else {
-                    n.classList.add('in-range');
-                    n.style.background = 'rgba(59,130,246,0.06)';
-                }
-            });
-        };
-
-        const isSelectable = (node) => {
-            return node.dataset.status === 'open' && node.dataset.currentMonth === '1';
-        };
-
-        dayNodes.forEach(node => {
-            node.style.cursor = isSelectable(node) ? 'pointer' : 'default';
-            node.addEventListener('click', (e) => {
-                if (!isSelectable(node)) return;
-
-                const clicked = node.dataset.date;
-
-                if (!rangeStart || (rangeStart && rangeEnd)) {
-                    // start new selection
-                    rangeStart = clicked;
-                    rangeEnd = null;
-                } else {
-                    // set end
-                    const a = parseDate(rangeStart);
-                    const b = parseDate(clicked);
-                    if (b < a) {
-                        rangeEnd = rangeStart;
-                        rangeStart = clicked;
-                    } else {
-                        rangeEnd = clicked;
-                    }
-                }
-
-                // If end remains null, set check-out to next day
-                if (!rangeEnd) {
-                    const next = new Date(parseDate(rangeStart));
-                    next.setDate(next.getDate() + 1);
-                    rangeEnd = formatDate(next);
-                }
-
-                // Populate modal form and open modal
-                if (window.bookingModal) {
-                    window.bookingModal.setDates(rangeStart, rangeEnd);
-                    window.bookingModal.open();
-                }
-
-                applySelectionVisual();
-            });
-        });
-
-        // If inputs already have values, reflect on calendar
-        if (checkIn.value) {
-            rangeStart = checkIn.value;
-        }
-        if (checkOut.value) {
-            rangeEnd = checkOut.value;
-        }
-        if (rangeStart) applySelectionVisual();
     })();
 </script>
 @endpush
