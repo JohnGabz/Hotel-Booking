@@ -36,6 +36,7 @@ let calendarTouchStartX = null;
 let calendarTouchStartY = null;
 let calendarTouchFromScrollable = false;
 let selectedCalendarDate = null;
+const ENABLE_CALENDAR_SWIPE = false;
 
 function updateSelectedDateBar(dateString) {
     const selectedBar = document.getElementById('calendar-selected-bar');
@@ -139,6 +140,7 @@ document.addEventListener('click', (event) => {
 
 // Swipe gesture support for mobile month navigation.
 document.addEventListener('touchstart', (event) => {
+    if (!ENABLE_CALENDAR_SWIPE) return;
     const shell = event.target.closest('[data-calendar-swipe]');
     if (!shell || !event.touches[0]) return;
     calendarTouchStartX = event.touches[0].clientX;
@@ -147,6 +149,7 @@ document.addEventListener('touchstart', (event) => {
 }, { passive: true });
 
 document.addEventListener('touchend', (event) => {
+    if (!ENABLE_CALENDAR_SWIPE) return;
     const shell = event.target.closest('[data-calendar-swipe]');
     if (!shell || calendarTouchStartX === null || calendarTouchStartY === null || !event.changedTouches[0]) {
         calendarTouchStartX = null;
