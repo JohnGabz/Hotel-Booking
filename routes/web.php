@@ -60,7 +60,7 @@ Route::middleware('auth')->group(function () {
             return redirect()->route('verification.notice')
                 ->withErrors(['email' => 'Verification failed. The link may have expired. Please request a new one.']);
         }
-    })->middleware(['signed:relative', 'throttle:6,1'])->name('verification.verify');
+    })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])
         ->middleware('throttle:6,1')
         ->name('verification.send');
