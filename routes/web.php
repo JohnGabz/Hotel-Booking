@@ -8,7 +8,6 @@ use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'home'])->name('home');
@@ -42,24 +41,11 @@ Route::middleware('auth')->group(function () {
 
     Route::get('/email/verify', [AuthController::class, 'showVerifyEmailNotice'])->name('verification.notice');
     Route::get('/email/verify/{id}/{hash}', function (EmailVerificationRequest $request) {
-        try {
-            $request->fulfill();
+        $request->fulfill();
 
-            // Refresh user in session and guard after verification
-            $freshUser = $request->user()->fresh();
-            Auth::guard('web')->setUser($freshUser);
+        Auth::guard('web')->setUser($request->user()->fresh());
 
-            return redirect()->route('dashboard')->with('success', 'Email verified successfully.');
-        } catch (\Exception $e) {
-            \Log::error('Email verification failed', [
-                'user_id' => auth()->id(),
-                'error' => $e->getMessage(),
-                'path' => $request->path(),
-            ]);
-            
-            return redirect()->route('verification.notice')
-                ->withErrors(['email' => 'Verification failed. The link may have expired. Please request a new one.']);
-        }
+        return redirect()->route('dashboard')->with('success', 'Email verified successfully.');
     })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])
         ->middleware('throttle:6,1')
