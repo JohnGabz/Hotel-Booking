@@ -43,6 +43,25 @@
     $aboutHeading = $content['about_heading'] ?? 'A refined booking experience for guests and staff.';
     $aboutBody = $content['about_body'] ?? 'Villa Estella brings reservations, room discovery, and guest management together in one premium hospitality workflow.';
     $aboutSecondary = $content['about_secondary'] ?? 'Whether you\'re making a quick stopover or planning a dedicated trip, our doors are always open to offer you an exceptional stay.';
+    $resolveContentImage = function (?string $value, string $fallback = '') {
+        if (blank($value)) {
+            return $fallback;
+        }
+
+        if (filter_var($value, FILTER_VALIDATE_URL)) {
+            return $value;
+        }
+
+        $path = ltrim($value, '/');
+
+        return str_starts_with($path, 'storage/')
+            ? asset($path)
+            : asset('storage/' . $path);
+    };
+    $aboutImage = $resolveContentImage(
+        $content['about_image'] ?? '',
+        'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80'
+    );
 
     $facilities = [
         ['label' => $content['facility_1_label'] ?? 'Free Wi-Fi', 'icon' => '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M3 8h18M7 16h10"/></svg>'],
@@ -52,12 +71,12 @@
     ];
 
     $gallery = [
-        $content['gallery_image_1'] ?? 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80',
-        $content['gallery_image_2'] ?? 'https://images.unsplash.com/photo-1501117716987-c8e5f10a7f09?auto=format&fit=crop&w=1200&q=80',
-        $content['gallery_image_3'] ?? 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
-        $content['gallery_image_4'] ?? 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80',
-        $content['gallery_image_5'] ?? 'https://images.unsplash.com/photo-1505691723518-36a4cdbb1f2a?auto=format&fit=crop&w=1200&q=80',
-        $content['gallery_image_6'] ?? 'https://images.unsplash.com/photo-1506976785307-8732e854ad11?auto=format&fit=crop&w=1200&q=80',
+        $resolveContentImage($content['gallery_image_1'] ?? '', 'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80'),
+        $resolveContentImage($content['gallery_image_2'] ?? '', 'https://images.unsplash.com/photo-1501117716987-c8e5f10a7f09?auto=format&fit=crop&w=1200&q=80'),
+        $resolveContentImage($content['gallery_image_3'] ?? '', 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80'),
+        $resolveContentImage($content['gallery_image_4'] ?? '', 'https://images.unsplash.com/photo-1493809842364-78817add7ffb?auto=format&fit=crop&w=1200&q=80'),
+        $resolveContentImage($content['gallery_image_5'] ?? '', 'https://images.unsplash.com/photo-1505691723518-36a4cdbb1f2a?auto=format&fit=crop&w=1200&q=80'),
+        $resolveContentImage($content['gallery_image_6'] ?? '', 'https://images.unsplash.com/photo-1506976785307-8732e854ad11?auto=format&fit=crop&w=1200&q=80'),
     ];
 
     $galleryEyebrow = $content['gallery_eyebrow'] ?? 'Experience';
@@ -268,7 +287,7 @@
                 </a>
             </div>
             <div class="h-80 md:h-auto bg-stone-300 scroll-animate-in-right">
-                <img src="{{ $content['about_image'] ?? 'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80' }}" alt="Villa Estella interior" class="w-full h-full object-cover">
+                <img src="{{ $aboutImage }}" alt="Villa Estella interior" class="w-full h-full object-cover">
             </div>
         </div>
     </div>

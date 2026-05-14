@@ -8,7 +8,7 @@ services:
       name: villa-estela-storage
       mountPath: /var/www/html/storage
       sizeGB: 1
-    startCommand: php artisan optimize:clear && php artisan storage:link && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
+    startCommand: mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs storage/app/public && php artisan optimize:clear && php artisan storage:link --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
     autoDeploy: true
     envVars:
       - key: APP_ENV
@@ -49,7 +49,7 @@ services:
       - key: CACHE_STORE
         value: file
       - key: FILESYSTEM_DISK
-        value: local
+        value: public
       - key: XENDIT_API_KEY
         sync: false
       - key: XENDIT_WEBHOOK_VERIFICATION_TOKEN

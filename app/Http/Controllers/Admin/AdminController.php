@@ -83,28 +83,27 @@ class AdminController extends Controller
             'image_links' => 'nullable|string|max:5000',
         ]);
 
-        $imagePaths = [];
-
-        // Handle file uploads
-        if ($request->hasFile('images') && $request->file('images')) {
-            $imagePaths = collect($request->file('images', []))
-                ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
-                ->values()
-                ->all();
+        if ($this->hasInvalidImageLinks($validated['image_links'] ?? '')) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['image_links' => 'Enter valid HTTP or HTTPS image URLs, one per line.']);
         }
 
-        // Handle image URLs
-        if ($request->filled('image_links')) {
-            $imageLinks = collect(explode("\n", $validated['image_links'] ?? ''))
-                ->map(fn ($url) => trim($url))
-                ->filter(fn ($url) => $url && filter_var($url, FILTER_VALIDATE_URL))
+        $imagePaths = $this->parseImageLinks($validated['image_links'] ?? '');
+
+        if ($request->hasFile('images') && $request->file('images')) {
+            $uploadedImages = collect($request->file('images', []))
+                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
                 ->values()
                 ->all();
-            $imagePaths = array_merge($imagePaths, $imageLinks);
+
+            $imagePaths = array_merge($imagePaths, $uploadedImages);
         }
 
         if (empty($imagePaths)) {
-            return redirect()->back()->withErrors(['images' => 'At least one image is required (upload or link).']);
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['images' => 'Add at least one room image by uploading a file or pasting a valid image URL.']);
         }
 
         Room::create([
@@ -326,39 +325,53 @@ class AdminController extends Controller
             'images' => 'nullable|array',
             'images.*' => 'image|max:5120',
             'image_links' => 'nullable|string|max:5000',
+            'retained_images' => 'nullable|array',
+            'retained_images.*' => 'string|max:2048',
         ]);
 
-        $images = [];
-
-        // Handle file uploads
-        if ($request->hasFile('images') && $request->file('images')) {
-            // Delete old uploaded images (those starting with 'rooms/')
-            foreach (($room->images ?? []) as $existingImage) {
-                if (str_starts_with($existingImage, 'rooms/') || !str_starts_with($existingImage, 'http')) {
-                    Storage::disk('public')->delete($existingImage);
-                }
-            }
-
-            $images = collect($request->file('images', []))
-                ->map(fn ($image) => $image->storePublicly('rooms', 'uploads'))
-                ->values()
-                ->all();
-        } else {
-            // Preserve existing uploaded images if no new uploads
-            $images = collect($room->images ?? [])
-                ->filter(fn ($image) => str_starts_with($image, 'http') || str_starts_with($image, 'rooms/'))
-                ->values()
-                ->all();
+        if ($this->hasInvalidImageLinks($validated['image_links'] ?? '')) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['image_links' => 'Enter valid HTTP or HTTPS image URLs, one per line.']);
         }
 
-        // Handle image URLs
-        if ($request->filled('image_links')) {
-            $imageLinks = collect(explode("\n", $validated['image_links'] ?? ''))
-                ->map(fn ($url) => trim($url))
-                ->filter(fn ($url) => $url && filter_var($url, FILTER_VALIDATE_URL))
+        $existingImages = collect($room->images ?? [])->filter()->values();
+        $retainedImages = collect($validated['retained_images'] ?? [])
+            ->filter(fn ($image) => $existingImages->contains($image))
+            ->values()
+            ->all();
+
+        $images = $retainedImages;
+
+        if ($request->hasFile('images') && $request->file('images')) {
+            $uploadedImages = collect($request->file('images', []))
+                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
                 ->values()
                 ->all();
-            $images = array_merge($images, $imageLinks);
+
+            $images = array_merge($images, $uploadedImages);
+        }
+
+        if ($request->filled('image_links')) {
+            $images = array_merge($images, $this->parseImageLinks($validated['image_links'] ?? ''));
+        }
+
+        $images = collect($images)->unique()->values()->all();
+
+        if (empty($images)) {
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['images' => 'Keep at least one existing image, upload a new file, or paste a valid image URL.']);
+        }
+
+        $removedImages = $existingImages
+            ->reject(fn ($image) => in_array($image, $images, true))
+            ->values();
+
+        foreach ($removedImages as $removedImage) {
+            if (! str_starts_with($removedImage, 'http')) {
+                Storage::disk('public')->delete($removedImage);
+            }
         }
 
         $room->update([
@@ -377,6 +390,48 @@ class AdminController extends Controller
         ]);
 
         return redirect()->route('admin.rooms')->with('success', 'Room updated successfully.');
+    }
+
+    public function destroyRoom(Room $room): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        foreach (($room->images ?? []) as $image) {
+            if (! str_starts_with($image, 'http')) {
+                Storage::disk('public')->delete($image);
+            }
+        }
+
+        $room->delete();
+
+        return redirect()->route('admin.rooms')->with('success', 'Room deleted successfully.');
+    }
+
+    protected function parseImageLinks(?string $links): array
+    {
+        return collect(preg_split('/\r\n|\r|\n/', $links ?? '') ?: [])
+            ->map(fn ($url) => trim($url))
+            ->filter(fn ($url) => $this->isValidImageUrl($url))
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    protected function hasInvalidImageLinks(?string $links): bool
+    {
+        return collect(preg_split('/\r\n|\r|\n/', $links ?? '') ?: [])
+            ->map(fn ($url) => trim($url))
+            ->filter()
+            ->contains(fn ($url) => ! $this->isValidImageUrl($url));
+    }
+
+    protected function isValidImageUrl(string $url): bool
+    {
+        if (! filter_var($url, FILTER_VALIDATE_URL)) {
+            return false;
+        }
+
+        return in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
     }
 
     public function approveReview(Review $review): RedirectResponse

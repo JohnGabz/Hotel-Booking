@@ -165,21 +165,22 @@
             <div class="form-group md:col-span-2">
                 <label class="form-label">Room images source</label>
                 <div class="mt-2 flex gap-3">
-                    <button type="button" class="image-source-btn btn-secondary px-4 py-2 text-sm" data-source="upload" data-toggle="true">Upload images</button>
-                    <button type="button" class="image-source-btn btn-secondary px-4 py-2 text-sm" data-source="link">Use image links</button>
+                    <span class="btn-secondary px-4 py-2 text-sm">Upload files</span>
+                    <span class="btn-secondary px-4 py-2 text-sm">Paste URLs</span>
                 </div>
             </div>
 
             <div id="add-room-upload-section" class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_images">Upload images</label>
-                <input type="file" id="add_room_images" name="images[]" class="form-input" accept="image/*" multiple required>
-                <div id="add-room-image-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <p class="text-xs text-stone-500">Select multiple images. At least one is required.</p>
+                <input type="file" id="add_room_images" name="images[]" class="form-input" accept="image/*" multiple>
+                <div id="add-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                <p class="text-xs text-stone-500">Select one or more images, paste image URLs below, or use both.</p>
             </div>
 
-            <div id="add-room-link-section" class="form-group md:col-span-2 hidden">
+            <div id="add-room-link-section" class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_image_links">Image URLs</label>
                 <textarea id="add_room_image_links" name="image_links" rows="4" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
+                <div id="add-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
                 <p class="text-xs text-stone-500">Paste image URLs (one per line). Images must be publicly accessible.</p>
             </div>
         </div>
@@ -229,22 +230,24 @@
             <div class="form-group md:col-span-2">
                 <label class="form-label">Room images source</label>
                 <div class="mt-2 flex gap-3">
-                    <button type="button" class="edit-image-source-btn btn-secondary px-4 py-2 text-sm" data-source="upload" data-toggle="true">Upload images</button>
-                    <button type="button" class="edit-image-source-btn btn-secondary px-4 py-2 text-sm" data-source="link">Use image links</button>
+                    <span class="btn-secondary px-4 py-2 text-sm">Keep existing</span>
+                    <span class="btn-secondary px-4 py-2 text-sm">Add files</span>
+                    <span class="btn-secondary px-4 py-2 text-sm">Add URLs</span>
                 </div>
             </div>
 
             <div id="edit-room-upload-section" class="form-group md:col-span-2">
                 <label class="form-label" for="edit_room_images">Upload images</label>
                 <input type="file" id="edit_room_images" name="images[]" class="form-input" accept="image/*" multiple>
-                <p class="mt-2 text-xs text-stone-500">Upload new images to replace the current gallery.</p>
+                <p class="mt-2 text-xs text-stone-500">New uploads are added to the gallery. Uncheck existing images below to remove them.</p>
                 <div id="edit-room-current-images" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <div id="edit-room-image-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                <div id="edit-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
             </div>
 
-            <div id="edit-room-link-section" class="form-group md:col-span-2 hidden">
+            <div id="edit-room-link-section" class="form-group md:col-span-2">
                 <label class="form-label" for="edit_room_image_links">Image URLs</label>
                 <textarea id="edit_room_image_links" name="image_links" rows="4" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
+                <div id="edit-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
                 <p class="text-xs text-stone-500">Paste image URLs (one per line). Images must be publicly accessible.</p>
             </div>
         </div>
@@ -263,6 +266,20 @@
             return path.startsWith('http') ? path : `${window.location.origin}/storage/${path}`;
         };
 
+        const createImageFigure = (src, alt = 'Room image') => {
+            const figure = document.createElement('figure');
+            figure.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50';
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = alt;
+            img.className = 'h-28 w-full object-cover';
+
+            figure.appendChild(img);
+
+            return figure;
+        };
+
         const renderFilePreviews = (files, container) => {
             if (!container) return;
             container.innerHTML = '';
@@ -272,10 +289,7 @@
             Array.from(files).forEach((file) => {
                 const reader = new FileReader();
                 reader.onload = (event) => {
-                    const figure = document.createElement('figure');
-                    figure.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50';
-                    figure.innerHTML = `<img src="${event.target.result}" alt="Preview" class="h-28 w-full object-cover">`;
-                    container.appendChild(figure);
+                    container.appendChild(createImageFigure(event.target.result, 'Preview'));
                 };
                 reader.readAsDataURL(file);
             });
@@ -291,9 +305,23 @@
             }
 
             images.forEach((image) => {
-                const figure = document.createElement('figure');
-                figure.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50';
-                figure.innerHTML = `<img src="${resolveImageUrl(image)}" alt="Room image" class="h-28 w-full object-cover">`;
+                const figure = createImageFigure(resolveImageUrl(image));
+                const label = document.createElement('label');
+                label.className = 'flex items-center gap-2 px-3 py-2 text-xs text-stone-600';
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.name = 'retained_images[]';
+                checkbox.value = image;
+                checkbox.checked = true;
+                checkbox.className = 'rounded border-stone-300';
+
+                const text = document.createElement('span');
+                text.textContent = 'Keep this image';
+
+                label.appendChild(checkbox);
+                label.appendChild(text);
+                figure.appendChild(label);
                 container.appendChild(figure);
             });
         };
@@ -305,22 +333,19 @@
             if (!urls || !urls.length) return;
 
             urls.forEach((url) => {
-                const figure = document.createElement('figure');
-                figure.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50';
-                figure.innerHTML = `<img src="${url}" alt="Preview" class="h-28 w-full object-cover">`;
-                container.appendChild(figure);
+                container.appendChild(createImageFigure(url, 'Preview'));
             });
         };
 
         const addImagesInput = document.getElementById('add_room_images');
-        const addPreview = document.getElementById('add-room-image-preview');
+        const addPreview = document.getElementById('add-room-upload-preview');
         if (addImagesInput && addPreview) {
             addImagesInput.addEventListener('change', () => renderFilePreviews(addImagesInput.files, addPreview));
         }
 
         // Handle image link textarea input for add room
         const addImageLinksInput = document.getElementById('add_room_image_links');
-        const addImageLinkPreview = document.getElementById('add-room-image-preview');
+        const addImageLinkPreview = document.getElementById('add-room-link-preview');
         if (addImageLinksInput && addImageLinkPreview) {
             addImageLinksInput.addEventListener('input', () => {
                 const urls = addImageLinksInput.value
@@ -334,7 +359,8 @@
         const modal = document.getElementById('edit-room-modal');
         const form = document.getElementById('edit-room-form');
         const currentImagesContainer = document.getElementById('edit-room-current-images');
-        const previewContainer = document.getElementById('edit-room-image-preview');
+        const uploadPreviewContainer = document.getElementById('edit-room-upload-preview');
+        const linkPreviewContainer = document.getElementById('edit-room-link-preview');
         const editImagesInput = document.getElementById('edit_room_images');
         const editImageLinksInput = document.getElementById('edit_room_image_links');
         if (!modal || !form) return;
@@ -346,17 +372,6 @@
             price: document.getElementById('edit_room_price'),
             status: document.getElementById('edit_room_status'),
             amenities: document.getElementById('edit_room_amenities'),
-        };
-
-        // Detect if images are URLs or uploaded
-        const getImageUrls = (images) => {
-            if (!Array.isArray(images)) return [];
-            return images.filter(img => img.startsWith('http'));
-        };
-
-        const getUploadedImages = (images) => {
-            if (!Array.isArray(images)) return [];
-            return images.filter(img => !img.startsWith('http'));
         };
 
         document.querySelectorAll('[data-modal-open="edit-room-modal"]').forEach((button) => {
@@ -389,101 +404,34 @@
                     
                     // Display current images
                     renderStoredImages(imageArray, currentImagesContainer);
-
-                    // Detect if room has URLs and pre-select link mode
-                    const imageUrls = getImageUrls(imageArray);
-                    if (imageUrls.length > 0 && imageArray.length === imageUrls.length) {
-                        // All images are URLs - pre-select link mode
-                        const linkButtons = document.querySelectorAll('.edit-image-source-btn');
-                        linkButtons.forEach(b => {
-                            if (b.dataset.source === 'link') {
-                                b.click();
-                                editImageLinksInput.value = imageUrls.join('\n');
-                            }
-                        });
-                    } else {
-                        // Reset to upload mode
-                        const uploadButtons = document.querySelectorAll('.edit-image-source-btn');
-                        uploadButtons.forEach(b => {
-                            if (b.dataset.source === 'upload') {
-                                b.click();
-                            }
-                        });
-                    }
                 } catch {
                     renderStoredImages([], currentImagesContainer);
                 }
 
-                if (previewContainer) {
-                    previewContainer.innerHTML = '';
+                if (uploadPreviewContainer) {
+                    uploadPreviewContainer.innerHTML = '';
+                }
+
+                if (linkPreviewContainer) {
+                    linkPreviewContainer.innerHTML = '';
                 }
             });
         });
 
-        if (editImagesInput && previewContainer) {
-            editImagesInput.addEventListener('change', () => renderFilePreviews(editImagesInput.files, previewContainer));
+        if (editImagesInput && uploadPreviewContainer) {
+            editImagesInput.addEventListener('change', () => renderFilePreviews(editImagesInput.files, uploadPreviewContainer));
         }
 
         // Handle image link textarea input for edit room
-        if (editImageLinksInput && previewContainer) {
+        if (editImageLinksInput && linkPreviewContainer) {
             editImageLinksInput.addEventListener('input', () => {
                 const urls = editImageLinksInput.value
                     .split('\n')
                     .map(line => line.trim())
                     .filter(line => line && line.startsWith('http'));
-                renderImageUrlPreviews(urls, previewContainer);
+                renderImageUrlPreviews(urls, linkPreviewContainer);
             });
         }
-
-        // Toggle image source buttons for Add Room
-        document.querySelectorAll('.image-source-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const source = btn.dataset.source;
-                document.querySelectorAll('.image-source-btn').forEach((b) => {
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-secondary');
-                });
-                btn.classList.add('btn-primary');
-                btn.classList.remove('btn-secondary');
-
-                if (source === 'upload') {
-                    document.getElementById('add-room-upload-section').classList.remove('hidden');
-                    document.getElementById('add-room-link-section').classList.add('hidden');
-                    document.getElementById('add_room_images').required = true;
-                    document.getElementById('add_room_image_links').required = false;
-                } else {
-                    document.getElementById('add-room-upload-section').classList.add('hidden');
-                    document.getElementById('add-room-link-section').classList.remove('hidden');
-                    document.getElementById('add_room_images').required = false;
-                    document.getElementById('add_room_image_links').required = true;
-                }
-            });
-        });
-
-        // Toggle image source buttons for Edit Room
-        document.querySelectorAll('.edit-image-source-btn').forEach((btn) => {
-            btn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const source = btn.dataset.source;
-                document.querySelectorAll('.edit-image-source-btn').forEach((b) => {
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-secondary');
-                });
-                btn.classList.add('btn-primary');
-                btn.classList.remove('btn-secondary');
-
-                if (source === 'upload') {
-                    document.getElementById('edit-room-upload-section').classList.remove('hidden');
-                    document.getElementById('edit-room-link-section').classList.add('hidden');
-                    document.getElementById('edit_room_image_links').required = false;
-                } else {
-                    document.getElementById('edit-room-upload-section').classList.add('hidden');
-                    document.getElementById('edit-room-link-section').classList.remove('hidden');
-                    document.getElementById('edit_room_image_links').required = false;
-                }
-            });
-        });
     })();
 </script>
 @endsection

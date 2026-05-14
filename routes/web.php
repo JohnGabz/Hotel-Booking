@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::post('/rooms', [AdminController::class, 'storeRoom'])->name('rooms.store');
         Route::put('/rooms/{room}', [AdminController::class, 'updateRoom'])->name('rooms.update');
+        Route::delete('/rooms/{room}', [AdminController::class, 'destroyRoom'])->name('rooms.destroy');
         Route::post('/rooms/{room}/status', [AdminController::class, 'updateRoomStatus'])->name('rooms.status');
         Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
         Route::post('/bookings/{booking}/payment-status', [AdminController::class, 'updatePaymentStatus'])->name('bookings.payment-status');
