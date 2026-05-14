@@ -269,9 +269,11 @@
         </section>
     @endif
 
-    <div class="flex flex-wrap gap-3">
-        <button class="btn-primary">Save settings</button>
-        <a href="{{ route('admin.dashboard') }}" class="btn-secondary">Back to dashboard</a>
-    </div>
+    @if ($tab !== 'landing')
+        <div class="flex flex-wrap gap-3">
+            <button class="btn-primary">Save settings</button>
+            <a href="{{ route('admin.dashboard') }}" class="btn-secondary">Back to dashboard</a>
+        </div>
+    @endif
 </div>
 @endsection

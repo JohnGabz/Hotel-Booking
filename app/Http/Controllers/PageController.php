@@ -141,18 +141,10 @@ class PageController extends Controller
         $path = ltrim($value, '/');
 
         if (str_starts_with($path, 'storage/')) {
-            $candidate = ltrim(str_replace('storage/', '', $path), '/');
-            if (\Illuminate\Support\Facades\Storage::disk('public')->exists($candidate)) {
-                return asset('storage/' . $candidate);
-            }
-            return '';
+            return asset($path);
         }
 
-        if (\Illuminate\Support\Facades\Storage::disk('public')->exists($path)) {
-            return asset('storage/' . $path);
-        }
-
-        return '';
+        return asset('storage/' . $path);
     }
 
     public function submitContact(Request $request): RedirectResponse

@@ -109,7 +109,7 @@
     $ctaBody = $content['cta_body'] ?? 'Browse our curated collection of rooms, compare amenities, and complete your booking with instant confirmation. Experience luxury at Villa Estella today.';
     $ctaButtonText = $content['cta_button_text'] ?? 'Explore All Rooms';
 
-    $rawHero = $heroBackground ?? ($content['hero_background_image'] ?? '');
+    $rawHero = filled($heroBackground ?? '') ? $heroBackground : ($content['hero_background_image'] ?? '');
 
     if (filter_var($rawHero, FILTER_VALIDATE_URL)) {
         $heroBackground = $rawHero;
