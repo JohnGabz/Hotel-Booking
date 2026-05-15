@@ -429,41 +429,6 @@ document.querySelectorAll('[class*="scroll-animate"]').forEach(el => {
     observer.observe(el);
 });
 
-// Observe section shells for staggered animations
-document.querySelectorAll('.section-shell').forEach(section => {
-    // Add scroll-animate-up to section for fade-in
-    section.classList.add('scroll-animate-up');
-    observer.observe(section);
-});
-
-// Stagger cards in grids
-document.querySelectorAll('.grid > [class*="rounded"]').forEach((card, index) => {
-    if (!card.classList.contains('scroll-animate-up')) {
-        card.style.opacity = '0';
-        card.style.animation = `slideUp 0.6s ease-out forwards`;
-        card.style.animationDelay = `${(index % 6) * 0.1}s`;
-        
-        // Observe parent grid
-        const grid = card.closest('.grid');
-        if (grid && !grid.hasAttribute('data-observed')) {
-            grid.setAttribute('data-observed', 'true');
-            const tempObserver = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        entry.target.querySelectorAll('[class*="rounded"]').forEach((child, i) => {
-                            child.style.opacity = '0';
-                            child.style.animation = `slideUp 0.6s ease-out forwards`;
-                            child.style.animationDelay = `${(i % 6) * 0.1}s`;
-                        });
-                        tempObserver.unobserve(entry.target);
-                    }
-                });
-            }, observerOptions);
-            tempObserver.observe(grid);
-        }
-    }
-});
-
 const heroBackgroundUpload = document.getElementById('hero_background_upload');
 const heroBackgroundPreview = document.getElementById('hero-background-preview');
 const heroBackgroundEmpty = document.getElementById('hero-background-empty');
@@ -631,4 +596,3 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
     // initial state
     showPanel('map');
 })();
-

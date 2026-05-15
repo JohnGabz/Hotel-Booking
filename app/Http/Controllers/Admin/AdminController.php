@@ -93,7 +93,7 @@ class AdminController extends Controller
 
         if ($request->hasFile('images') && $request->file('images')) {
             $uploadedImages = collect($request->file('images', []))
-                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+                ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
                 ->values()
                 ->all();
 
@@ -345,7 +345,7 @@ class AdminController extends Controller
 
         if ($request->hasFile('images') && $request->file('images')) {
             $uploadedImages = collect($request->file('images', []))
-                ->map(fn ($image) => $image->storePublicly('rooms', 'public'))
+                ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
                 ->values()
                 ->all();
 
@@ -434,6 +434,19 @@ class AdminController extends Controller
         return in_array(parse_url($url, PHP_URL_SCHEME), ['http', 'https'], true);
     }
 
+    protected function storePublicImage($image, string $directory): string
+    {
+        Storage::disk('public')->makeDirectory($directory);
+
+        $path = $image->storePublicly($directory, 'public');
+
+        if (! is_string($path) || ! Storage::disk('public')->exists($path)) {
+            abort(500, 'The image could not be saved. Please check the persistent storage configuration.');
+        }
+
+        return $path;
+    }
+
     public function approveReview(Review $review): RedirectResponse
     {
         $this->ensureAdmin();
@@ -499,7 +512,7 @@ class AdminController extends Controller
 
         // Handle hero background upload (existing behaviour)
         if ($request->hasFile('hero_background_upload')) {
-            $path = $request->file('hero_background_upload')->storePublicly('site-content', 'public');
+            $path = $this->storePublicImage($request->file('hero_background_upload'), 'site-content');
             $validated['hero_background_image'] = $path;
         }
 
@@ -511,7 +524,7 @@ class AdminController extends Controller
 
             $uploadField = $key . '_upload';
             if ($request->hasFile($uploadField)) {
-                $path = $request->file($uploadField)->storePublicly('site-content', 'public');
+                $path = $this->storePublicImage($request->file($uploadField), 'site-content');
                 // override the logical image value to the stored path
                 $validated[$key] = $path;
             }
