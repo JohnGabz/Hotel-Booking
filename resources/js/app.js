@@ -4,6 +4,59 @@ const globalLoader = document.getElementById('global-loader');
 let loaderCompletionTimer = null;
 let pendingFetchCount = 0;
 const originalFetch = window.fetch.bind(window);
+const FETCH_TIMEOUT_MS = 20000;
+
+function showErrorModal(title, message, errors = null) {
+    const modal = document.getElementById('error-modal');
+    const titleEl = document.getElementById('error-modal-title');
+    const messageEl = document.getElementById('error-modal-message');
+    const listEl = document.getElementById('error-modal-list');
+
+    if (!modal || !titleEl || !messageEl || !listEl) {
+        window.alert(message || title || 'Something went wrong.');
+        return;
+    }
+
+    titleEl.textContent = title || 'Something went wrong';
+    messageEl.textContent = message || 'Please try again in a moment.';
+    listEl.innerHTML = '';
+
+    const flattenedErrors = errors ? Object.values(errors).flat().filter(Boolean) : [];
+
+    if (flattenedErrors.length) {
+        flattenedErrors.forEach((error) => {
+            const item = document.createElement('li');
+            item.textContent = error;
+            listEl.appendChild(item);
+        });
+        listEl.classList.remove('hidden');
+    } else {
+        listEl.classList.add('hidden');
+    }
+
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.setAttribute('aria-hidden', 'false');
+}
+
+function hideErrorModal() {
+    const modal = document.getElementById('error-modal');
+    if (!modal) return;
+
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('aria-hidden', 'true');
+}
+
+function friendlyHttpMessage(status) {
+    if (status === 401) return ['Sign in required', 'Please sign in again before continuing.'];
+    if (status === 403) return ['This area is restricted', 'You do not have permission to perform this action.'];
+    if (status === 404) return ['We could not find that', 'The requested item may have been moved or deleted.'];
+    if (status === 419) return ['Your session expired', 'Please refresh the page and try again.'];
+    if (status === 422) return ['Some details need attention', 'Please fix the highlighted fields and try again.'];
+    if (status >= 500) return ['Server error', 'Something went wrong on our side. Please try again in a moment.'];
+    return ['Request failed', 'We could not complete that request. Please try again.'];
+}
 
 function showGlobalLoader() {
     if (!globalLoader) return;
@@ -27,6 +80,11 @@ window.VillaLoader = {
     show: showGlobalLoader,
     complete: completeGlobalLoader,
     fetch: (...args) => originalFetch(...args),
+};
+
+window.VillaError = {
+    show: showErrorModal,
+    hide: hideErrorModal,
 };
 
 // Provide a helper to fetch without triggering the global loader
@@ -199,9 +257,48 @@ window.fetch = async (...args) => {
     pendingFetchCount += 1;
     showGlobalLoader();
 
+    const [input, init = {}] = args;
+    const controller = init.signal ? null : new AbortController();
+    const timeout = controller ? window.setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS) : null;
+
     try {
-        return await originalFetch(...args);
+        const response = await originalFetch(input, controller ? { ...init, signal: controller.signal } : init);
+
+        if (!response.ok) {
+            const [fallbackTitle, fallbackMessage] = friendlyHttpMessage(response.status);
+            let payload = null;
+
+            try {
+                const contentType = response.headers.get('content-type') || '';
+                if (contentType.includes('application/json')) {
+                    payload = await response.clone().json();
+                }
+            } catch {
+                payload = null;
+            }
+
+            showErrorModal(
+                payload?.title || fallbackTitle,
+                payload?.message || fallbackMessage,
+                payload?.errors || null
+            );
+        }
+
+        return response;
+    } catch (error) {
+        const timedOut = error?.name === 'AbortError';
+        showErrorModal(
+            timedOut ? 'Request timed out' : 'Network problem',
+            timedOut
+                ? 'The request took too long. Please check your connection and try again.'
+                : 'We could not reach the server. Please check your connection and try again.'
+        );
+        throw error;
     } finally {
+        if (timeout) {
+            window.clearTimeout(timeout);
+        }
+
         pendingFetchCount = Math.max(0, pendingFetchCount - 1);
 
         if (pendingFetchCount === 0) {
@@ -249,6 +346,22 @@ document.addEventListener('submit', (event) => {
     if (form.hasAttribute('data-no-loader') || form.target && form.target !== '_self') return;
 
     showGlobalLoader();
+});
+
+document.addEventListener('click', (event) => {
+    if (event.target.closest('[data-error-modal-close]')) {
+        event.preventDefault();
+        hideErrorModal();
+    }
+});
+
+window.addEventListener('error', (event) => {
+    if (event.target instanceof HTMLImageElement) return;
+    showErrorModal('Page error', 'Something on this page did not load correctly. Please refresh and try again.');
+});
+
+window.addEventListener('unhandledrejection', () => {
+    showErrorModal('Request interrupted', 'A background request did not finish correctly. Please try again.');
 });
 
 const mobileToggle = document.getElementById('mobile-menu-btn');

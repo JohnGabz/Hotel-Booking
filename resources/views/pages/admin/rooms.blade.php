@@ -135,31 +135,37 @@
         <div class="grid gap-4 md:grid-cols-2">
             <div class="form-group">
                 <label class="form-label" for="add_room_name">Room name</label>
-                <input type="text" id="add_room_name" name="name" class="form-input" required>
+                <input type="text" id="add_room_name" name="name" class="form-input @error('name') error @enderror" value="{{ old('name') }}" required>
+                @error('name') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_description">Description</label>
-                <textarea id="add_room_description" name="description" rows="5" class="form-input" required></textarea>
+                <textarea id="add_room_description" name="description" rows="5" class="form-input @error('description') error @enderror" required>{{ old('description') }}</textarea>
+                @error('description') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="form-group">
                 <label class="form-label" for="add_room_capacity">Capacity</label>
-                <input type="number" id="add_room_capacity" name="capacity" min="1" max="20" class="form-input" required>
+                <input type="number" id="add_room_capacity" name="capacity" min="1" max="20" class="form-input @error('capacity') error @enderror" value="{{ old('capacity') }}" required>
+                @error('capacity') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="form-group">
                 <label class="form-label" for="add_room_price">Price</label>
-                <input type="number" id="add_room_price" name="price" min="0" step="0.01" class="form-input" required>
+                <input type="number" id="add_room_price" name="price" min="0" step="0.01" class="form-input @error('price') error @enderror" value="{{ old('price') }}" required>
+                @error('price') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="form-group">
                 <label class="form-label" for="add_room_status">Status</label>
-                <select id="add_room_status" name="status" class="form-input" required>
-                    <option value="available">Available</option>
-                    <option value="occupied">Occupied</option>
-                    <option value="maintenance">Maintenance</option>
+                <select id="add_room_status" name="status" class="form-input @error('status') error @enderror" required>
+                    <option value="available" @selected(old('status') === 'available')>Available</option>
+                    <option value="occupied" @selected(old('status') === 'occupied')>Occupied</option>
+                    <option value="maintenance" @selected(old('status') === 'maintenance')>Maintenance</option>
                 </select>
+                @error('status') <p class="form-error">{{ $message }}</p> @enderror
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_amenities">Amenities</label>
-                <textarea id="add_room_amenities" name="amenities" rows="4" class="form-input" placeholder="Wi-Fi, Air conditioning, Pool, Breakfast"></textarea>
+                <textarea id="add_room_amenities" name="amenities" rows="4" class="form-input @error('amenities') error @enderror" placeholder="Wi-Fi, Air conditioning, Pool, Breakfast">{{ old('amenities') }}</textarea>
+                @error('amenities') <p class="form-error">{{ $message }}</p> @enderror
                 <p class="mt-2 text-xs text-stone-500">Separate amenities with commas.</p>
             </div>
             <div class="form-group md:col-span-2">
@@ -172,15 +178,18 @@
 
             <div id="add-room-upload-section" class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_images">Upload images</label>
-                <input type="file" id="add_room_images" name="images[]" class="form-input" accept="image/*" multiple>
+                <input type="file" id="add_room_images" name="images[]" class="form-input @error('images') error @enderror @error('images.*') error @enderror" accept="image/*" multiple>
                 <div id="add-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                @error('images') <p class="form-error">{{ $message }}</p> @enderror
+                @error('images.*') <p class="form-error">{{ $message }}</p> @enderror
                 <p class="text-xs text-stone-500">Select one or more images, paste image URLs below, or use both.</p>
             </div>
 
             <div id="add-room-link-section" class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_image_links">Image URLs</label>
-                <textarea id="add_room_image_links" name="image_links" rows="4" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
+                <textarea id="add_room_image_links" name="image_links" rows="4" class="form-input @error('image_links') error @enderror" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg">{{ old('image_links') }}</textarea>
                 <div id="add-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                @error('image_links') <p class="form-error">{{ $message }}</p> @enderror
                 <p class="text-xs text-stone-500">Paste image URLs (one per line). Images must be publicly accessible.</p>
             </div>
         </div>

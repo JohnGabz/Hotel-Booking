@@ -16,6 +16,7 @@
 </head>
 <body class="min-h-screen bg-gray-50 font-sans text-gray-900">
     <x-global-loader />
+    <x-error-modal />
 
     <div id="mobile-menu" class="fixed inset-0 z-40 hidden md:hidden">
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-all duration-300" data-mobile-close></div>
@@ -163,9 +164,36 @@
             </header>
 
             <main class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8">
+                @if (session('success') || session('error') || session('warning') || $errors->any())
+                    <div class="mb-6 space-y-3">
+                        @if (session('success'))
+                            <x-alert type="success" :message="session('success')" />
+                        @endif
+                        @if (session('error'))
+                            <x-alert type="error" :message="session('error')" />
+                        @endif
+                        @if (session('warning'))
+                            <x-alert type="warning" :message="session('warning')" />
+                        @endif
+                        @if ($errors->any() && ! session('error'))
+                            <x-alert type="error" message="Please fix the highlighted fields and try again." />
+                        @endif
+                    </div>
+                @endif
                 @yield('content')
             </main>
         </div>
     </div>
+    @if ($errors->any())
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                window.VillaError?.show(
+                    'Some details need attention',
+                    'Please fix the highlighted fields and try again.',
+                    @json($errors->messages())
+                );
+            });
+        </script>
+    @endif
 </body>
 </html>

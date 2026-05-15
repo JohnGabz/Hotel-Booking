@@ -28,6 +28,7 @@
 </head>
 <body class="bg-slate-50 text-slate-900">
     <x-global-loader />
+    <x-error-modal />
 
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:bg-white focus:px-4 focus:py-2 focus:rounded-xl focus:shadow-lg">
         Skip to content
@@ -35,7 +36,7 @@
 
     @include('components.navbar')
 
-    @if (session('success') || session('error') || session('warning'))
+    @if (session('success') || session('error') || session('warning') || $errors->any())
         <div class="container mx-auto px-4 pt-4">
             @if (session('success'))
                 <x-alert type="success" :message="session('success')" />
@@ -46,6 +47,9 @@
             @if (session('warning'))
                 <x-alert type="warning" :message="session('warning')" />
             @endif
+            @if ($errors->any() && ! session('error'))
+                <x-alert type="error" message="Please fix the highlighted fields and try again." />
+            @endif
         </div>
     @endif
 
@@ -55,5 +59,16 @@
 
     @include('components.footer')
     @stack('scripts')
+    @if ($errors->any())
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                window.VillaError?.show(
+                    'Some details need attention',
+                    'Please fix the highlighted fields and try again.',
+                    @json($errors->messages())
+                );
+            });
+        </script>
+    @endif
 </body>
 </html>

@@ -30,6 +30,7 @@
     <div class="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,_rgba(255,255,255,0.92),_transparent_34%),radial-gradient(circle_at_85%_15%,rgba(236,196,127,0.28),transparent_22%),linear-gradient(180deg,#fbf7f1_0%,#f4ede1_44%,#efe6d8_100%)]"></div>
 
     <x-global-loader />
+    <x-error-modal />
 
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-stone-950 focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-white">
         Skip to content
@@ -37,7 +38,7 @@
 
     @include('components.navbar')
 
-    @if (session('success') || session('error') || session('warning'))
+    @if (session('success') || session('error') || session('warning') || $errors->any())
         <div class="site-shell pt-4">
             @if (session('success'))
                 <x-alert type="success" :message="session('success')" />
@@ -48,6 +49,9 @@
             @if (session('warning'))
                 <x-alert type="warning" :message="session('warning')" />
             @endif
+            @if ($errors->any() && ! session('error'))
+                <x-alert type="error" message="Please fix the highlighted fields and try again." />
+            @endif
         </div>
     @endif
 
@@ -57,5 +61,16 @@
 
     @include('components.footer')
     @stack('scripts')
+    @if ($errors->any())
+        <script>
+            window.addEventListener('DOMContentLoaded', () => {
+                window.VillaError?.show(
+                    'Some details need attention',
+                    'Please fix the highlighted fields and try again.',
+                    @json($errors->messages())
+                );
+            });
+        </script>
+    @endif
 </body>
 </html>

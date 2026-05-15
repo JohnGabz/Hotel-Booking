@@ -204,7 +204,8 @@
                                 <div class="form-group {{ $field['span'] ?? '' }}">
                                     <label class="form-label" for="{{ $field['key'] }}">{{ $field['label'] }}</label>
                                     @if (($field['type'] ?? 'text') === 'textarea')
-                                        <textarea id="{{ $field['key'] }}" name="{{ $field['key'] }}" rows="{{ $field['rows'] ?? 3 }}" class="form-input">{{ old($field['key'], $siteContent[$field['key']] ?? '') }}</textarea>
+                                        <textarea id="{{ $field['key'] }}" name="{{ $field['key'] }}" rows="{{ $field['rows'] ?? 3 }}" class="form-input @error($field['key']) error @enderror">{{ old($field['key'], $siteContent[$field['key']] ?? '') }}</textarea>
+                                        @error($field['key']) <p class="form-error">{{ $message }}</p> @enderror
                                     @elseif(str_contains($field['key'], 'image'))
                                         @php
                                             $current = $siteContent[$field['key']] ?? '';
@@ -212,7 +213,8 @@
                                                 ? $current
                                                 : (filled($current) ? (str_starts_with(ltrim($current, '/'), 'storage/') ? asset(ltrim($current, '/')) : asset('storage/' . ltrim($current, '/'))) : '');
                                         @endphp
-                                        <input id="{{ $field['key'] }}_upload" name="{{ $field['key'] }}_upload" type="file" accept="image/*" class="form-input pt-2">
+                                        <input id="{{ $field['key'] }}_upload" name="{{ $field['key'] }}_upload" type="file" accept="image/*" class="form-input pt-2 @error($field['key'] . '_upload') error @enderror">
+                                        @error($field['key'] . '_upload') <p class="form-error">{{ $message }}</p> @enderror
                                         @if($preview)
                                             <div class="mt-3">
                                                 <img src="{{ $preview }}" alt="{{ $field['label'] }}" class="h-40 w-full object-cover rounded-2xl border border-stone-200">
@@ -221,7 +223,8 @@
                                             <p class="mt-2 text-sm text-stone-500">No image uploaded yet.</p>
                                         @endif
                                     @else
-                                        <input id="{{ $field['key'] }}" name="{{ $field['key'] }}" class="form-input" value="{{ old($field['key'], $siteContent[$field['key']] ?? '') }}">
+                                        <input id="{{ $field['key'] }}" name="{{ $field['key'] }}" class="form-input @error($field['key']) error @enderror" value="{{ old($field['key'], $siteContent[$field['key']] ?? '') }}">
+                                        @error($field['key']) <p class="form-error">{{ $message }}</p> @enderror
                                     @endif
                                 </div>
                             @endforeach
@@ -238,7 +241,8 @@
                     <div class="mt-6 grid gap-4 xl:grid-cols-2">
                         <div class="form-group xl:col-span-2">
                             <label class="form-label" for="hero_background_upload">Upload new image</label>
-                            <input id="hero_background_upload" name="hero_background_upload" type="file" accept="image/*" class="form-input pt-2">
+                            <input id="hero_background_upload" name="hero_background_upload" type="file" accept="image/*" class="form-input pt-2 @error('hero_background_upload') error @enderror">
+                            @error('hero_background_upload') <p class="form-error">{{ $message }}</p> @enderror
                         </div>
                         <div class="xl:col-span-2">
                             <p class="text-xs uppercase tracking-[0.18em] text-stone-500 mb-2">Preview</p>
