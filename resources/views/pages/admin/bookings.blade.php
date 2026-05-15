@@ -13,34 +13,38 @@
                 <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Filter and manage reservations with a table-first workflow.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Use the filters to narrow by stay date, status, or room, then expand rows for quick action.</p>
             </div>
-            <a href="#" data-modal-open="generic-action-modal" data-modal-title="Add booking" class="btn-primary">Add booking</a>
+            <a href="{{ route('rooms.index') }}" class="btn-primary">Add booking</a>
         </div>
 
-        <form class="mt-8 grid gap-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 md:grid-cols-4">
+        <form method="GET" action="{{ route('admin.bookings') }}" class="mt-8 grid gap-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 md:grid-cols-5">
             <div class="form-group">
-                <label class="form-label">Date from</label>
-                <input type="date" class="form-input" value="{{ request('date_from') }}">
+                <label class="form-label" for="booking_date_from">Date from</label>
+                <input id="booking_date_from" name="date_from" type="date" class="form-input" value="{{ $filters['date_from'] ?? '' }}">
             </div>
             <div class="form-group">
-                <label class="form-label">Date to</label>
-                <input type="date" class="form-input" value="{{ request('date_to') }}">
+                <label class="form-label" for="booking_date_to">Date to</label>
+                <input id="booking_date_to" name="date_to" type="date" class="form-input" value="{{ $filters['date_to'] ?? '' }}">
             </div>
             <div class="form-group">
-                <label class="form-label">Status</label>
-                <select class="form-input">
+                <label class="form-label" for="booking_status">Status</label>
+                <select id="booking_status" name="status" class="form-input">
                     @foreach ($statusOptions as $option)
                         <option value="{{ $option }}" @selected(($filters['status'] ?? 'all') === $option)>{{ ucfirst($option) }}</option>
                     @endforeach
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label">Room</label>
-                <select class="form-input">
+                <label class="form-label" for="booking_room">Room</label>
+                <select id="booking_room" name="room" class="form-input">
                     <option value="all">All rooms</option>
                     @foreach ($rooms as $room)
                         <option value="{{ $room->id }}" @selected(($filters['room'] ?? 'all') == $room->id)>{{ $room->name }}</option>
                     @endforeach
                 </select>
+            </div>
+            <div class="flex items-end gap-2">
+                <button type="submit" class="btn-primary w-full">Apply</button>
+                <a href="{{ route('admin.bookings') }}" class="btn-secondary">Reset</a>
             </div>
         </form>
     </section>
@@ -63,9 +67,9 @@
 
                 @if ($selectedRoom && $calendar)
                     <div class="mt-5 flex items-center justify-between gap-2">
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
                         <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-4 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
                     </div>
 
                     <div class="mt-5 grid grid-cols-7 gap-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-stone-400 sm:text-xs">

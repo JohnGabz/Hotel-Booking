@@ -19,13 +19,13 @@
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         @foreach ($amenities as $amenity)
-            <article class="card transition hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(80,61,30,0.12)]">
+            <article class="card transition hover:-translate-y-1 hover:shadow-[0_20px_45px_rgba(80,61,30,0.12)]" data-amenity-card>
                 <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-primary/10 text-sm font-semibold text-brand-primary">{{ $amenity['icon'] }}</div>
                 <h2 class="mt-4 text-2xl font-semibold text-stone-950">{{ $amenity['title'] }}</h2>
                 <p class="mt-2 text-sm leading-7 text-stone-600">{{ $amenity['description'] }}</p>
                 <div class="mt-5 flex gap-2">
-                    <button class="btn-secondary text-sm">Edit</button>
-                    <button class="btn-secondary text-sm">Toggle</button>
+                    <a href="{{ route('admin.settings', ['tab' => 'landing']) }}" class="btn-secondary text-sm">Edit</a>
+                    <button type="button" class="btn-secondary text-sm" data-amenity-toggle>Disable</button>
                 </div>
             </article>
         @endforeach

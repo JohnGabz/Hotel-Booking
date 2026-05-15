@@ -149,7 +149,7 @@
             : '');
 @endphp
 
-<div class="space-y-8">
+<div id="top" class="space-y-8">
     <section class="surface p-6 sm:p-8 lg:p-10">
         <span class="eyebrow">Settings</span>
         <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Tabbed controls for general, account, preferences, and the landing page.</h1>
@@ -271,7 +271,6 @@
 
     @if ($tab !== 'landing')
         <div class="flex flex-wrap gap-3">
-            <button class="btn-primary">Save settings</button>
             <a href="{{ route('admin.dashboard') }}" class="btn-secondary">Back to dashboard</a>
         </div>
     @endif

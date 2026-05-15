@@ -9,7 +9,7 @@
 
         <div class="mt-6 space-y-4">
             @forelse ($users as $user)
-                <article class="rounded-[1.5rem] border border-stone-200 bg-white p-4 transition hover:border-brand-primary/30 hover:shadow-[0_14px_35px_rgba(80,61,30,0.08)]">
+                <a href="{{ route('admin.guests', ['guest' => $user->id]) }}" class="block rounded-[1.5rem] border {{ ($selectedGuest?->id ?? null) === $user->id ? 'border-brand-primary bg-brand-primary/5' : 'border-stone-200 bg-white' }} p-4 transition hover:border-brand-primary/30 hover:shadow-[0_14px_35px_rgba(80,61,30,0.08)]">
                     <div class="flex items-center gap-4">
                         <img src="https://ui-avatars.com/api/?name={{ urlencode($user->name) }}&background=B6424F&color=fff" class="h-12 w-12 rounded-full" alt="{{ $user->name }}">
                         <div class="min-w-0 flex-1">
@@ -18,7 +18,7 @@
                         </div>
                         <span class="badge-primary">{{ $user->bookings->count() }} stays</span>
                     </div>
-                </article>
+                </a>
             @empty
                 <p class="text-stone-500">No guest records found.</p>
             @endforelse
@@ -26,7 +26,6 @@
     </section>
 
     <aside class="space-y-6">
-        @php($selectedGuest = $users->first())
         <section class="surface p-6 sm:p-8">
             <span class="eyebrow">Guest profile</span>
             @if ($selectedGuest)

@@ -9,11 +9,12 @@
                 <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Insight-driven analytics with calm presentation.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Track revenue, occupancy, and trends with minimal clutter and a clear hierarchy.</p>
             </div>
-            <form class="flex items-center gap-3">
-                <select class="form-input w-40">
-                    <option @selected(($reportRange ?? '30d') === '7d')>7d</option>
-                    <option @selected(($reportRange ?? '30d') === '30d')>30d</option>
-                    <option @selected(($reportRange ?? '30d') === '90d')>90d</option>
+            <form method="GET" action="{{ route('admin.reports') }}" class="flex items-center gap-3">
+                <label class="sr-only" for="report_range">Range</label>
+                <select id="report_range" name="range" class="form-input w-40" onchange="this.form.submit()">
+                    <option value="7d" @selected(($reportRange ?? '30d') === '7d')>7d</option>
+                    <option value="30d" @selected(($reportRange ?? '30d') === '30d')>30d</option>
+                    <option value="90d" @selected(($reportRange ?? '30d') === '90d')>90d</option>
                 </select>
                 <a href="{{ route('admin.dashboard') }}" class="btn-secondary">Overview</a>
             </form>

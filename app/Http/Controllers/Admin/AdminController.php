@@ -39,15 +39,27 @@ class AdminController extends Controller
     {
         $rooms = Room::latest()->get();
         $selectedRoom = $rooms->firstWhere('id', (int) $request->query('room')) ?? $rooms->first();
+        $status = $request->query('status', 'all');
+        $roomFilter = $request->query('room', 'all');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+        $filteredBookings = Booking::with(['room', 'user'])
+            ->when(in_array($status, ['confirmed', 'pending', 'cancelled'], true), fn ($query) => $query->where('status', $status))
+            ->when($roomFilter !== 'all' && $roomFilter !== null, fn ($query) => $query->where('room_id', $roomFilter))
+            ->when($dateFrom, fn ($query) => $query->whereDate('check_in', '>=', $dateFrom))
+            ->when($dateTo, fn ($query) => $query->whereDate('check_out', '<=', $dateTo))
+            ->latest()
+            ->get();
 
         return $this->renderAdminPage('bookings', [
+            'bookings' => $filteredBookings,
             'selectedRoom' => $selectedRoom,
             'calendar' => $selectedRoom ? $this->buildBookingCalendar($selectedRoom, $request->query('month')) : null,
             'filters' => [
-                'status' => $request->query('status', 'all'),
-                'room' => $request->query('room', 'all'),
-                'date_from' => $request->query('date_from'),
-                'date_to' => $request->query('date_to'),
+                'status' => $status,
+                'room' => $roomFilter,
+                'date_from' => $dateFrom,
+                'date_to' => $dateTo,
             ],
             'seo' => [
                 'title' => 'Bookings — ' . config('app.name'),
@@ -124,9 +136,14 @@ class AdminController extends Controller
         return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
     }
 
-    public function guests(): View
+    public function guests(Request $request): View
     {
+        $users = User::with(['bookings.room'])->latest()->take(10)->get();
+        $selectedGuest = $users->firstWhere('id', (int) $request->query('guest')) ?? $users->first();
+
         return $this->renderAdminPage('guests', [
+            'users' => $users,
+            'selectedGuest' => $selectedGuest,
             'seo' => [
                 'title' => 'Guests — ' . config('app.name'),
                 'description' => 'Profile-based guest management with recent activity and stay history.',
