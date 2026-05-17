@@ -114,15 +114,16 @@
         <div class="flex-1 min-w-0">
             <header class="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
                 <div class="px-4 py-4 sm:px-6 lg:px-8">
-                    <div class="flex items-center justify-between gap-3 md:justify-end">
-                        <button type="button" id="mobile-menu-btn" class="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-300 hover:bg-gray-50 md:hidden" aria-controls="mobile-menu" aria-expanded="false">
-                            <svg id="menu-open-icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                            <svg id="menu-close-icon" class="h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
-                            Menu
-                        </button>
+                    <div class="flex items-center justify-between gap-4">
+                        <!-- Left: Hello and Staff Dashboard title -->
+                        <div>
+                            <p class="text-sm font-medium text-stone-600">Hello {{ Auth::user()?->name ?? 'Jack' }}</p>
+                            <h1 class="font-display text-2xl sm:text-3xl font-bold leading-tight text-stone-950">Staff dashboard</h1>
+                        </div>
 
+                        <!-- Right: Notifications, Profile, and Mobile Menu -->
                         <div class="flex items-center gap-3 sm:gap-4">
-                            <!-- Topbar: restored notifications dropdown and profile dropdown; other quick controls removed -->
+                            <!-- Notifications -->
                             <div class="relative">
                                 <button type="button" id="notif-btn" data-dropdown-toggle="notif-menu" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
@@ -139,26 +140,30 @@
                                     <div class="px-4 py-2 border-t text-center text-xs text-stone-500">You’re all caught up</div>
                                 </div>
                             </div>
-                        <div class="relative">
-                            <button type="button" data-dropdown-toggle="profile-menu" class="hidden sm:inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary">
-                                <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()?->name ?? 'Admin') }}&background=B6424F&color=fff" class="h-7 w-7 rounded-full" alt="Admin profile">
-                                <span class="hidden lg:inline">{{ Auth::user()?->name ?? 'Admin' }}</span>
-                            </button>
 
-                            <div id="profile-menu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-white border border-stone-200 shadow-lg py-2">
-                                <a href="{{ route('home') }}" class="block px-4 py-2 text-sm hover:bg-stone-50">View site</a>
-                                <a href="{{ route('admin.settings', ['tab' => 'account']) }}" class="block px-4 py-2 text-sm hover:bg-stone-50">Account</a>
-                                <form method="POST" action="{{ route('logout') }}">
-                                    @csrf
-                                    <button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-stone-50">Sign out</button>
-                                </form>
+                            <!-- Profile -->
+                            <div class="relative hidden sm:block">
+                                <button type="button" data-dropdown-toggle="profile-menu" class="inline-flex items-center gap-2 rounded-full border border-stone-200 bg-white px-3 py-2 text-sm font-semibold text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary">
+                                    <img src="https://ui-avatars.com/api/?name={{ urlencode(Auth::user()?->name ?? 'Admin') }}&background=B6424F&color=fff" class="h-7 w-7 rounded-full" alt="Admin profile">
+                                    <span class="hidden lg:inline">{{ Auth::user()?->name ?? 'Admin' }}</span>
+                                </button>
+
+                                <div id="profile-menu" class="hidden absolute right-0 mt-2 w-48 rounded-xl bg-white border border-stone-200 shadow-lg py-2">
+                                    <a href="{{ route('home') }}" class="block px-4 py-2 text-sm hover:bg-stone-50">View site</a>
+                                    <a href="{{ route('admin.settings', ['tab' => 'account']) }}" class="block px-4 py-2 text-sm hover:bg-stone-50">Account</a>
+                                    <form method="POST" action="{{ route('logout') }}">
+                                        @csrf
+                                        <button type="submit" class="w-full text-left px-4 py-2 text-sm hover:bg-stone-50">Sign out</button>
+                                    </form>
+                                </div>
                             </div>
-                        </div>
-                    </div>
 
-                    <div class="mt-4 md:mt-0">
-                        <p class="text-sm font-medium text-gray-600">Hello Jack</p>
-                        <h1 class="font-display text-3xl font-bold leading-tight text-gray-900">Staff dashboard</h1>
+                            <!-- Mobile Menu Button (right side) -->
+                            <button type="button" id="mobile-menu-btn" class="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-300 hover:bg-gray-50 md:hidden" aria-controls="mobile-menu" aria-expanded="false">
+                                <svg id="menu-open-icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                                <svg id="menu-close-icon" class="h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </header>

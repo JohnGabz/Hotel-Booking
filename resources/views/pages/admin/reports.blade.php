@@ -125,26 +125,7 @@
         </form>
     </section>
 
-    <section class="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <div class="surface p-6 sm:p-8">
-            <h2 class="text-2xl font-semibold text-stone-950">Confirmed revenue by month</h2>
-            <div class="mt-6 grid h-56 items-end gap-2 rounded-lg bg-stone-50 p-4" style="grid-template-columns: repeat({{ max(count($chartValues), 1) }}, minmax(0, 1fr));">
-                @forelse ($chartValues as $value)
-                    <div class="flex h-full flex-col justify-end">
-                        <div class="min-h-2 rounded-t-lg bg-brand-primary" style="height: {{ max(4, ($value / max($maxChartValue, 1)) * 100) }}%"></div>
-                    </div>
-                @empty
-                    <div class="col-span-full flex h-full items-center justify-center text-sm text-stone-500">No confirmed revenue in this range.</div>
-                @endforelse
-            </div>
-            <div class="mt-3 flex flex-wrap gap-2 text-[0.68rem] uppercase tracking-[0.14em] text-stone-500">
-                @foreach ($chartLabels as $label)
-                    <span>{{ $label }}</span>
-                @endforeach
-            </div>
-        </div>
-
-        <div class="surface p-6 sm:p-8">
+    <section class="surface p-6 sm:p-8">
             <div class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
                 <div>
                     <h2 class="text-2xl font-semibold text-stone-950">Transaction list</h2>
@@ -204,7 +185,6 @@
             <div class="mt-6">
                 {{ $transactions->links() }}
             </div>
-        </div>
-    </section>
-</div>
-@endsection
+        </section>
+    </div>
+    @endsection
