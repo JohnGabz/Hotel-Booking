@@ -2,8 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\BookingConfirmed;
+use App\Events\PaymentVerified;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
+use App\Models\PaymentTransaction;
 use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
@@ -367,9 +370,9 @@ class AdminController extends Controller
 
         $bookings = Booking::query()
             ->where('room_id', $room->id)
-            ->where('status', 'confirmed')
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
             ->whereDate('check_in', '<=', $monthEnd)
-            ->whereDate('check_out', '>=', $monthStart)
+            ->whereDate('check_out', '>', $monthStart)
             ->orderBy('check_in')
             ->get();
 
@@ -390,7 +393,7 @@ class AdminController extends Controller
             $matchingBooking = $bookings->first(function (Booking $booking) use ($date) {
                 return $date->betweenIncluded(
                     Carbon::parse($booking->check_in)->startOfDay(),
-                    Carbon::parse($booking->check_out)->endOfDay()
+                    Carbon::parse($booking->check_out)->subDay()->endOfDay()
                 );
             });
 
@@ -607,11 +610,48 @@ class AdminController extends Controller
         ]);
 
         $status = $request->string('payment_status')->toString();
+        $confirmed = false;
 
-        $booking->update([
-            'payment_status' => $status,
-            'paid_at' => $status === 'paid' ? now() : null,
-        ]);
+        DB::transaction(function () use ($booking, $status, &$confirmed) {
+            $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+            if ($status === 'paid') {
+                $alreadyConfirmed = $lockedBooking->payment_status === 'paid' && $lockedBooking->status === 'confirmed';
+                $lockedBooking->confirmPayment($lockedBooking->payment_reference, $lockedBooking->payment_method, 'manual');
+                $confirmed = ! $alreadyConfirmed;
+
+                return;
+            }
+
+            $bookingStatus = in_array($status, ['failed', 'refunded'], true) ? 'cancelled' : $lockedBooking->status;
+
+            $lockedBooking->update([
+                'status' => $bookingStatus,
+                'payment_status' => $status,
+                'paid_at' => in_array($status, ['pending', 'for_verification', 'failed'], true) ? null : $lockedBooking->paid_at,
+            ]);
+
+            if ($lockedBooking->payment_reference) {
+                PaymentTransaction::updateOrCreate(
+                    [
+                        'booking_id' => $lockedBooking->id,
+                        'transaction_id' => $lockedBooking->payment_reference,
+                    ],
+                    [
+                        'provider' => 'manual',
+                        'amount' => $lockedBooking->total,
+                        'status' => $status === 'refunded' ? 'refunded' : ($status === 'failed' ? 'failed' : 'pending'),
+                        'payment_method' => $lockedBooking->payment_method,
+                        'processed_at' => null,
+                    ]
+                );
+            }
+        });
+
+        if ($confirmed) {
+            event(new PaymentVerified($booking->id));
+            event(new BookingConfirmed($booking->id));
+        }
 
         return redirect()->route('admin.dashboard')->with('success', 'Payment status updated successfully.');
     }

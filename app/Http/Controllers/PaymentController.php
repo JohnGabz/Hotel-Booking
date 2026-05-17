@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\Booking;
+use App\Models\PaymentTransaction;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -60,10 +62,30 @@ class PaymentController extends Controller
                 return back()->with('error', 'Payment gateway did not return a checkout URL.');
             }
 
-            $booking->update([
-                'payment_status' => 'pending',
-                'payment_reference' => $invoiceId ?: $externalId,
-            ]);
+            DB::transaction(function () use ($booking, $invoiceId, $externalId, $data) {
+                $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
+                $reference = $invoiceId ?: $externalId;
+
+                $lockedBooking->update([
+                    'payment_status' => 'pending',
+                    'payment_reference' => $reference,
+                ]);
+
+                PaymentTransaction::updateOrCreate(
+                    [
+                        'booking_id' => $lockedBooking->id,
+                        'transaction_id' => $reference,
+                    ],
+                    [
+                        'provider' => 'xendit',
+                        'amount' => $lockedBooking->total,
+                        'status' => 'pending',
+                        'payment_method' => $lockedBooking->payment_method,
+                        'payload' => $data,
+                        'processed_at' => null,
+                    ]
+                );
+            });
 
             return redirect($checkoutUrl);
         } catch (\Exception $e) {

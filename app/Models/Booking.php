@@ -5,11 +5,14 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 #[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes'])]
 class Booking extends Model
 {
     use HasFactory;
+
+    public const BLOCKING_STATUSES = ['pending', 'for_verification', 'confirmed'];
 
     protected $casts = [
         'check_in' => 'date',
@@ -26,6 +29,56 @@ class Booking extends Model
     public function room(): BelongsTo
     {
         return $this->belongsTo(Room::class);
+    }
+
+    public function paymentTransactions(): HasMany
+    {
+        return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function webhookEvents(): HasMany
+    {
+        return $this->hasMany(WebhookEvent::class);
+    }
+
+    public function scopeOverlapping($query, int $roomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES)
+    {
+        return $query
+            ->where('room_id', $roomId)
+            ->whereIn('status', $statuses)
+            ->whereDate('check_in', '<', $checkOut)
+            ->whereDate('check_out', '>', $checkIn);
+    }
+
+    public static function overlaps(int $roomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES): bool
+    {
+        return static::query()->overlapping($roomId, $checkIn, $checkOut, $statuses)->exists();
+    }
+
+    public function confirmPayment(?string $reference = null, ?string $method = null, ?string $provider = null, ?array $payload = null): void
+    {
+        $this->forceFill([
+            'status' => 'confirmed',
+            'payment_status' => 'paid',
+            'payment_reference' => $reference ?: $this->payment_reference,
+            'payment_method' => $method ?: $this->payment_method,
+            'paid_at' => $this->paid_at ?: now(),
+        ])->save();
+
+        PaymentTransaction::updateOrCreate(
+            [
+                'booking_id' => $this->id,
+                'transaction_id' => $reference ?: $this->payment_reference ?: 'booking-' . $this->id,
+            ],
+            [
+                'provider' => $provider ?: 'manual',
+                'amount' => $this->total,
+                'status' => 'confirmed',
+                'payment_method' => $method ?: $this->payment_method,
+                'payload' => $payload,
+                'processed_at' => $this->paid_at ?: now(),
+            ]
+        );
     }
 
     public function getTransactionIdAttribute(): string

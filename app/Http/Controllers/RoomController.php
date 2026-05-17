@@ -60,17 +60,7 @@ class RoomController extends Controller
         $hasOverlap = false;
 
         if ($checkIn && $checkOut) {
-            $hasOverlap = Booking::where('room_id', $room->id)
-                ->where('status', 'confirmed')
-                ->where(function ($query) use ($checkIn, $checkOut) {
-                    $query->whereBetween('check_in', [$checkIn, $checkOut])
-                        ->orWhereBetween('check_out', [$checkIn, $checkOut])
-                        ->orWhere(function ($query) use ($checkIn, $checkOut) {
-                            $query->where('check_in', '<=', $checkIn)
-                                ->where('check_out', '>=', $checkOut);
-                        });
-                })
-                ->exists();
+            $hasOverlap = Booking::overlaps($room->id, $checkIn, $checkOut);
         }
 
         $isAvailable = $room->status === 'available' && ! $hasOverlap;
@@ -101,9 +91,9 @@ class RoomController extends Controller
 
         $bookings = Booking::query()
             ->where('room_id', $room->id)
-            ->where('status', 'confirmed')
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
             ->whereDate('check_in', '<=', $monthEnd)
-            ->whereDate('check_out', '>=', $monthStart)
+            ->whereDate('check_out', '>', $monthStart)
             ->orderBy('check_in')
             ->get();
 
@@ -124,7 +114,7 @@ class RoomController extends Controller
             $matchingBooking = $bookings->first(function (Booking $booking) use ($date) {
                 return $date->betweenIncluded(
                     Carbon::parse($booking->check_in)->startOfDay(),
-                    Carbon::parse($booking->check_out)->endOfDay()
+                    Carbon::parse($booking->check_out)->subDay()->endOfDay()
                 );
             });
 

@@ -5,6 +5,7 @@ use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PageController;
+use App\Http\Controllers\Webhook\PaymentController as WebhookPaymentController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -78,5 +79,9 @@ Route::middleware('auth')->group(function () {
     });
 });
 
-// Webhook endpoint for Xendit payment updates
-Route::post('/webhooks/xendit', [App\Http\Controllers\PaymentController::class, 'webhook'])->name('webhooks.xendit');
+Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])
+    ->middleware('throttle:60,1')
+    ->name('webhooks.payments');
+Route::post('/webhooks/xendit', [WebhookPaymentController::class, 'handle'])
+    ->middleware('throttle:60,1')
+    ->name('webhooks.xendit');

@@ -40,4 +40,8 @@ return [
         'webhook_token' => env('XENDIT_WEBHOOK_VERIFICATION_TOKEN'),
     ],
 
+    'payment' => [
+        'webhook_secret' => env('PAYMENT_WEBHOOK_SECRET'),
+    ],
+
 ];

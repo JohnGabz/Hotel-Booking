@@ -21,6 +21,19 @@ Laravel is a web application framework with expressive, elegant syntax. We belie
 
 Laravel is accessible, powerful, and provides tools required for large, robust applications.
 
+## Villa Estella Booking Lifecycle
+
+Reservations are created with `status=pending` and `payment_status=pending`. Pending, for-verification, and confirmed bookings block overlapping room availability until staff rejects/cancels them or payment completes.
+
+Payment callbacks should post to `POST /webhooks/payments` or the Xendit-compatible `POST /webhooks/xendit` endpoint. Set `PAYMENT_WEBHOOK_SECRET` for HMAC `X-Payment-Signature` validation, or keep using `XENDIT_WEBHOOK_VERIFICATION_TOKEN` for Xendit's `X-Callback-Token`.
+
+Run the lifecycle migrations and tests with:
+
+```bash
+php artisan migrate
+php artisan test
+```
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
