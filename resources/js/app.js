@@ -5,6 +5,92 @@ let loaderCompletionTimer = null;
 let pendingFetchCount = 0;
 const originalFetch = window.fetch.bind(window);
 const FETCH_TIMEOUT_MS = 20000;
+const focusableSelector = [
+    'a[href]',
+    'area[href]',
+    'button:not([disabled])',
+    'input:not([disabled]):not([type="hidden"])',
+    'select:not([disabled])',
+    'textarea:not([disabled])',
+    '[tabindex]:not([tabindex="-1"])',
+].join(',');
+const modalState = new Map();
+let activeModal = null;
+
+function getFocusableElements(container) {
+    return Array.from(container.querySelectorAll(focusableSelector))
+        .filter((element) => element.offsetParent !== null || element === document.activeElement);
+}
+
+function lockBodyScroll(lock) {
+    document.body.classList.toggle('overflow-hidden', lock);
+}
+
+function trapFocus(event) {
+    if (!activeModal || event.key !== 'Tab') return;
+
+    const focusable = getFocusableElements(activeModal);
+    if (!focusable.length) {
+        event.preventDefault();
+        activeModal.focus();
+        return;
+    }
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+
+    if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+    } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+    }
+}
+
+function openAccessibleModal(modal) {
+    if (!modal) return;
+
+    modalState.set(modal, { previousFocus: document.activeElement });
+    activeModal = modal;
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    modal.removeAttribute('hidden');
+    modal.setAttribute('aria-hidden', 'false');
+    lockBodyScroll(true);
+
+    window.setTimeout(() => {
+        const focusTarget = getFocusableElements(modal)[0] || modal;
+        focusTarget.focus({ preventScroll: true });
+    }, 0);
+}
+
+function closeAccessibleModal(modal) {
+    if (!modal) return;
+
+    const previousFocus = modalState.get(modal)?.previousFocus;
+    modal.classList.add('hidden');
+    modal.classList.remove('flex');
+    modal.setAttribute('hidden', '');
+    modal.setAttribute('aria-hidden', 'true');
+    modalState.delete(modal);
+    activeModal = null;
+    lockBodyScroll(false);
+
+    if (previousFocus && typeof previousFocus.focus === 'function') {
+        previousFocus.focus({ preventScroll: true });
+    }
+}
+
+document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && activeModal) {
+        event.preventDefault();
+        closeAccessibleModal(activeModal);
+        return;
+    }
+
+    trapFocus(event);
+});
 
 function showErrorModal(title, message, errors = null) {
     const modal = document.getElementById('error-modal');
@@ -34,18 +120,14 @@ function showErrorModal(title, message, errors = null) {
         listEl.classList.add('hidden');
     }
 
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    modal.setAttribute('aria-hidden', 'false');
+    openAccessibleModal(modal);
 }
 
 function hideErrorModal() {
     const modal = document.getElementById('error-modal');
     if (!modal) return;
 
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
-    modal.setAttribute('aria-hidden', 'true');
+    closeAccessibleModal(modal);
 }
 
 function friendlyHttpMessage(status) {
@@ -85,6 +167,11 @@ window.VillaLoader = {
 window.VillaError = {
     show: showErrorModal,
     hide: hideErrorModal,
+};
+
+window.VillaModal = {
+    open: openAccessibleModal,
+    close: closeAccessibleModal,
 };
 
 // Provide a helper to fetch without triggering the global loader
@@ -162,6 +249,18 @@ function loadCalendar(url, pushHistory = true) {
         .catch(() => false);
 }
 
+function addDaysToDateString(dateString, days) {
+    const [year, month, day] = dateString.split('-').map(Number);
+    const date = new Date(year, month - 1, day);
+    date.setDate(date.getDate() + days);
+
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+
+    return `${yyyy}-${mm}-${dd}`;
+}
+
 // AJAX calendar navigation: intercept clicks and replace full calendar shell.
 document.addEventListener('click', (event) => {
     const ajaxLink = event.target.closest('a.ajax-calendar-nav');
@@ -184,10 +283,7 @@ document.addEventListener('click', (event) => {
 
     // Populate and open booking modal after selecting an open day.
     if (window.bookingModal && selectedCalendarDate) {
-        const start = new Date(`${selectedCalendarDate}T00:00:00`);
-        const end = new Date(start);
-        end.setDate(end.getDate() + 1);
-        const checkOut = end.toISOString().slice(0, 10);
+        const checkOut = addDaysToDateString(selectedCalendarDate, 1);
         window.bookingModal.setDates(selectedCalendarDate, checkOut);
         window.bookingModal.open();
     }
@@ -372,9 +468,12 @@ const mobileMenuCloseButtons = document.querySelectorAll('[data-mobile-close]');
 
 if (mobileToggle && mobileMenu && menuOpenIcon && menuCloseIcon) {
     mobileToggle.addEventListener('click', () => {
-        mobileMenu.classList.toggle('hidden');
-        menuOpenIcon.classList.toggle('hidden');
-        menuCloseIcon.classList.toggle('hidden');
+        const willOpen = mobileMenu.classList.contains('hidden');
+        mobileMenu.classList.toggle('hidden', !willOpen);
+        menuOpenIcon.classList.toggle('hidden', willOpen);
+        menuCloseIcon.classList.toggle('hidden', !willOpen);
+        mobileToggle.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+        lockBodyScroll(willOpen && mobileMenu.classList.contains('fixed'));
     });
 }
 
@@ -388,6 +487,9 @@ mobileMenuCloseButtons.forEach((button) => {
             menuOpenIcon.classList.remove('hidden');
             menuCloseIcon.classList.add('hidden');
         }
+
+        mobileToggle?.setAttribute('aria-expanded', 'false');
+        lockBodyScroll(false);
     });
 });
 
@@ -414,15 +516,13 @@ document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
 function openModalById(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
+    openAccessibleModal(modal);
 }
 
 function closeModal(el) {
     const modal = el.closest('[id]');
     if (!modal) return;
-    modal.classList.add('hidden');
-    modal.classList.remove('flex');
+    closeAccessibleModal(modal);
 }
 
 document.querySelectorAll('[data-modal-open]').forEach(btn => {
@@ -447,8 +547,7 @@ document.querySelectorAll('[data-modal-close]').forEach(btn => {
         e.preventDefault();
         const modal = btn.closest('[id]');
         if (modal) {
-            modal.classList.add('hidden');
-            modal.classList.remove('flex');
+            closeAccessibleModal(modal);
         }
     });
 });
@@ -542,6 +641,12 @@ document.querySelectorAll('[class*="scroll-animate"]').forEach(el => {
     observer.observe(el);
 });
 
+document.querySelectorAll('img:not([loading])').forEach((image) => {
+    const nearTop = image.closest('header, [data-priority-image]');
+    image.loading = nearTop ? 'eager' : 'lazy';
+    image.decoding = 'async';
+});
+
 document.querySelectorAll('[data-amenity-toggle]').forEach((button) => {
     button.addEventListener('click', () => {
         const card = button.closest('[data-amenity-card]');
@@ -632,17 +737,50 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
 
 // Global image fallback: replace broken images with a sensible default
 (() => {
-    const FALLBACK_IMAGE = 'https://images.unsplash.com/photo-1505691723518-36a4cdbb1f2a?auto=format&fit=crop&w=1400&q=80';
+    const FALLBACK_IMAGE = `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1400 900" role="img" aria-label="Villa Estella room image placeholder">
+            <defs>
+                <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+                    <stop offset="0" stop-color="#2f241d"/>
+                    <stop offset="0.48" stop-color="#B6424F"/>
+                    <stop offset="1" stop-color="#B57D59"/>
+                </linearGradient>
+                <linearGradient id="light" x1="0" x2="1">
+                    <stop offset="0" stop-color="#fff7ed" stop-opacity="0.92"/>
+                    <stop offset="1" stop-color="#ffffff" stop-opacity="0.48"/>
+                </linearGradient>
+            </defs>
+            <rect width="1400" height="900" fill="url(#bg)"/>
+            <rect x="140" y="180" width="1120" height="520" rx="38" fill="#ffffff" opacity="0.12"/>
+            <rect x="210" y="260" width="430" height="300" rx="28" fill="url(#light)" opacity="0.72"/>
+            <rect x="700" y="280" width="420" height="58" rx="29" fill="#ffffff" opacity="0.72"/>
+            <rect x="700" y="370" width="300" height="34" rx="17" fill="#ffffff" opacity="0.42"/>
+            <rect x="700" y="430" width="360" height="34" rx="17" fill="#ffffff" opacity="0.32"/>
+            <text x="700" y="660" text-anchor="middle" fill="#fffaf0" font-family="Arial, sans-serif" font-size="52" font-weight="700">Villa Estella</text>
+        </svg>
+    `)}`;
 
-    // Use capture phase so we catch load errors from delegated images
-    document.addEventListener('error', (ev) => {
-        const el = ev.target;
+    const applyImageFallback = (el) => {
         if (!(el instanceof HTMLImageElement)) return;
         if (el.dataset.fallbackApplied === '1') return;
 
         el.dataset.fallbackApplied = '1';
+        el.classList.add('bg-stone-200');
         try { el.src = FALLBACK_IMAGE; } catch (e) { /* ignore */ }
+    };
+
+    // Use capture phase so we catch load errors from delegated images.
+    document.addEventListener('error', (ev) => {
+        applyImageFallback(ev.target);
     }, true);
+
+    window.addEventListener('DOMContentLoaded', () => {
+        document.querySelectorAll('img').forEach((image) => {
+            if (image.complete && image.naturalWidth === 0) {
+                applyImageFallback(image);
+            }
+        });
+    });
 })();
 
 // Simple carousel auto-advance + controls for any element with `data-room-carousel`

@@ -28,7 +28,7 @@
                         <p class="text-xs font-medium uppercase tracking-widest text-gray-500">Admin panel</p>
                     </div>
                 </div>
-                <button type="button" data-mobile-close class="btn-icon">
+                <button type="button" data-mobile-close class="btn-icon" aria-label="Close admin menu">
                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                 </button>
             </div>
@@ -120,7 +120,7 @@
             <header class="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
                 <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
                     <div class="flex-1">
-                        <button type="button" id="mobile-menu-btn" class="mb-3 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 min-h-[44px] text-sm font-semibold text-gray-700 transition-all duration-300 hover:bg-gray-50 md:hidden">
+                        <button type="button" id="mobile-menu-btn" class="mb-3 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 min-h-[44px] text-sm font-semibold text-gray-700 transition-all duration-300 hover:bg-gray-50 md:hidden" aria-controls="mobile-menu" aria-expanded="false">
                             <svg id="menu-open-icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
                             <svg id="menu-close-icon" class="h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             Menu
@@ -136,7 +136,7 @@
                                     <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"></path></svg>
                                 </button>
 
-                                <div id="notif-menu" class="hidden absolute right-0 mt-2 w-80 rounded-xl bg-white border border-stone-200 shadow-lg py-2">
+                                <div id="notif-menu" class="hidden absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl bg-white border border-stone-200 shadow-lg py-2">
                                     <div class="px-4 py-3 border-b text-sm font-semibold">Notifications</div>
                                     <div class="max-h-56 overflow-auto">
                                         <a class="block px-4 py-3 text-sm hover:bg-stone-50">No new notifications</a>

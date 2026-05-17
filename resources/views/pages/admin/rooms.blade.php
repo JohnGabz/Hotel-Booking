@@ -16,7 +16,7 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <span class="eyebrow">Rooms</span>
-                <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Room inventory designed as a visual catalog.</h1>
+                <h1 class="mt-4 responsive-title lg:text-5xl">Room inventory designed as a visual catalog.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Switch between grid and table modes, inspect rates, and update availability from one consistent screen.</p>
             </div>
             <a href="#" data-modal-open="add-room-modal" data-modal-title="Add room" class="btn-primary">Add room</a>
@@ -31,8 +31,8 @@
     @if ($viewMode === 'table')
         <section class="surface p-6 sm:p-8">
             <h2 class="text-3xl font-semibold text-stone-950">Room table</h2>
-            <div class="mt-6 overflow-x-auto rounded-[1.5rem] border border-stone-200 bg-white">
-                <table class="min-w-full text-left text-sm">
+            <div class="mt-6 rounded-lg border border-stone-200 bg-white p-3 md:overflow-x-auto md:p-0">
+                <table class="mobile-card-table md:min-w-full">
                     <thead class="bg-stone-50 text-xs uppercase tracking-[0.18em] text-stone-500">
                         <tr>
                             <th class="px-5 py-4">Room</th>
@@ -45,16 +45,16 @@
                     <tbody class="divide-y divide-stone-100">
                         @foreach ($rooms as $room)
                             <tr class="transition hover:bg-stone-50/80">
-                                <td class="px-5 py-4 font-semibold text-stone-950">{{ $room->name }}</td>
-                                <td class="px-5 py-4">
+                                <td class="px-5 py-4 font-semibold text-stone-950" data-label="Room">{{ $room->name }}</td>
+                                <td class="px-5 py-4" data-label="Status">
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $room->status === 'available' ? 'bg-emerald-100 text-emerald-700' : ($room->status === 'maintenance' ? 'bg-amber-200 text-amber-950 ring-1 ring-amber-400' : 'bg-amber-100 text-amber-800') }}">
                                         {{ $room->status === 'maintenance' ? 'Maintenance' : ucfirst($room->status) }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 text-stone-600">{{ $room->capacity }}</td>
-                                <td class="px-5 py-4 text-stone-600">₱{{ number_format($room->price, 0) }}</td>
-                                <td class="px-5 py-4">
-                                    <div class="flex flex-wrap gap-2">
+                                <td class="px-5 py-4 text-stone-600" data-label="Capacity">{{ $room->capacity }}</td>
+                                <td class="px-5 py-4 text-stone-600" data-label="Rate">₱{{ number_format($room->price, 0) }}</td>
+                                <td class="px-5 py-4 table-actions" data-label="Actions">
+                                    <div class="flex flex-wrap justify-end gap-2 md:justify-start">
                                         <a href="{{ route('rooms.show', $room->slug) }}" class="btn-secondary text-sm">View</a>
                                         <a href="#"
                                            data-modal-open="edit-room-modal"
@@ -86,7 +86,7 @@
                         $roomImage = $resolveRoomImage($roomImage) ?? $roomImages[$loop->index % count($roomImages)];
                     @endphp
                     <div class="h-56 overflow-hidden bg-stone-200">
-                        <img src="{{ $roomImage }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition duration-500 hover:scale-105">
+                        <img src="{{ $roomImage }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition duration-500 hover:scale-105" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                     </div>
                     <div class="p-6">
                         <div class="flex items-start justify-between gap-4">

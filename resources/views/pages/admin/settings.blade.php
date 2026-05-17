@@ -152,10 +152,10 @@
 <div id="top" class="space-y-8">
     <section class="surface p-6 sm:p-8 lg:p-10">
         <span class="eyebrow">Settings</span>
-        <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Tabbed controls for general, account, preferences, and the landing page.</h1>
+        <h1 class="mt-4 responsive-title lg:text-5xl">Tabbed controls for general, account, preferences, and the landing page.</h1>
         <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Keep admin configuration grouped and easy to scan without overwhelming the page.</p>
 
-        <div class="mt-6 flex flex-wrap gap-3">
+        <div class="mt-6 flex flex-wrap gap-3" role="tablist" aria-label="Settings sections">
             <a href="{{ route('admin.settings', ['tab' => 'general']) }}" class="{{ $tab === 'general' ? 'btn-primary' : 'btn-secondary' }}">General</a>
             <a href="{{ route('admin.settings', ['tab' => 'account']) }}" class="{{ $tab === 'account' ? 'btn-primary' : 'btn-secondary' }}">Account</a>
             <a href="{{ route('admin.settings', ['tab' => 'preferences']) }}" class="{{ $tab === 'preferences' ? 'btn-primary' : 'btn-secondary' }}">Preferences</a>
@@ -217,7 +217,7 @@
                                         @error($field['key'] . '_upload') <p class="form-error">{{ $message }}</p> @enderror
                                         @if($preview)
                                             <div class="mt-3">
-                                                <img src="{{ $preview }}" alt="{{ $field['label'] }}" class="h-40 w-full object-cover rounded-2xl border border-stone-200">
+                                                <img src="{{ $preview }}" alt="{{ $field['label'] }}" class="h-40 w-full object-cover rounded-2xl border border-stone-200" loading="lazy" decoding="async" sizes="(min-width: 1280px) 50vw, 100vw">
                                             </div>
                                         @else
                                             <p class="mt-2 text-sm text-stone-500">No image uploaded yet.</p>
@@ -246,7 +246,7 @@
                         </div>
                         <div class="xl:col-span-2">
                             <p class="text-xs uppercase tracking-[0.18em] text-stone-500 mb-2">Preview</p>
-                            <img id="hero-background-preview" src="{{ $heroImagePreview }}" alt="Current hero image" class="h-56 w-full rounded-2xl object-cover border border-stone-200 {{ empty($heroImagePreview) ? 'hidden' : '' }}">
+                            <img id="hero-background-preview" src="{{ $heroImagePreview }}" alt="Current hero image" class="h-56 w-full rounded-2xl object-cover border border-stone-200 {{ empty($heroImagePreview) ? 'hidden' : '' }}" loading="lazy" decoding="async" sizes="100vw">
                             <div id="hero-background-empty" class="{{ empty($heroImagePreview) ? '' : 'hidden' }} rounded-2xl border border-dashed border-stone-300 bg-stone-50 px-4 py-8 text-sm text-stone-500">
                                 No hero image uploaded yet.
                             </div>

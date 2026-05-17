@@ -5,7 +5,7 @@
     <div class="site-shell grid gap-8 lg:grid-cols-[1fr_0.9fr] lg:items-center">
         <div class="space-y-5">
             <span class="eyebrow">About Villa Estella</span>
-            <h1 class="max-w-3xl text-5xl leading-[0.95] text-stone-950 sm:text-6xl">
+            <h1 class="max-w-3xl responsive-title">
                 {{ $heading }}
             </h1>
             <p class="max-w-2xl text-base leading-7 text-stone-600 sm:text-lg">

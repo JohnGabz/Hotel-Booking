@@ -124,9 +124,9 @@
 @endphp
 
 <!-- Hero Section -->
-<section class="relative bg-stone-900 min-h-[75vh] flex items-center overflow-hidden">
+<section class="relative bg-stone-900 min-h-[75vh] flex items-center overflow-hidden" data-priority-image>
     <div class="absolute inset-0 overflow-hidden">
-        <img src="{{ $heroBackground }}" alt="Hero background" class="w-full h-full object-cover opacity-35">
+        <img src="{{ $heroBackground }}" alt="Villa Estella exterior and guest spaces" class="h-full w-full object-cover opacity-35" loading="eager" decoding="async" fetchpriority="high" sizes="100vw">
         <div class="absolute inset-0 bg-gradient-to-t from-stone-950 via-stone-950/60 to-stone-950/20"></div>
     </div>
     
@@ -135,7 +135,7 @@
             <p class="text-xs font-semibold uppercase tracking-[0.25em] text-white/80 mb-4">{{ $heroEyebrow }}</p>
             <h1 class="font-display text-4xl sm:text-5xl lg:text-6xl text-white font-bold mb-4 sm:mb-6 leading-tight">{{ $heroTitle }}</h1>
             <p class="text-base sm:text-lg text-stone-100 mb-8 leading-relaxed max-w-xl">{{ $heroSubtitle }}</p>
-            <a href="{{ route('rooms.index') }}" class="inline-flex items-center bg-brand-primary hover:bg-brand-secondary text-white px-6 sm:px-8 py-3 sm:py-3.5 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 group">
+            <a href="{{ route('rooms.index') }}" class="btn-primary px-6 sm:px-8 sm:py-3.5 group">
                 {{ $heroButtonText }}
                 <svg class="w-5 h-5 ml-2 group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"></path></svg>
             </a>
@@ -228,9 +228,9 @@
                 <div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-lg hover:border-brand-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                     <div class="relative h-72 overflow-hidden bg-stone-200">
                         @if ($room->image)
-                            <img src="{{ asset('storage/' . $room->image) }}" alt="{{ $room->name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="{{ asset('storage/' . $room->image) }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                         @else
-                            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80" alt="{{ $room->name }}" class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500">
+                            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                         @endif
                         <div class="absolute inset-0 bg-gradient-to-t from-stone-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-4 py-2 rounded-lg text-sm font-semibold text-brand-primary shadow-lg">
@@ -287,7 +287,7 @@
                 </a>
             </div>
             <div class="h-80 md:h-auto bg-stone-300 scroll-animate-in-right">
-                <img src="{{ $aboutImage }}" alt="Villa Estella interior" class="w-full h-full object-cover">
+                <img src="{{ $aboutImage }}" alt="Villa Estella interior" class="h-full w-full object-cover" loading="lazy" decoding="async" sizes="(min-width: 768px) 50vw, 100vw">
             </div>
         </div>
     </div>
@@ -352,16 +352,16 @@
 
         <div class="grid gap-4 sm:grid-cols-2 scroll-animate-in-right">
             <div class="overflow-hidden rounded-2xl sm:row-span-2 border border-stone-200 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                <img src="{{ $gallery[0] }}" alt="Resort suite" class="h-full w-full object-cover hover:scale-110 transition-transform duration-500">
+                <img src="{{ $gallery[0] }}" alt="Resort suite" class="h-full w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 45vw, 100vw">
             </div>
             <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                <img src="{{ $gallery[1] }}" alt="Bedroom view" class="h-full w-full object-cover hover:scale-110 transition-transform duration-500">
+                <img src="{{ $gallery[1] }}" alt="Bedroom view" class="h-full w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 640px) 50vw, 100vw">
             </div>
             <div class="overflow-hidden rounded-2xl border border-stone-200 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                <img src="{{ $gallery[2] }}" alt="Hotel lounge" class="h-full w-full object-cover hover:scale-110 transition-transform duration-500">
+                <img src="{{ $gallery[2] }}" alt="Hotel lounge" class="h-full w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 640px) 50vw, 100vw">
             </div>
             <div class="overflow-hidden rounded-2xl sm:col-span-2 border border-stone-200 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                <img src="{{ $gallery[5] }}" alt="Sunset by the water" class="h-64 w-full object-cover hover:scale-110 transition-transform duration-500">
+                <img src="{{ $gallery[5] }}" alt="Sunset by the water" class="h-64 w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 55vw, 100vw">
             </div>
         </div>
     </div>

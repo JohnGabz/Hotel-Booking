@@ -36,7 +36,7 @@
                     <div class="absolute inset-0">
                         @foreach ($roomCarouselImages as $index => $carouselImage)
                             <div class="absolute inset-0 transition duration-700 ease-out {{ $index === 0 ? 'opacity-100' : 'opacity-0 pointer-events-none' }}" data-carousel-slide data-carousel-index="{{ $index }}">
-                                <img src="{{ $carouselImage }}" alt="{{ $room->name }} image {{ $index + 1 }}" class="h-full w-full object-cover">
+                                <img src="{{ $carouselImage }}" alt="{{ $room->name }} image {{ $index + 1 }}" class="h-full w-full object-cover" loading="{{ $index === 0 ? 'eager' : 'lazy' }}" decoding="async" sizes="(min-width: 1024px) 60vw, 100vw">
                             </div>
                         @endforeach
                     </div>
@@ -49,7 +49,7 @@
 
                         <div class="max-w-2xl space-y-5">
                             <p class="text-sm uppercase tracking-[0.35em] text-stone-200">Room experience</p>
-                            <h1 class="max-w-xl text-5xl leading-[0.95] text-white sm:text-6xl">{{ $room->name }}</h1>
+                            <h1 class="max-w-xl responsive-title text-white">{{ $room->name }}</h1>
                             <p class="max-w-2xl text-base leading-7 text-stone-200 sm:text-lg">{{ $room->description }}</p>
                         </div>
                     </div>
@@ -345,18 +345,18 @@
 </section>
 
 <!-- Booking Modal -->
-<div id="booking-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-    <div class="relative max-h-[90vh] max-w-2xl w-full overflow-y-auto rounded-3xl bg-white shadow-2xl">
+<div id="booking-modal" class="hidden fixed inset-0 z-50 items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" tabindex="-1">
+    <div class="modal-panel max-w-2xl safe-scroll">
         <div class="sticky top-0 flex items-center justify-between border-b border-stone-200 bg-white px-6 py-5 sm:px-8">
-            <h2 class="text-2xl font-semibold text-stone-950">Confirm your booking</h2>
-            <button type="button" id="close-booking-modal" class="rounded-lg p-1 text-stone-500 hover:bg-stone-100">
+            <h2 id="booking-modal-title" class="text-2xl font-semibold text-stone-950">Confirm your booking</h2>
+            <button type="button" id="close-booking-modal" class="btn-icon text-stone-500" aria-label="Close booking form">
                 <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
             </button>
         </div>
 
         <form action="{{ route('bookings.store', $room) }}" method="POST" class="space-y-4 p-6 sm:p-8" id="booking-form">
             @csrf
-            <div id="modal-availability-banner" class="hidden rounded-[1.5rem] border px-4 py-3 text-sm"></div>
+            <div id="modal-availability-banner" class="hidden rounded-lg border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
 
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="form-group">
@@ -394,7 +394,7 @@
                 </div>
             </div>
 
-            <div class="flex gap-3 pt-4">
+            <div class="flex flex-col gap-3 pt-4 sm:flex-row">
                 <button type="button" id="cancel-booking-btn" class="btn-secondary flex-1">Cancel</button>
                 <button type="submit" id="confirm-booking-btn" class="btn-primary flex-1 py-3" @if ($room->status !== 'available') disabled @endif>
                     Confirm booking
@@ -409,64 +409,17 @@
 @push('scripts')
 <script>
     (() => {
-        const carousel = document.querySelector('[data-room-carousel]');
-        if (carousel) {
-            const slides = Array.from(carousel.querySelectorAll('[data-carousel-slide]'));
-            const thumbs = Array.from(carousel.querySelectorAll('[data-carousel-thumb]'));
-            const prevBtn = carousel.querySelector('[data-carousel-prev]');
-            const nextBtn = carousel.querySelector('[data-carousel-next]');
-            const total = slides.length;
-            let currentIndex = 0;
-
-            const showSlide = (index) => {
-                if (!total) return;
-
-                currentIndex = (index + total) % total;
-
-                slides.forEach((slide, slideIndex) => {
-                    const active = slideIndex === currentIndex;
-                    slide.classList.toggle('opacity-100', active);
-                    slide.classList.toggle('opacity-0', !active);
-                    slide.classList.toggle('pointer-events-none', !active);
-                });
-
-                thumbs.forEach((thumb, thumbIndex) => {
-                    thumb.classList.toggle('ring-2', thumbIndex === currentIndex);
-                    thumb.classList.toggle('ring-white', thumbIndex === currentIndex);
-                    thumb.classList.toggle('opacity-70', thumbIndex !== currentIndex);
-                    thumb.classList.toggle('opacity-100', thumbIndex === currentIndex);
-                });
-            };
-
-            if (prevBtn) {
-                prevBtn.addEventListener('click', () => showSlide(currentIndex - 1));
-            }
-
-            if (nextBtn) {
-                nextBtn.addEventListener('click', () => showSlide(currentIndex + 1));
-            }
-
-            thumbs.forEach((thumb) => {
-                thumb.addEventListener('click', () => {
-                    const index = Number(thumb.dataset.carouselIndex || 0);
-                    showSlide(index);
-                });
-            });
-
-            showSlide(0);
-        }
-
         // Modal management
         const modal = document.getElementById('booking-modal');
         const closeBtn = document.getElementById('close-booking-modal');
         const cancelBtn = document.getElementById('cancel-booking-btn');
 
         const openModal = () => {
-            modal.classList.remove('hidden');
+            window.VillaModal?.open ? window.VillaModal.open(modal) : modal.classList.remove('hidden');
         };
 
         const closeModal = () => {
-            modal.classList.add('hidden');
+            window.VillaModal?.close ? window.VillaModal.close(modal) : modal.classList.add('hidden');
         };
 
         if (closeBtn) closeBtn.addEventListener('click', closeModal);

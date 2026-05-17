@@ -10,7 +10,7 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <span class="eyebrow">Bookings</span>
-                <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Filter and manage reservations with a table-first workflow.</h1>
+                <h1 class="mt-4 responsive-title lg:text-5xl">Filter and manage reservations with a table-first workflow.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Use the filters to narrow by stay date, status, or room, then expand rows for quick action.</p>
             </div>
             <a href="{{ route('rooms.index') }}" class="btn-primary">Add booking</a>
@@ -124,8 +124,8 @@
                 <span class="text-sm text-stone-500">{{ $bookings->count() }} records</span>
             </div>
 
-            <div class="mt-6 overflow-x-auto rounded-[1.5rem] border border-stone-200 bg-white">
-                <table class="min-w-full text-left text-sm">
+            <div class="mt-6 rounded-lg border border-stone-200 bg-white p-3 md:overflow-x-auto md:p-0">
+                <table class="mobile-card-table md:min-w-full">
                     <thead class="bg-stone-50 text-xs uppercase tracking-[0.18em] text-stone-500">
                         <tr>
                             <th class="px-5 py-4">Guest</th>
@@ -138,18 +138,18 @@
                     <tbody class="divide-y divide-stone-100">
                         @forelse ($bookings as $booking)
                             <tr class="align-top transition hover:bg-stone-50/80">
-                                <td class="px-5 py-4">
+                                <td class="px-5 py-4" data-label="Guest">
                                     <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
                                     <p class="text-xs uppercase tracking-[0.2em] text-stone-400">#{{ $booking->id }}</p>
                                 </td>
-                                <td class="px-5 py-4 text-stone-700">{{ $booking->room?->name ?? 'Room' }}</td>
-                                <td class="px-5 py-4 text-stone-600">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
-                                <td class="px-5 py-4">
+                                <td class="px-5 py-4 text-stone-700" data-label="Room">{{ $booking->room?->name ?? 'Room' }}</td>
+                                <td class="px-5 py-4 text-stone-600" data-label="Dates">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
+                                <td class="px-5 py-4" data-label="Status">
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $booking->status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : ($booking->status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-700') }}">
                                         {{ ucfirst($booking->status) }}
                                     </span>
                                 </td>
-                                <td class="px-5 py-4 font-medium text-stone-950">₱{{ number_format($booking->total, 0) }}</td>
+                                <td class="px-5 py-4 font-medium text-stone-950" data-label="Amount">₱{{ number_format($booking->total, 0) }}</td>
                             </tr>
                         @empty
                             <tr>

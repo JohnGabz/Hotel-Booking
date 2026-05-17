@@ -4,7 +4,7 @@
 <div class="grid gap-6 xl:grid-cols-[0.95fr_1.05fr]">
     <section class="surface p-6 sm:p-8">
         <span class="eyebrow">Guests</span>
-        <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Profile-based guest directory.</h1>
+        <h1 class="mt-4 responsive-title lg:text-5xl">Profile-based guest directory.</h1>
         <p class="mt-4 text-sm leading-7 text-stone-600">Scan guest identity, review booking count, and open a detailed history panel without leaving the list.</p>
 
         <div class="mt-6 space-y-4">

@@ -20,7 +20,7 @@
                 <span class="eyebrow border-white/20 bg-white/10 text-white">Our rooms</span>
                 <div class="mt-6 flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
                     <div class="max-w-3xl space-y-4">
-                        <h1 class="text-5xl leading-[0.95] text-white sm:text-6xl">Choose the perfect room for your stay.</h1>
+                        <h1 class="responsive-title text-white">Choose the perfect room for your stay.</h1>
                         <p class="max-w-2xl text-base leading-7 text-stone-200 sm:text-lg">
                             Explore refined spaces designed for comfort, privacy, and a premium guest experience.
                         </p>
@@ -56,7 +56,7 @@
                 @endphp
                 <article class="overflow-hidden rounded-[2rem] border border-stone-200 bg-white shadow-[0_20px_60px_rgba(80,61,30,0.08)] transition duration-200 hover:-translate-y-1 hover:shadow-[0_30px_70px_rgba(80,61,30,0.14)]">
                     <div class="relative h-72 overflow-hidden">
-                        <img src="{{ $image }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition duration-500 hover:scale-105">
+                        <img src="{{ $image }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition duration-500 hover:scale-105" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                         <div class="absolute inset-0 bg-gradient-to-t from-stone-950/70 via-stone-950/10 to-transparent"></div>
                         <div class="absolute left-5 top-5 rounded-full bg-white/92 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-stone-700 backdrop-blur">
                             {{ ucfirst($room->status) }}

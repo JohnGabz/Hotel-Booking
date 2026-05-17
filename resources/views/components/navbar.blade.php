@@ -36,7 +36,7 @@
                 <a href="{{ route('rooms.index') }}" class="bg-brand-primary hover:bg-brand-secondary text-white px-5 py-2.5 text-sm rounded-md font-semibold transition-colors">Book Now</a>
             </div>
 
-            <button id="mobile-menu-btn" class="inline-flex items-center justify-center rounded-full border border-stone-200 bg-white p-3 text-stone-700 shadow-sm transition hover:border-stone-300 hover:text-stone-950 lg:hidden" aria-label="Toggle menu">
+            <button id="mobile-menu-btn" class="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-full border border-stone-200 bg-white p-3 text-stone-700 shadow-sm transition hover:border-stone-300 hover:text-stone-950 lg:hidden" aria-label="Toggle menu" aria-controls="mobile-menu" aria-expanded="false">
                 <svg id="menu-open-icon" class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                 <svg id="menu-close-icon" class="hidden h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
             </button>
@@ -67,7 +67,7 @@
                     <a href="{{ route('login') }}" class="btn-secondary text-center text-sm">Login</a>
                     <a href="{{ route('register') }}" class="btn-secondary text-center text-sm">Register</a>
                 @endauth
-                <a href="{{ route('rooms.index') }}" class="bg-brand-primary hover:bg-brand-secondary text-white text-center text-sm rounded-md font-semibold py-2.5 transition-colors">Book Now</a>
+                <a href="{{ route('rooms.index') }}" class="btn-primary w-full text-center text-sm">Book Now</a>
             </div>
         </div>
     </nav>

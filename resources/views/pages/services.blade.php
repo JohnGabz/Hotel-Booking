@@ -13,7 +13,7 @@
     <div class="site-shell">
         <div class="text-center">
             <span class="eyebrow">Our services</span>
-            <h1 class="mt-5 text-5xl leading-[0.95] text-stone-950 sm:text-6xl">Everything your guests need, wrapped in a calm luxury experience.</h1>
+            <h1 class="mt-5 responsive-title">Everything your guests need, wrapped in a calm luxury experience.</h1>
             <p class="mx-auto mt-5 max-w-3xl text-base leading-7 text-stone-600 sm:text-lg">
                 {{ $intro }}
             </p>

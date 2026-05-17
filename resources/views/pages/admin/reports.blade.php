@@ -6,12 +6,12 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <span class="eyebrow">Reports</span>
-                <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">Insight-driven analytics with calm presentation.</h1>
+                <h1 class="mt-4 responsive-title lg:text-5xl">Insight-driven analytics with calm presentation.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Track revenue, occupancy, and trends with minimal clutter and a clear hierarchy.</p>
             </div>
-            <form method="GET" action="{{ route('admin.reports') }}" class="flex items-center gap-3">
+            <form method="GET" action="{{ route('admin.reports') }}" class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
                 <label class="sr-only" for="report_range">Range</label>
-                <select id="report_range" name="range" class="form-input w-40" onchange="this.form.submit()">
+                <select id="report_range" name="range" class="form-input sm:w-40" onchange="this.form.submit()">
                     <option value="7d" @selected(($reportRange ?? '30d') === '7d')>7d</option>
                     <option value="30d" @selected(($reportRange ?? '30d') === '30d')>30d</option>
                     <option value="90d" @selected(($reportRange ?? '30d') === '90d')>90d</option>

@@ -1,12 +1,12 @@
 @extends('layouts.site')
 
 @section('content')
-<section class="py-24 bg-slate-50">
-    <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+<section class="section-shell bg-stone-50">
+    <div class="site-shell">
         <div class="max-w-2xl mx-auto">
             <div class="card">
                 <div class="mb-8 text-center">
-                    <p class="text-sm uppercase tracking-[0.3em] text-sky-600">One more step</p>
+                    <p class="text-sm uppercase tracking-[0.3em] text-brand-primary">One more step</p>
                     <h1 class="mt-3 text-3xl font-bold text-slate-900">Verify your email</h1>
                     <p class="mt-4 text-sm text-slate-600">Please check your inbox and click the verification link before booking rooms or leaving reviews.</p>
                 </div>
@@ -27,7 +27,7 @@
                     <p>Wrong account?</p>
                     <form action="{{ route('logout') }}" method="POST" class="mt-2">
                         @csrf
-                        <button type="submit" class="text-sky-600 font-semibold">Logout</button>
+                        <button type="submit" class="font-semibold text-brand-primary">Logout</button>
                     </form>
                 </div>
             </div>

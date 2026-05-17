@@ -40,7 +40,7 @@
 
 <section class="surface p-6 sm:p-8 lg:p-10">
     <span class="eyebrow">Messages</span>
-    <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">A split conversation workspace for inquiries.</h1>
+    <h1 class="mt-4 responsive-title lg:text-5xl">A split conversation workspace for inquiries.</h1>
     <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Unread indicators, quick replies, and an inbox list keep support focused and easy to scan.</p>
 </section>
 
@@ -96,9 +96,9 @@
         </div>
 
         <div class="mt-8 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4">
-            <label class="form-label">Quick reply</label>
+            <label class="form-label" for="quick_reply">Quick reply</label>
             <div class="mt-3 flex flex-col gap-3 sm:flex-row">
-                <input class="form-input flex-1" placeholder="Type a response..." data-quick-reply-input>
+                <input id="quick_reply" class="form-input flex-1" placeholder="Type a response..." data-quick-reply-input>
                 <button type="button" class="btn-primary" data-quick-reply-send>Send</button>
             </div>
         </div>

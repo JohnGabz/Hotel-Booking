@@ -5,7 +5,7 @@
     <div class="site-shell grid gap-8 lg:grid-cols-[0.95fr_1.05fr] lg:items-start">
         <div class="space-y-5">
             <span class="eyebrow">Contact us</span>
-            <h1 class="text-5xl leading-[0.95] text-stone-950 sm:text-6xl">Need help with a booking?</h1>
+            <h1 class="responsive-title">Need help with a booking?</h1>
             <p class="max-w-xl text-base leading-7 text-stone-600 sm:text-lg">
                 Reach out for availability questions, guest support, or anything else you need before your stay.
             </p>

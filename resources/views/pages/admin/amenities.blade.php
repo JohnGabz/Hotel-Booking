@@ -14,7 +14,7 @@
 
 <section class="surface p-6 sm:p-8 lg:p-10">
     <span class="eyebrow">Amenities</span>
-    <h1 class="mt-4 text-4xl sm:text-5xl text-stone-950">A service grid with icon-first editing.</h1>
+    <h1 class="mt-4 responsive-title lg:text-5xl">A service grid with icon-first editing.</h1>
     <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Each amenity is presented as a card so staff can quickly review, edit, or expand the resort's offering.</p>
 
     <div class="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-3">

@@ -6,7 +6,7 @@
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
                 <span class="eyebrow">My dashboard</span>
-                <h1 class="mt-4 text-5xl leading-[0.95] text-stone-950 sm:text-6xl">Your reservations at a glance.</h1>
+                <h1 class="mt-4 responsive-title">Your reservations at a glance.</h1>
             </div>
             <a href="{{ route('rooms.index') }}" class="btn-primary">Book a room</a>
         </div>
@@ -74,7 +74,6 @@
                                             <button type="submit" class="btn-secondary">Submit payment proof</button>
                                         </form>
                                     </div>
-                                    </form>
                                 @elseif ($booking->payment_status === 'for_verification')
                                     <div class="mt-4 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                                         Payment proof submitted. Waiting for admin verification.
