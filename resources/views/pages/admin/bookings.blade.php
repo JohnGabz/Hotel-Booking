@@ -72,7 +72,7 @@
                         <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
                     </div>
 
-                    <div class="mt-5 grid grid-cols-7 gap-2 text-center text-[0.65rem] font-semibold uppercase tracking-[0.2em] text-stone-400 sm:text-xs">
+                    <div class="admin-calendar-weekdays" role="presentation" aria-hidden="true">
                         <span>Mon</span>
                         <span>Tue</span>
                         <span>Wed</span>
@@ -82,7 +82,7 @@
                         <span>Sun</span>
                     </div>
 
-                    <div id="room-calendar" class="mt-3 grid grid-cols-7 gap-2">
+                    <div id="room-calendar" class="admin-calendar-grid" role="grid" aria-label="Admin room occupancy calendar">
                         @foreach ($calendar['weeks'] as $week)
                             @foreach ($week as $day)
                                 @php
@@ -93,17 +93,38 @@
                                         'past' => 'border-gray-300 bg-gray-100 text-gray-400',
                                         default => 'border-stone-200 bg-stone-100 text-stone-400',
                                     };
+
+                                    $statusLabel = match ($day['status']) {
+                                        'open' => 'Open',
+                                        'occupied' => 'Booked',
+                                        'unavailable' => 'Closed',
+                                        'past' => 'Past',
+                                        default => 'Other',
+                                    };
+
+                                    $ariaStatusLabel = match ($day['status']) {
+                                        'open' => 'Open',
+                                        'occupied' => 'Occupied',
+                                        'unavailable' => 'Unavailable',
+                                        'past' => 'Past',
+                                        default => 'Other month',
+                                    };
                                 @endphp
-                                <div class="min-h-20 rounded-2xl border p-3 {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-brand-primary ring-offset-2 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-45' }}">
-                                    <div class="flex items-start justify-between gap-2">
-                                        <span class="text-sm font-semibold">{{ $day['date']->format('j') }}</span>
+                                <div
+                                    class="admin-calendar-cell {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-brand-primary ring-offset-1 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-45' }}"
+                                    role="gridcell"
+                                    aria-label="{{ $day['date']->format('F j, Y') }} - {{ $ariaStatusLabel }}"
+                                    title="{{ $day['date']->format('M j, Y') }} - {{ $ariaStatusLabel }}"
+                                >
+                                    <div class="admin-calendar-cell-top">
+                                        <span class="admin-calendar-day-number">{{ $day['date']->format('j') }}</span>
                                         @if ($day['isToday'])
-                                            <span class="rounded-full bg-brand-primary px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-[0.18em] text-white">Today</span>
+                                            <span class="admin-calendar-today">Today</span>
                                         @endif
                                     </div>
                                     @if ($day['isCurrentMonth'])
-                                        <div class="mt-4 text-xs font-semibold uppercase tracking-[0.18em]">
-                                            {{ ucfirst($day['status']) }}
+                                        <div class="admin-calendar-status">
+                                            {{ $statusLabel }}
                                         </div>
                                     @endif
                                 </div>

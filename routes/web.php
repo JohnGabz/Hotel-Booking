@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\AdminController;
+use App\Http\Controllers\Admin\ReportExportController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PageController;
@@ -63,7 +64,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/bookings', [AdminController::class, 'bookings'])->name('bookings');
         Route::get('/rooms', [AdminController::class, 'rooms'])->name('rooms');
         Route::get('/guests', [AdminController::class, 'guests'])->name('guests');
-        Route::get('/amenities', [AdminController::class, 'amenities'])->name('amenities');
+        Route::get('/reports/export', ReportExportController::class)->name('reports.export');
         Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
         Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');

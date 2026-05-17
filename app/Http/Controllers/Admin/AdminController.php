@@ -12,6 +12,7 @@ use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
@@ -151,27 +152,151 @@ class AdminController extends Controller
         ]);
     }
 
-    public function amenities(): View
+    public function reports(Request $request): View
     {
-        return $this->renderAdminPage('amenities', [
+        $filters = $this->reportFilters($request);
+        $transactionsQuery = $this->paymentTransactionQuery($filters);
+        $sort = in_array($filters['sort'], ['date', 'amount', 'status'], true) ? $filters['sort'] : 'date';
+        $direction = $filters['direction'] === 'asc' ? 'asc' : 'desc';
+
+        match ($sort) {
+            'amount' => $transactionsQuery->orderBy('total', $direction),
+            'status' => $transactionsQuery->orderBy('payment_status', $direction),
+            default => $transactionsQuery->orderByRaw('COALESCE(paid_at, updated_at, created_at) ' . $direction),
+        };
+
+        $transactions = $transactionsQuery
+            ->orderBy('id', $direction)
+            ->paginate(50)
+            ->withQueryString();
+
+        $summaryQuery = $this->paymentTransactionQuery($filters);
+        $confirmedQuery = $this->paymentTransactionQuery(array_merge($filters, ['status' => 'confirmed']));
+        $pendingQuery = $this->paymentTransactionQuery(array_merge($filters, ['status' => 'pending']));
+        $failedQuery = $this->paymentTransactionQuery(array_merge($filters, ['status' => 'failed']));
+
+        $dateExpression = match (DB::connection()->getDriverName()) {
+            'mysql', 'mariadb' => "DATE_FORMAT(COALESCE(paid_at, updated_at, created_at), '%Y-%m')",
+            'pgsql' => "TO_CHAR(COALESCE(paid_at, updated_at, created_at), 'YYYY-MM')",
+            default => "strftime('%Y-%m', COALESCE(paid_at, updated_at, created_at))",
+        };
+
+        $monthlyRevenue = $this->paymentTransactionQuery(array_merge($filters, ['status' => 'confirmed']))
+            ->selectRaw("{$dateExpression} as bucket, SUM(total) as revenue")
+            ->groupBy('bucket')
+            ->orderBy('bucket')
+            ->limit(12)
+            ->pluck('revenue', 'bucket');
+
+        return $this->renderAdminPage('reports', [
+            'reportFilters' => $filters,
+            'transactions' => $transactions,
+            'paymentMethods' => Booking::query()
+                ->whereNotNull('payment_method')
+                ->distinct()
+                ->orderBy('payment_method')
+                ->pluck('payment_method'),
+            'transactionSummary' => [
+                'count' => (clone $summaryQuery)->count(),
+                'gross' => (clone $summaryQuery)->sum('total'),
+                'confirmed' => (clone $confirmedQuery)->sum('total'),
+                'pending' => (clone $pendingQuery)->sum('total'),
+                'failed_count' => (clone $failedQuery)->count(),
+            ],
+            'chartLabels' => $monthlyRevenue->keys()->all(),
+            'chartValues' => $monthlyRevenue->values()->map(fn ($value) => (float) $value)->all(),
             'seo' => [
-                'title' => 'Amenities — ' . config('app.name'),
-                'description' => 'Maintain service icons, facility descriptions, and inline updates.',
+                'title' => 'Payment Reports — ' . config('app.name'),
+                'description' => 'Search, filter, and export payment transactions for Villa Estella.',
             ],
         ]);
     }
 
-    public function reports(Request $request): View
+    protected function reportFilters(Request $request): array
     {
-        return $this->renderAdminPage('reports', [
-            'reportRange' => $request->query('range', '30d'),
-            'chartLabels' => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-            'chartValues' => [18, 24, 20, 32, 29, 35, 28],
-            'seo' => [
-                'title' => 'Reports — ' . config('app.name'),
-                'description' => 'Track revenue, occupancy, and trends using a chart-first layout.',
-            ],
-        ]);
+        $range = $request->query('range', 'this_month');
+        $now = now();
+        $from = null;
+        $to = null;
+
+        if ($range === 'custom') {
+            $from = $request->filled('date_from') ? Carbon::parse($request->query('date_from'))->startOfDay() : null;
+            $to = $request->filled('date_to') ? Carbon::parse($request->query('date_to'))->endOfDay() : null;
+        } elseif ($range === 'this_year') {
+            $from = $now->copy()->startOfYear();
+            $to = $now->copy()->endOfYear();
+        } elseif ($range === 'last_30') {
+            $from = $now->copy()->subDays(30)->startOfDay();
+            $to = $now->copy()->endOfDay();
+        } elseif ($range === 'all_time') {
+            $from = null;
+            $to = null;
+        } else {
+            $range = 'this_month';
+            $from = $now->copy()->startOfMonth();
+            $to = $now->copy()->endOfMonth();
+        }
+
+        return [
+            'range' => $range,
+            'date_from' => $from,
+            'date_to' => $to,
+            'date_from_value' => $request->query('date_from', $from?->toDateString()),
+            'date_to_value' => $request->query('date_to', $to?->toDateString()),
+            'status' => $request->query('status', 'all'),
+            'payment_method' => $request->query('payment_method', 'all'),
+            'search' => trim((string) $request->query('search', '')),
+            'sort' => $request->query('sort', 'date'),
+            'direction' => $request->query('direction', 'desc') === 'asc' ? 'asc' : 'desc',
+        ];
+    }
+
+    protected function paymentTransactionQuery(array $filters)
+    {
+        $query = Booking::query()->with(['room', 'user']);
+
+        $query->when($filters['date_from'], function ($query, Carbon $from) {
+            $query->where(function ($query) use ($from) {
+                $query->where('paid_at', '>=', $from)
+                    ->orWhere(function ($query) use ($from) {
+                        $query->whereNull('paid_at')->where('updated_at', '>=', $from);
+                    });
+            });
+        });
+
+        $query->when($filters['date_to'], function ($query, Carbon $to) {
+            $query->where(function ($query) use ($to) {
+                $query->where('paid_at', '<=', $to)
+                    ->orWhere(function ($query) use ($to) {
+                        $query->whereNull('paid_at')->where('updated_at', '<=', $to);
+                    });
+            });
+        });
+
+        $query->when($filters['status'] !== 'all', function ($query) use ($filters) {
+            if ($filters['status'] === 'confirmed') {
+                $query->where('payment_status', 'paid');
+            } elseif ($filters['status'] === 'pending') {
+                $query->whereIn('payment_status', ['pending', 'for_verification']);
+            } else {
+                $query->where('payment_status', $filters['status']);
+            }
+        });
+
+        $query->when($filters['payment_method'] !== 'all', fn ($query) => $query->where('payment_method', $filters['payment_method']));
+
+        $query->when($filters['search'] !== '', function ($query) use ($filters) {
+            $search = $filters['search'];
+            $query->where(function ($query) use ($search) {
+                $query->where('id', $search)
+                    ->orWhere('payment_reference', 'like', "%{$search}%")
+                    ->orWhere('contact_name', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($query) => $query->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('room', fn ($query) => $query->where('name', 'like', "%{$search}%"));
+            });
+        });
+
+        return $query;
     }
 
     public function messages(): View
@@ -478,7 +603,7 @@ class AdminController extends Controller
         $this->ensureAdmin();
 
         $request->validate([
-            'payment_status' => 'required|in:pending,for_verification,paid,failed',
+            'payment_status' => 'required|in:pending,for_verification,paid,failed,refunded',
         ]);
 
         $status = $request->string('payment_status')->toString();

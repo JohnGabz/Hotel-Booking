@@ -38,7 +38,6 @@
                 <a href="{{ route('admin.bookings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.bookings') ? 'nav-link-active' : '' }}">Bookings</a>
                 <a href="{{ route('admin.rooms') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.rooms') ? 'nav-link-active' : '' }}">Rooms</a>
                 <a href="{{ route('admin.guests') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.guests') ? 'nav-link-active' : '' }}">Guests</a>
-                <a href="{{ route('admin.amenities') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.amenities') ? 'nav-link-active' : '' }}">Amenities</a>
                 <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">Reports</a>
                 <a href="{{ route('admin.messages') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.messages') ? 'nav-link-active' : '' }}">Messages</a>
                 <a href="{{ route('admin.settings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.settings') ? 'nav-link-active' : '' }}">Settings</a>
@@ -90,10 +89,6 @@
                     <a href="{{ route('admin.guests') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.guests') ? 'nav-link-active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 0 0-5-3.87M9 20H4v-2a4 4 0 0 1 5-3.87m9-5a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm-8-1a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"></path></svg>
                         Guests
-                    </a>
-                    <a href="{{ route('admin.amenities') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.amenities') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-                        Amenities
                     </a>
                     <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>

@@ -27,4 +27,23 @@ class Booking extends Model
     {
         return $this->belongsTo(Room::class);
     }
+
+    public function getTransactionIdAttribute(): string
+    {
+        return $this->payment_reference ?: 'BOOK-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+    }
+
+    public function getReportPaymentStatusAttribute(): string
+    {
+        return match ($this->payment_status) {
+            'paid' => 'confirmed',
+            'for_verification' => 'pending',
+            default => $this->payment_status ?: 'pending',
+        };
+    }
+
+    public function getTransactionDateAttribute()
+    {
+        return $this->paid_at ?: $this->updated_at ?: $this->created_at;
+    }
 }

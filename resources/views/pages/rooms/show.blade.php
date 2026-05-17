@@ -166,6 +166,14 @@
 
                                             $statusLabel = match ($day['status']) {
                                                 'open' => 'Open',
+                                                'occupied' => 'Booked',
+                                                'unavailable' => 'Closed',
+                                                'past' => 'Past',
+                                                default => 'Other',
+                                            };
+
+                                            $ariaStatusLabel = match ($day['status']) {
+                                                'open' => 'Open',
                                                 'occupied' => 'Occupied',
                                                 'unavailable' => 'Unavailable',
                                                 'past' => 'Past',
@@ -181,8 +189,9 @@
                                             data-current-month="{{ $day['isCurrentMonth'] ? '1' : '0' }}"
                                             data-selectable="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? '1' : '0' }}"
                                             role="gridcell"
-                                            aria-label="{{ $day['date']->format('F j, Y') }} - {{ $statusLabel }}"
+                                            aria-label="{{ $day['date']->format('F j, Y') }} - {{ $ariaStatusLabel }}"
                                             aria-disabled="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? 'false' : 'true' }}"
+                                            title="{{ $day['date']->format('M j, Y') }} - {{ $ariaStatusLabel }}"
                                         >
                                             <div class="room-calendar-cell-top">
                                                 <span class="room-calendar-day-number">{{ $day['date']->format('j') }}</span>
