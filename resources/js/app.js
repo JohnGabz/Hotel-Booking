@@ -501,13 +501,16 @@ document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
 
     btn.addEventListener('click', (e) => {
         e.stopPropagation();
-        menu.classList.toggle('hidden');
+        const willOpen = menu.classList.contains('hidden');
+        menu.classList.toggle('hidden', !willOpen);
+        btn.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
     });
 
     // close on outside click
     document.addEventListener('click', (ev) => {
         if (!menu.classList.contains('hidden') && !menu.contains(ev.target) && ev.target !== btn) {
             menu.classList.add('hidden');
+            btn.setAttribute('aria-expanded', 'false');
         }
     });
 });

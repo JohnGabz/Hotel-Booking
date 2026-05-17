@@ -118,22 +118,22 @@
 
         <div class="flex-1 min-w-0">
             <header class="sticky top-0 z-20 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
-                <div class="flex items-center justify-between gap-4 px-4 py-4 sm:px-6 lg:px-8">
-                    <div class="flex-1">
-                        <button type="button" id="mobile-menu-btn" class="mb-3 inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 min-h-[44px] text-sm font-semibold text-gray-700 transition-all duration-300 hover:bg-gray-50 md:hidden" aria-controls="mobile-menu" aria-expanded="false">
-                            <svg id="menu-open-icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
-                            <svg id="menu-close-icon" class="h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                <div class="px-4 py-4 sm:px-6 lg:px-8">
+                    <div class="flex items-center justify-between gap-3 md:justify-end">
+                        <button type="button" id="mobile-menu-btn" class="inline-flex min-h-[44px] items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-300 hover:bg-gray-50 md:hidden" aria-controls="mobile-menu" aria-expanded="false">
+                            <svg id="menu-open-icon" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                            <svg id="menu-close-icon" class="h-4 w-4 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                             Menu
                         </button>
-                        <p class="text-sm font-medium text-gray-600">Hello Jack</p>
-                        <h1 class="font-display text-3xl font-bold text-gray-900">Staff dashboard</h1>
-                    </div>
 
-                    <div class="flex items-center gap-3 sm:gap-4">
+                        <div class="flex items-center gap-3 sm:gap-4">
                             <!-- Topbar: restored notifications dropdown and profile dropdown; other quick controls removed -->
                             <div class="relative">
-                                <button type="button" id="notif-btn" data-dropdown-toggle="notif-menu" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary" aria-label="Notifications">
-                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6 6 0 10-12 0v3.159c0 .538-.214 1.055-.595 1.436L4 17h5"></path></svg>
+                                <button type="button" id="notif-btn" data-dropdown-toggle="notif-menu" class="inline-flex h-11 w-11 items-center justify-center rounded-full border border-stone-200 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary focus:ring-offset-2" aria-label="Notifications" aria-haspopup="true" aria-expanded="false">
+                                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.4-1.4A2 2 0 0 1 18 14.2V11a6 6 0 1 0-12 0v3.2a2 2 0 0 1-.6 1.4L4 17h5"></path>
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17a3 3 0 0 0 6 0"></path>
+                                    </svg>
                                 </button>
 
                                 <div id="notif-menu" class="hidden absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl bg-white border border-stone-200 shadow-lg py-2">
@@ -159,6 +159,11 @@
                                 </form>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="mt-4 md:mt-0">
+                        <p class="text-sm font-medium text-gray-600">Hello Jack</p>
+                        <h1 class="font-display text-3xl font-bold leading-tight text-gray-900">Staff dashboard</h1>
                     </div>
                 </div>
             </header>
