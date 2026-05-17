@@ -18,7 +18,7 @@
     <x-global-loader />
     <x-error-modal />
 
-    <div id="mobile-menu" class="fixed inset-0 z-40 hidden md:hidden">
+    <div id="mobile-menu" class="fixed inset-0 z-40 hidden md:hidden flex justify-end">
         <div class="absolute inset-0 bg-gray-900/50 backdrop-blur-sm transition-all duration-300" data-mobile-close></div>
         <aside class="relative z-10 h-full w-80 max-w-[85vw] bg-white shadow-2xl transition-all duration-300">
             <div class="flex items-center justify-between border-b border-gray-200 px-6 py-6">
