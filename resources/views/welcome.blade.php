@@ -58,8 +58,8 @@
 
                 <!-- Mobile Menu Button -->
                 <div class="md:hidden flex items-center">
-                    <button class="text-[#989B88] hover:text-[#B6424F] focus:outline-none">
-                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <button type="button" aria-expanded="false" aria-label="Toggle navigation menu" class="text-[#989B88] hover:text-[#B6424F] focus:outline-none focus:ring-2 focus:ring-[#B6424F] focus:ring-offset-2 rounded-md p-2 min-h-[44px] min-w-[44px] flex items-center justify-center">
+                        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
                         </svg>
                     </button>
@@ -89,32 +89,32 @@
         <div id="book" class="absolute -bottom-16 left-0 right-0 w-full px-4 sm:px-6 lg:px-8 z-20">
             <div class="max-w-5xl mx-auto bg-white rounded-xl shadow-xl p-4 sm:p-6 border border-gray-100">
                 <form class="flex flex-col md:flex-row gap-4 items-end">
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-semibold text-[#9FAAAC] mb-1">Check-in</label>
-                        <input type="date" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-2.5 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none">
+                    <div class="w-full xl:w-1/4">
+                        <label for="check-in" class="block text-sm font-semibold text-[#9FAAAC] mb-1">Check-in</label>
+                        <input type="date" id="check-in" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-3 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none min-h-[44px]">
                     </div>
-                    <div class="w-full md:w-1/4">
-                        <label class="block text-sm font-semibold text-[#9FAAAC] mb-1">Check-out</label>
-                        <input type="date" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-2.5 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none">
+                    <div class="w-full xl:w-1/4">
+                        <label for="check-out" class="block text-sm font-semibold text-[#9FAAAC] mb-1">Check-out</label>
+                        <input type="date" id="check-out" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-3 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none min-h-[44px]">
                     </div>
-                    <div class="w-full md:w-1/5">
-                        <label class="block text-sm font-semibold text-[#9FAAAC] mb-1">Guests</label>
-                        <select class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-2.5 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none bg-white">
+                    <div class="w-full sm:w-1/2 xl:w-1/5">
+                        <label for="guests" class="block text-sm font-semibold text-[#9FAAAC] mb-1">Guests</label>
+                        <select id="guests" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-3 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none bg-white min-h-[44px]">
                             <option>1 Guest</option>
                             <option>2 Guests</option>
                             <option>3 Guests</option>
                             <option>4+ Guests</option>
                         </select>
                     </div>
-                    <div class="w-full md:w-1/5">
-                        <label class="block text-sm font-semibold text-[#9FAAAC] mb-1">Rooms</label>
-                        <select class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-2.5 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none bg-white">
+                    <div class="w-full sm:w-1/2 xl:w-1/5">
+                        <label for="rooms" class="block text-sm font-semibold text-[#9FAAAC] mb-1">Rooms</label>
+                        <select id="rooms" class="w-full border border-[#9FAAAC]/40 rounded-md px-4 py-3 text-[#1b1b18] focus:ring-2 focus:ring-[#B6424F] focus:border-transparent outline-none bg-white min-h-[44px]">
                             <option>1 Room</option>
                             <option>2 Rooms</option>
                             <option>3+ Rooms</option>
                         </select>
                     </div>
-                    <div class="w-full md:w-auto md:flex-1">
+                    <div class="w-full xl:w-auto xl:flex-1 pt-2 md:pt-0">
                         <button type="button" class="w-full bg-[#B6424F] hover:bg-[#B57D59] text-white px-6 py-2.5 rounded-md font-semibold transition-all duration-300 shadow-md">
                             Check Availability
                         </button>
