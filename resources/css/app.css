@@ -516,6 +516,22 @@
         @apply w-[86vw] max-w-[22rem] shrink-0 snap-start md:w-auto md:max-w-none md:shrink;
     }
 
+    /* Carousel dots and touch improvements */
+    [data-featured-room-dots] button[data-featured-room-dot] {
+        height: 0.5rem; width: 0.5rem; border-radius: 9999px; padding: 0; border: none; display: inline-block; background-color: #D1D5DB;
+    }
+
+    [data-featured-room-dots] button[data-featured-room-dot].active {
+        background-color: var(--color-brand-primary);
+    }
+
+    .touch-manipulation { touch-action: manipulation; }
+
+    /* Reserve aspect ratio for images to avoid layout shift */
+    .featured-room-slide .relative img { aspect-ratio: 16 / 10; height: auto; width:100%; display:block; }
+
+    [data-featured-room-dots] button[data-featured-room-dot]:focus { outline: 3px solid rgba(182,66,79,0.12); outline-offset: 3px; }
+
     /* Improved Spacing for Premium Feel */
     .spacing-premium {
         @apply space-y-8 sm:space-y-12 lg:space-y-16;
