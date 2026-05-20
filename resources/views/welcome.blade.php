@@ -186,77 +186,90 @@
                     </a>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    <!-- Room Card 1 -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300">
-                        <div class="relative h-64 overflow-hidden">
-                            <div class="absolute inset-0 bg-gray-200"></div>
-                            <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Standard Room" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
-                                $85 / night
+                <div class="relative" data-featured-carousel>
+                    <div class="flex overflow-x-auto snap-x snap-mandatory pb-6 -mx-4 px-4 gap-4 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-8 md:overflow-visible md:snap-none md:pb-0 md:mx-0 md:px-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" data-carousel-container>
+                        <!-- Room Card 1 -->
+                        <div class="flex-none w-[85vw] snap-center md:w-auto md:flex-auto bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300 flex flex-col" data-carousel-item>
+                            <div class="relative h-56 md:h-64 overflow-hidden shrink-0">
+                                <div class="absolute inset-0 bg-gray-200"></div>
+                                <img src="https://images.unsplash.com/photo-1611892440504-42a792e24d32?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Standard Room" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
+                                    $85 / night
+                                </div>
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col grow">
+                                <h3 class="text-lg md:text-xl font-bold text-gray-800 mb-1 md:mb-2">Standard Deluxe Room</h3>
+                                <p class="text-[#989B88] text-sm mb-4 line-clamp-2 grow">A cozy and practical room designed for passing travelers featuring a comfortable queen bed and modern amenities.</p>
+                                
+                                <div class="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 text-xs md:text-sm text-[#9FAAAC]">
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 2 Guests</span>
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 25 m²</span>
+                                </div>
+                                
+                                <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-[#B6424F]/50">
+                                    Book Now
+                                </button>
                             </div>
                         </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Standard Deluxe Room</h3>
-                            <p class="text-[#989B88] text-sm mb-4 line-clamp-2">A cozy and practical room designed for passing travelers featuring a comfortable queen bed and modern amenities.</p>
-                            
-                            <div class="flex items-center gap-4 mb-6 text-sm text-[#9FAAAC]">
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 2 Guests</span>
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 25 m²</span>
+
+                        <!-- Room Card 2 -->
+                        <div class="flex-none w-[85vw] snap-center md:w-auto md:flex-auto bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300 flex flex-col" data-carousel-item>
+                            <div class="relative h-56 md:h-64 overflow-hidden shrink-0">
+                                <div class="absolute inset-0 bg-gray-200"></div>
+                                <img src="https://images.unsplash.com/photo-1582719478250-c89af14fbcee?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Executive Suite" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
+                                    $120 / night
+                                </div>
                             </div>
-                            
-                            <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300">
-                                Book Now
-                            </button>
+                            <div class="p-5 md:p-6 flex flex-col grow">
+                                <h3 class="text-lg md:text-xl font-bold text-gray-800 mb-1 md:mb-2">Executive Suite</h3>
+                                <p class="text-[#989B88] text-sm mb-4 line-clamp-2 grow">Spacious accommodation with a king-sized bed, private sitting area, and premium bath amenities for total relaxation.</p>
+                                
+                                <div class="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 text-xs md:text-sm text-[#9FAAAC]">
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 2-3 Guests</span>
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 40 m²</span>
+                                </div>
+                                
+                                <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-[#B6424F]/50">
+                                    Book Now
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Room Card 3 -->
+                        <div class="flex-none w-[85vw] snap-center md:w-auto md:flex-auto bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300 flex flex-col" data-carousel-item>
+                            <div class="relative h-56 md:h-64 overflow-hidden shrink-0">
+                                <div class="absolute inset-0 bg-gray-200"></div>
+                                <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Family Room" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy">
+                                <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
+                                    $150 / night
+                                </div>
+                            </div>
+                            <div class="p-5 md:p-6 flex flex-col grow">
+                                <h3 class="text-lg md:text-xl font-bold text-gray-800 mb-1 md:mb-2">Family Connecting Room</h3>
+                                <p class="text-[#989B88] text-sm mb-4 line-clamp-2 grow">Ideal for groups or families, featuring multiple beds, extra space, and inclusive complimentary breakfast.</p>
+                                
+                                <div class="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 text-xs md:text-sm text-[#9FAAAC]">
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 4-5 Guests</span>
+                                    <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 55 m²</span>
+                                </div>
+                                
+                                <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300 focus:outline-none focus:ring-4 focus:ring-[#B6424F]/50">
+                                    Book Now
+                                </button>
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Room Card 2 -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300">
-                        <div class="relative h-64 overflow-hidden">
-                            <div class="absolute inset-0 bg-gray-200"></div>
-                            <img src="https://images.unsplash.com/photo-1582719478250-c89af14fbcee?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Executive Suite" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
-                                $120 / night
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Executive Suite</h3>
-                            <p class="text-[#989B88] text-sm mb-4 line-clamp-2">Spacious accommodation with a king-sized bed, private sitting area, and premium bath amenities for total relaxation.</p>
-                            
-                            <div class="flex items-center gap-4 mb-6 text-sm text-[#9FAAAC]">
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 2-3 Guests</span>
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 40 m²</span>
-                            </div>
-                            
-                            <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300">
-                                Book Now
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Room Card 3 -->
-                    <div class="bg-white rounded-xl shadow-md overflow-hidden border border-[#9FAAAC]/20 group hover:shadow-xl transition-all duration-300">
-                        <div class="relative h-64 overflow-hidden">
-                            <div class="absolute inset-0 bg-gray-200"></div>
-                            <img src="https://images.unsplash.com/photo-1590490360182-c33d57733427?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&q=80" alt="Family Room" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1 rounded-full text-sm font-bold text-[#B6424F]">
-                                $150 / night
-                            </div>
-                        </div>
-                        <div class="p-6">
-                            <h3 class="text-xl font-bold text-gray-800 mb-2">Family Connecting Room</h3>
-                            <p class="text-[#989B88] text-sm mb-4 line-clamp-2">Ideal for groups or families, featuring multiple beds, extra space, and inclusive complimentary breakfast.</p>
-                            
-                            <div class="flex items-center gap-4 mb-6 text-sm text-[#9FAAAC]">
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg> 4-5 Guests</span>
-                                <span class="flex items-center"><svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"></path></svg> 55 m²</span>
-                            </div>
-                            
-                            <button class="w-full border-2 border-[#B6424F] text-[#B6424F] hover:bg-[#B6424F] hover:text-white font-semibold py-2.5 rounded-md transition-colors duration-300">
-                                Book Now
-                            </button>
-                        </div>
+                    
+                    <!-- Carousel Indicators & Navigation Built by JS -->
+                    <div class="flex items-center justify-center gap-4 mt-6 md:hidden">
+                        <button type="button" class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B6424F]" data-featured-prev aria-label="Previous room">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <div class="flex items-center justify-center gap-2" data-carousel-indicators></div>
+                        <button type="button" class="flex items-center justify-center w-10 h-10 rounded-full border border-gray-300 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors focus:outline-none focus:ring-2 focus:ring-[#B6424F]" data-featured-next aria-label="Next room">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
                     </div>
                 </div>
             </div>
