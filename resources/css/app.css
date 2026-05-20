@@ -502,6 +502,20 @@
         @apply grid gap-4 sm:gap-6 sm:grid-cols-2 lg:grid-cols-4;
     }
 
+    .featured-rooms-carousel {
+        @apply flex snap-x snap-mandatory gap-4 overflow-x-auto pb-4 md:grid md:grid-cols-2 md:gap-6 md:overflow-visible md:pb-0 lg:grid-cols-3 lg:gap-8;
+        -webkit-overflow-scrolling: touch;
+        scrollbar-width: none;
+    }
+
+    .featured-rooms-carousel::-webkit-scrollbar {
+        display: none;
+    }
+
+    .featured-room-slide {
+        @apply w-[86vw] max-w-[22rem] shrink-0 snap-start md:w-auto md:max-w-none md:shrink;
+    }
+
     /* Improved Spacing for Premium Feel */
     .spacing-premium {
         @apply space-y-8 sm:space-y-12 lg:space-y-16;

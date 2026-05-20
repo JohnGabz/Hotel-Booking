@@ -163,8 +163,10 @@
                                     <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
                                     <div class="mt-1 flex flex-wrap items-center gap-2">
                                         <p class="text-xs uppercase tracking-[0.2em] text-stone-400">#{{ $booking->id }}</p>
-                                        @if (! $booking->user_id)
-                                            <span class="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700">Walk-in</span>
+                                        @if ($booking->source === \App\Models\Booking::SOURCE_WALK_IN)
+                                            <span class="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700">{{ $booking->source_label }}</span>
+                                        @else
+                                            <span class="inline-flex rounded-full bg-emerald-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-emerald-700">{{ $booking->source_label }}</span>
                                         @endif
                                     </div>
                                 </td>

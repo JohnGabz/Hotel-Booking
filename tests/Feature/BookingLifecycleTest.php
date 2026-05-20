@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\Room;
@@ -10,6 +11,7 @@ use App\Models\WebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
@@ -17,7 +19,7 @@ class BookingLifecycleTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_booking_creation_sets_pending_and_blocks_overlapping_dates(): void
+    public function test_booking_creation_sets_pending_online_source_and_blocks_overlapping_dates(): void
     {
         $room = $this->room();
         $guest = User::factory()->create();
@@ -33,18 +35,47 @@ class BookingLifecycleTest extends TestCase
 
         $this->actingAs($guest)
             ->post(route('bookings.store', $room), $payload)
-            ->assertRedirect(route('dashboard'))
-            ->assertSessionHas('success', 'Reservation received — pending payment verification.');
+            ->assertRedirect(route('rooms.show', $room))
+            ->assertSessionHas('success', 'Reservation received - pending payment verification.');
 
         $booking = Booking::firstOrFail();
 
         $this->assertSame('pending', $booking->status);
         $this->assertSame('pending', $booking->payment_status);
+        $this->assertSame(Booking::SOURCE_ONLINE, $booking->source);
         $this->assertTrue(Booking::overlaps($room->id, $payload['check_in'], $payload['check_out']));
 
         $this->actingAs($guest)
             ->post(route('bookings.store', $room), $payload)
             ->assertSessionHasErrors('check_in');
+    }
+
+    public function test_public_booking_redirects_even_when_post_create_side_effect_fails(): void
+    {
+        Event::listen(BookingCreated::class, function (): void {
+            throw new \RuntimeException('Simulated side effect failure.');
+        });
+
+        $room = $this->room();
+        $guest = User::factory()->create();
+
+        $this->actingAs($guest)
+            ->post(route('bookings.store', $room), [
+                'check_in' => now()->addDays(30)->toDateString(),
+                'check_out' => now()->addDays(32)->toDateString(),
+                'contact_name' => 'Maria Santos',
+                'contact_email' => 'maria@example.com',
+                'contact_phone' => '+639123456789',
+                'payment_method' => 'gcash',
+            ])
+            ->assertRedirect(route('rooms.show', $room))
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseHas('bookings', [
+            'room_id' => $room->id,
+            'contact_email' => 'maria@example.com',
+            'source' => Booking::SOURCE_ONLINE,
+        ]);
     }
 
     public function test_payment_webhook_confirms_booking_and_is_idempotent(): void
@@ -136,6 +167,7 @@ class BookingLifecycleTest extends TestCase
             'payment_method' => 'gcash',
             'payment_status' => 'pending',
             'total' => 2500,
+            'source' => Booking::SOURCE_ONLINE,
         ], $overrides));
     }
 

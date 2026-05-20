@@ -7,19 +7,30 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes'])]
+#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source'])]
 class Booking extends Model
 {
     use HasFactory;
 
     public const BLOCKING_STATUSES = ['pending', 'for_verification', 'confirmed'];
+    public const SOURCE_ONLINE = 'online';
+    public const SOURCE_WALK_IN = 'walk_in';
 
     protected $casts = [
         'check_in' => 'date',
         'check_out' => 'date',
         'paid_at' => 'datetime',
         'total' => 'decimal:2',
+        'source' => 'string',
     ];
+
+    public function getSourceLabelAttribute(): string
+    {
+        return match ($this->source) {
+            self::SOURCE_WALK_IN => 'Walk-in',
+            default => 'Online',
+        };
+    }
 
     public function user(): BelongsTo
     {

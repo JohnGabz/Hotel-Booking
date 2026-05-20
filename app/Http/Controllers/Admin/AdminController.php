@@ -18,10 +18,12 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Throwable;
 
 class AdminController extends Controller
 {
@@ -133,6 +135,7 @@ class AdminController extends Controller
                 'paid_at' => $paymentStatus === 'paid' ? now() : null,
                 'total' => $total,
                 'notes' => $validated['notes'] ?? null,
+                'source' => Booking::SOURCE_WALK_IN,
             ]);
 
             if ($paymentStatus === 'paid') {
@@ -160,11 +163,26 @@ class AdminController extends Controller
             return $booking;
         });
 
-        event(new BookingCreated($booking->id));
+        Log::info('Walk-in booking stored from admin flow', [
+            'booking_id' => $booking->id,
+            'room_id' => $booking->room_id,
+            'admin_user_id' => Auth::id(),
+            'source' => $booking->source,
+        ]);
 
-        if ($booking->payment_status === 'paid') {
-            event(new PaymentVerified($booking->id));
-            event(new BookingConfirmed($booking->id));
+        try {
+            event(new BookingCreated($booking->id));
+
+            if ($booking->payment_status === 'paid') {
+                event(new PaymentVerified($booking->id));
+                event(new BookingConfirmed($booking->id));
+            }
+        } catch (Throwable $exception) {
+            Log::error('Booking side effect failed after walk-in booking was stored', [
+                'booking_id' => $booking->id,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
         }
 
         if ($request->expectsJson() || $request->ajax()) {

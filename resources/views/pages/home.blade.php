@@ -223,9 +223,29 @@
             </a>
         </div>
         
-        <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6 sm:gap-8 scroll-animate-stagger">
+        @if ($featuredRooms->count() > 1)
+            <div class="md:hidden">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                    <div class="flex gap-2" data-featured-room-dots aria-label="Featured room carousel position">
+                        @foreach ($featuredRooms as $room)
+                            <span class="h-2 w-2 rounded-full bg-stone-300 transition-colors first:bg-brand-primary" data-featured-room-dot></span>
+                        @endforeach
+                    </div>
+                    <div class="flex gap-2">
+                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-stone-300 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary" data-featured-room-prev aria-label="Previous featured room">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                        </button>
+                        <button type="button" class="inline-flex h-11 w-11 items-center justify-center rounded-lg border border-stone-300 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary" data-featured-room-next aria-label="Next featured room">
+                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        @endif
+
+        <div class="featured-rooms-carousel scroll-animate-stagger">
             @forelse ($featuredRooms as $room)
-                <div class="group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-lg hover:border-brand-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
+                <div class="featured-room-slide group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-lg hover:border-brand-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                     <div class="relative h-72 overflow-hidden bg-stone-200">
                         @if ($room->image)
                             <img src="{{ asset('storage/' . $room->image) }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
@@ -264,13 +284,53 @@
                     </div>
                 </div>
             @empty
-                <div class="col-span-full bg-white border border-stone-200 rounded-2xl p-12 text-center">
+                <div class="featured-room-slide md:col-span-full bg-white border border-stone-200 rounded-2xl p-12 text-center">
                     <p class="text-stone-600">No rooms available at the moment.</p>
                 </div>
             @endforelse
         </div>
     </div>
 </section>
+
+<script>
+    (() => {
+        const carousel = document.querySelector('.featured-rooms-carousel');
+        const slides = Array.from(document.querySelectorAll('.featured-room-slide'));
+        const dots = Array.from(document.querySelectorAll('[data-featured-room-dot]'));
+        const prev = document.querySelector('[data-featured-room-prev]');
+        const next = document.querySelector('[data-featured-room-next]');
+
+        if (!carousel || !slides.length) return;
+
+        const activeIndex = () => {
+            const carouselLeft = carousel.getBoundingClientRect().left;
+            return slides.reduce((closestIndex, slide, index) => {
+                const currentDistance = Math.abs(slide.getBoundingClientRect().left - carouselLeft);
+                const closestDistance = Math.abs(slides[closestIndex].getBoundingClientRect().left - carouselLeft);
+                return currentDistance < closestDistance ? index : closestIndex;
+            }, 0);
+        };
+
+        const updateDots = () => {
+            const index = activeIndex();
+            dots.forEach((dot, dotIndex) => {
+                dot.classList.toggle('bg-brand-primary', dotIndex === index);
+                dot.classList.toggle('bg-stone-300', dotIndex !== index);
+            });
+        };
+
+        const scrollToSlide = (index) => {
+            const boundedIndex = Math.max(0, Math.min(slides.length - 1, index));
+            slides[boundedIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+        };
+
+        prev?.addEventListener('click', () => scrollToSlide(activeIndex() - 1));
+        next?.addEventListener('click', () => scrollToSlide(activeIndex() + 1));
+        carousel.addEventListener('scroll', () => window.requestAnimationFrame(updateDots), { passive: true });
+        window.addEventListener('resize', updateDots);
+        updateDots();
+    })();
+</script>
 
 <!-- About Section -->
 <section class="section-shell bg-white">

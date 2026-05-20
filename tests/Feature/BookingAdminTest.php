@@ -47,6 +47,7 @@ class BookingAdminTest extends TestCase
         $this->assertSame($room->id, $booking->room_id);
         $this->assertSame('pending', $booking->status);
         $this->assertSame('for_verification', $booking->payment_status);
+        $this->assertSame(Booking::SOURCE_WALK_IN, $booking->source);
         $this->assertSame('Walk In Guest', $booking->contact_name);
         $this->assertSame('Front desk booking.', $booking->notes);
         Storage::disk('public')->assertExists($booking->payment_proof_path);
@@ -75,6 +76,7 @@ class BookingAdminTest extends TestCase
 
         $this->assertSame('confirmed', $booking->status);
         $this->assertSame('paid', $booking->payment_status);
+        $this->assertSame(Booking::SOURCE_WALK_IN, $booking->source);
         $this->assertNotNull($booking->paid_at);
         $this->assertDatabaseHas('payment_transactions', [
             'booking_id' => $booking->id,

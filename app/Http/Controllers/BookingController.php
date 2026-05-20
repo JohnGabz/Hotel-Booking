@@ -11,8 +11,10 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
+use Throwable;
 
 class BookingController extends Controller
 {
@@ -54,6 +56,7 @@ class BookingController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'total' => $total,
+                'source' => Booking::SOURCE_ONLINE,
             ]);
         });
 
@@ -65,13 +68,26 @@ class BookingController extends Controller
             return back()->withErrors(['check_in' => 'The selected dates are already reserved. Please choose different dates.']);
         }
 
-        event(new BookingCreated($booking->id));
+        Log::info('Booking stored from public flow', [
+            'booking_id' => $booking->id,
+            'room_id' => $booking->room_id,
+            'user_id' => $booking->user_id,
+            'source' => $booking->source,
+        ]);
 
-        if (Auth::check()) {
-            return redirect()->route('dashboard')->with('success', 'Reservation received — pending payment verification.');
+        try {
+            event(new BookingCreated($booking->id));
+        } catch (Throwable $exception) {
+            Log::error('BookingCreated side effect failed after booking was stored', [
+                'booking_id' => $booking->id,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
         }
 
-        return redirect()->route('rooms.show', $room)->with('success', 'Reservation received — pending payment verification.');
+        return redirect()
+            ->route('rooms.show', $room)
+            ->with('success', 'Reservation received - pending payment verification.');
     }
 
     public function uploadPaymentProof(Request $request, Booking $booking): RedirectResponse
