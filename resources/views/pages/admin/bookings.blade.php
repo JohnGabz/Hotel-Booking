@@ -13,7 +13,7 @@
                 <h1 class="mt-4 responsive-title lg:text-5xl">Filter and manage reservations with a table-first workflow.</h1>
                 <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Use the filters to narrow by stay date, status, or room, then expand rows for quick action.</p>
             </div>
-            <a href="{{ route('rooms.index') }}" class="btn-primary">Add booking</a>
+            <button type="button" class="btn-primary" data-modal-open="walkin-booking-modal" data-walkin-room="{{ $selectedRoom?->id }}">Add walk-in booking</button>
         </div>
 
         <form method="GET" action="{{ route('admin.bookings') }}" class="mt-8 grid gap-4 rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 md:grid-cols-5">
@@ -161,7 +161,12 @@
                             <tr class="align-top transition hover:bg-stone-50/80">
                                 <td class="px-5 py-4" data-label="Guest">
                                     <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
-                                    <p class="text-xs uppercase tracking-[0.2em] text-stone-400">#{{ $booking->id }}</p>
+                                    <div class="mt-1 flex flex-wrap items-center gap-2">
+                                        <p class="text-xs uppercase tracking-[0.2em] text-stone-400">#{{ $booking->id }}</p>
+                                        @if (! $booking->user_id)
+                                            <span class="inline-flex rounded-full bg-sky-100 px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-[0.16em] text-sky-700">Walk-in</span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-5 py-4 text-stone-700" data-label="Room">{{ $booking->room?->name ?? 'Room' }}</td>
                                 <td class="px-5 py-4 text-stone-600" data-label="Dates">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
@@ -207,4 +212,190 @@
         </div>
     </section>
 </div>
+
+<x-modal id="walkin-booking-modal" title="Add walk-in booking" size="max-w-3xl">
+    <form id="walkin-booking-form" method="POST" action="{{ route('admin.bookings.walkin') }}" enctype="multipart/form-data" class="space-y-5" data-no-loader>
+        @csrf
+        <div id="walkin-booking-errors" class="hidden rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700"></div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-group">
+                <label class="form-label" for="walkin_check_in">Check in</label>
+                <input id="walkin_check_in" name="check_in" type="date" class="form-input" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walkin_check_out">Check out</label>
+                <input id="walkin_check_out" name="check_out" type="date" class="form-input" required>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-group">
+                <label class="form-label" for="walkin_room_id">Room</label>
+                <select id="walkin_room_id" name="room_id" class="form-input" required>
+                    @foreach ($rooms as $room)
+                        <option value="{{ $room->id }}" @selected(($selectedRoom?->id ?? null) === $room->id)>{{ $room->name }} - {{ $room->capacity }} guests</option>
+                    @endforeach
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walkin_guests">Guests</label>
+                <input id="walkin_guests" name="guests" type="number" min="1" max="20" class="form-input" value="1" required>
+            </div>
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-group">
+                <label class="form-label" for="walkin_contact_name">Contact name</label>
+                <input id="walkin_contact_name" name="contact_name" type="text" class="form-input" maxlength="150" required>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walkin_contact_phone">Contact phone</label>
+                <input id="walkin_contact_phone" name="contact_phone" type="text" class="form-input" maxlength="80" required>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="walkin_contact_email">Contact email</label>
+            <input id="walkin_contact_email" name="contact_email" type="email" class="form-input" maxlength="150">
+        </div>
+
+        <div class="grid gap-4 md:grid-cols-2">
+            <div class="form-group">
+                <label class="form-label" for="walkin_payment_method">Payment method</label>
+                <select id="walkin_payment_method" name="payment_method" class="form-input" required>
+                    <option value="gcash">GCash</option>
+                    <option value="landbank">Landbank</option>
+                    <option value="cash">Cash</option>
+                    <option value="bank_transfer">Bank transfer</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="walkin_status">Status</label>
+                <select id="walkin_status" name="status" class="form-input">
+                    <option value="pending">Pending</option>
+                    <option value="for_verification">For verification</option>
+                    <option value="confirmed">Confirmed</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="walkin_payment_proof">Payment proof</label>
+            <input id="walkin_payment_proof" name="payment_proof" type="file" accept="image/*" class="form-input">
+        </div>
+
+        <div class="form-group">
+            <label class="form-label" for="walkin_notes">Notes</label>
+            <textarea id="walkin_notes" name="notes" rows="3" class="form-input" maxlength="2000"></textarea>
+        </div>
+
+        <div class="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+            <button type="button" data-modal-close class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary" data-walkin-submit>Save booking</button>
+        </div>
+    </form>
+</x-modal>
+
+<script>
+    (() => {
+        const form = document.getElementById('walkin-booking-form');
+        const errors = document.getElementById('walkin-booking-errors');
+        const submit = form?.querySelector('[data-walkin-submit]');
+        const checkIn = document.getElementById('walkin_check_in');
+        const checkOut = document.getElementById('walkin_check_out');
+        const roomSelect = document.getElementById('walkin_room_id');
+        const openButtons = document.querySelectorAll('[data-modal-open="walkin-booking-modal"]');
+
+        if (!form || !errors || !checkIn || !checkOut) return;
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayString = today.toISOString().slice(0, 10);
+        checkIn.min = todayString;
+        checkOut.min = todayString;
+
+        const showErrors = (messages) => {
+            const list = Array.isArray(messages) ? messages : [messages];
+            errors.innerHTML = '';
+            list.forEach((message) => {
+                const item = document.createElement('p');
+                item.textContent = message;
+                errors.appendChild(item);
+            });
+            errors.classList.remove('hidden');
+        };
+
+        const clearErrors = () => {
+            errors.innerHTML = '';
+            errors.classList.add('hidden');
+        };
+
+        const syncCheckOutMin = () => {
+            if (!checkIn.value) return;
+
+            const date = new Date(`${checkIn.value}T00:00:00`);
+            date.setDate(date.getDate() + 1);
+            const minCheckout = date.toISOString().slice(0, 10);
+            checkOut.min = minCheckout;
+
+            if (checkOut.value && checkOut.value <= checkIn.value) {
+                checkOut.value = minCheckout;
+            }
+        };
+
+        openButtons.forEach((button) => {
+            button.addEventListener('click', () => {
+                const roomId = button.getAttribute('data-walkin-room');
+                if (roomId && roomSelect) {
+                    roomSelect.value = roomId;
+                }
+            });
+        });
+
+        checkIn.addEventListener('change', syncCheckOutMin);
+
+        form.addEventListener('submit', async (event) => {
+            if (!window.fetchWithoutLoader) return;
+
+            event.preventDefault();
+            clearErrors();
+            syncCheckOutMin();
+
+            if (!checkIn.value || !checkOut.value || checkOut.value <= checkIn.value) {
+                showErrors('Check out must be after check in.');
+                return;
+            }
+
+            submit?.setAttribute('disabled', 'disabled');
+            submit?.classList.add('opacity-70');
+
+            try {
+                const response = await window.fetchWithoutLoader(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    const flattened = payload.errors ? Object.values(payload.errors).flat() : [payload.message || 'Unable to save this booking.'];
+                    showErrors(flattened);
+                    return;
+                }
+
+                window.location.reload();
+            } catch (error) {
+                showErrors('Unable to save this booking. Please try again.');
+            } finally {
+                submit?.removeAttribute('disabled');
+                submit?.classList.remove('opacity-70');
+            }
+        });
+    })();
+</script>
 @endsection

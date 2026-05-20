@@ -69,6 +69,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
         Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
+        Route::post('/bookings/walkin', [AdminController::class, 'adminStoreWalkin'])->name('bookings.walkin');
         Route::post('/rooms', [AdminController::class, 'storeRoom'])->name('rooms.store');
         Route::put('/rooms/{room}', [AdminController::class, 'updateRoom'])->name('rooms.update');
         Route::delete('/rooms/{room}', [AdminController::class, 'destroyRoom'])->name('rooms.destroy');

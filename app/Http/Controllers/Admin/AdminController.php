@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Events\BookingConfirmed;
+use App\Events\BookingCreated;
 use App\Events\PaymentVerified;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
@@ -12,12 +13,14 @@ use App\Models\Room;
 use App\Models\SiteContent;
 use App\Models\User;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 
 class AdminController extends Controller
@@ -70,6 +73,108 @@ class AdminController extends Controller
                 'description' => 'Filter, review, and manage bookings in a table-first workflow.',
             ],
         ]);
+    }
+
+    public function adminStoreWalkin(Request $request): JsonResponse|RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'check_in' => 'required|date|after_or_equal:today',
+            'check_out' => 'required|date|after:check_in',
+            'contact_name' => 'required|string|max:150',
+            'contact_email' => 'nullable|email|max:150',
+            'contact_phone' => 'required|string|max:80',
+            'guests' => 'required|integer|min:1|max:20',
+            'payment_method' => 'required|in:gcash,landbank,cash,bank_transfer',
+            'payment_proof' => 'nullable|image|max:5120',
+            'status' => 'nullable|in:pending,confirmed,for_verification',
+            'notes' => 'nullable|string|max:2000',
+        ]);
+
+        $booking = DB::transaction(function () use ($request, $validated) {
+            $lockedRoom = Room::query()->whereKey($validated['room_id'])->lockForUpdate()->firstOrFail();
+
+            if ($lockedRoom->status !== 'available') {
+                throw ValidationException::withMessages([
+                    'room_id' => 'This room is currently unavailable for new bookings.',
+                ]);
+            }
+
+            if (Booking::overlaps($lockedRoom->id, $validated['check_in'], $validated['check_out'])) {
+                throw ValidationException::withMessages([
+                    'check_in' => 'The selected dates are already reserved. Please choose different dates.',
+                ]);
+            }
+
+            $proofPath = $request->hasFile('payment_proof')
+                ? $this->storePublicImage($request->file('payment_proof'), 'payment-proofs')
+                : null;
+
+            $status = $validated['status'] ?? 'pending';
+            $paymentStatus = $status === 'confirmed' ? 'paid' : 'for_verification';
+            $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
+            $total = $lockedRoom->price * max(1, $nights);
+
+            $booking = Booking::create([
+                'user_id' => null,
+                'room_id' => $lockedRoom->id,
+                'check_in' => $validated['check_in'],
+                'check_out' => $validated['check_out'],
+                'guests' => $validated['guests'],
+                'contact_name' => $validated['contact_name'],
+                'contact_email' => $validated['contact_email'] ?? null,
+                'contact_phone' => $validated['contact_phone'],
+                'status' => $status,
+                'payment_method' => $validated['payment_method'],
+                'payment_proof_path' => $proofPath,
+                'payment_status' => $paymentStatus,
+                'paid_at' => $paymentStatus === 'paid' ? now() : null,
+                'total' => $total,
+                'notes' => $validated['notes'] ?? null,
+            ]);
+
+            if ($paymentStatus === 'paid') {
+                $booking->confirmPayment('walkin-' . $booking->id, $booking->payment_method, 'manual', [
+                    'proof_path' => $proofPath,
+                    'source' => 'admin_walkin',
+                ]);
+            } elseif ($proofPath) {
+                PaymentTransaction::updateOrCreate(
+                    [
+                        'booking_id' => $booking->id,
+                        'transaction_id' => 'walkin-' . $booking->id,
+                    ],
+                    [
+                        'provider' => 'manual',
+                        'amount' => $booking->total,
+                        'status' => 'pending',
+                        'payment_method' => $booking->payment_method,
+                        'payload' => ['proof_path' => $proofPath, 'source' => 'admin_walkin'],
+                        'processed_at' => null,
+                    ]
+                );
+            }
+
+            return $booking;
+        });
+
+        event(new BookingCreated($booking->id));
+
+        if ($booking->payment_status === 'paid') {
+            event(new PaymentVerified($booking->id));
+            event(new BookingConfirmed($booking->id));
+        }
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'success' => true,
+                'booking_id' => $booking->id,
+            ]);
+        }
+
+        return redirect()->route('admin.bookings')->with('success', 'Walk-in booking created successfully.');
     }
 
     public function rooms(Request $request): View
