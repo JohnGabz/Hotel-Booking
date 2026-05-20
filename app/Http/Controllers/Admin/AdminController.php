@@ -19,6 +19,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -119,7 +120,7 @@ class AdminController extends Controller
             $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
             $total = $lockedRoom->price * max(1, $nights);
 
-            $booking = Booking::create([
+            $payload = [
                 'user_id' => null,
                 'room_id' => $lockedRoom->id,
                 'check_in' => $validated['check_in'],
@@ -135,8 +136,13 @@ class AdminController extends Controller
                 'paid_at' => $paymentStatus === 'paid' ? now() : null,
                 'total' => $total,
                 'notes' => $validated['notes'] ?? null,
-                'source' => Booking::SOURCE_WALK_IN,
-            ]);
+            ];
+
+            if ($this->bookingSupportsSource()) {
+                $payload['source'] = Booking::SOURCE_WALK_IN;
+            }
+
+            $booking = Booking::create($payload);
 
             if ($paymentStatus === 'paid') {
                 $booking->confirmPayment('walkin-' . $booking->id, $booking->payment_method, 'manual', [
@@ -204,6 +210,17 @@ class AdminController extends Controller
                 'description' => 'View room cards, availability, pricing, and quick room actions.',
             ],
         ]);
+    }
+
+    protected function bookingSupportsSource(): bool
+    {
+        static $supportsSource = null;
+
+        if ($supportsSource === null) {
+            $supportsSource = Schema::hasColumn('bookings', 'source');
+        }
+
+        return $supportsSource;
     }
 
     public function storeRoom(Request $request): RedirectResponse

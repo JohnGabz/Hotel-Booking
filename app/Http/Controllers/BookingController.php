@@ -12,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Throwable;
@@ -43,7 +44,7 @@ class BookingController extends Controller
             $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
             $total = $lockedRoom->price * max(1, $nights);
 
-            return Booking::create([
+            $payload = [
                 'user_id' => Auth::id(),
                 'room_id' => $lockedRoom->id,
                 'check_in' => $validated['check_in'],
@@ -56,8 +57,13 @@ class BookingController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'total' => $total,
-                'source' => Booking::SOURCE_ONLINE,
-            ]);
+            ];
+
+            if ($this->bookingSupportsSource()) {
+                $payload['source'] = Booking::SOURCE_ONLINE;
+            }
+
+            return Booking::create($payload);
         });
 
         if ($booking === null) {
@@ -135,6 +141,17 @@ class BookingController extends Controller
         }
 
         return redirect()->route('dashboard')->with('success', 'Payment proof uploaded. Our staff will verify your payment shortly.');
+    }
+
+    protected function bookingSupportsSource(): bool
+    {
+        static $supportsSource = null;
+
+        if ($supportsSource === null) {
+            $supportsSource = Schema::hasColumn('bookings', 'source');
+        }
+
+        return $supportsSource;
     }
 
     public function dashboard(): View

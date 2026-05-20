@@ -224,23 +224,7 @@
         </div>
         
         @if ($featuredRooms->count() > 1)
-            <div class="md:hidden">
-                <div class="mb-4 flex items-center justify-between gap-3">
-                    <div class="flex gap-2" data-featured-room-dots role="tablist" aria-label="Featured room carousel position">
-                        @foreach ($featuredRooms as $index => $room)
-                            <button type="button" class="h-2 w-2 rounded-full bg-stone-300 transition-colors" data-featured-room-dot aria-label="Go to featured room {{ $index + 1 }}" data-index="{{ $index }}"></button>
-                        @endforeach
-                    </div>
-                    <div class="flex gap-2">
-                        <button type="button" class="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-stone-300 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary touch-manipulation" data-featured-room-prev aria-label="Previous featured room">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
-                        </button>
-                        <button type="button" class="inline-flex h-12 w-12 items-center justify-center rounded-lg border border-stone-300 bg-white text-stone-700 shadow-sm transition hover:border-brand-primary hover:text-brand-primary touch-manipulation" data-featured-room-next aria-label="Next featured room">
-                            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
-                        </button>
-                    </div>
-                </div>
-            </div>
+            {{-- Controls hidden on mobile by request: simplified UX --}}
         @endif
 
         <div class="featured-rooms-carousel scroll-animate-stagger" tabindex="0" role="region" aria-label="Featured rooms carousel">
@@ -292,73 +276,7 @@
     </div>
 </section>
 
-<script>
-    (() => {
-        const carousel = document.querySelector('.featured-rooms-carousel');
-        const slides = Array.from(document.querySelectorAll('.featured-room-slide'));
-        const dots = Array.from(document.querySelectorAll('[data-featured-room-dot]'));
-        const prev = document.querySelector('[data-featured-room-prev]');
-        const next = document.querySelector('[data-featured-room-next]');
-
-        if (!carousel || !slides.length) return;
-
-        const getActiveIndex = () => {
-            const carouselRect = carousel.getBoundingClientRect();
-            const centerX = carouselRect.left + carouselRect.width / 2;
-            return slides.reduce((bestIndex, slide, idx) => {
-                const rect = slide.getBoundingClientRect();
-                const distance = Math.abs(rect.left + rect.width / 2 - centerX);
-                const bestRect = slides[bestIndex].getBoundingClientRect();
-                const bestDistance = Math.abs(bestRect.left + bestRect.width / 2 - centerX);
-                return distance < bestDistance ? idx : bestIndex;
-            }, 0);
-        };
-
-        const updateDots = () => {
-            const index = getActiveIndex();
-            dots.forEach((dot, i) => {
-                dot.classList.toggle('active', i === index);
-                dot.setAttribute('aria-selected', i === index ? 'true' : 'false');
-            });
-        };
-
-        const scrollToSlide = (index) => {
-            const boundedIndex = Math.max(0, Math.min(slides.length - 1, index));
-            slides[boundedIndex]?.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
-        };
-
-        prev?.addEventListener('click', () => scrollToSlide(getActiveIndex() - 1));
-        next?.addEventListener('click', () => scrollToSlide(getActiveIndex() + 1));
-
-        dots.forEach(dot => {
-            dot.addEventListener('click', (e) => {
-                const idx = Number(dot.dataset.index || 0);
-                scrollToSlide(idx);
-            });
-            dot.setAttribute('role', 'tab');
-            dot.setAttribute('tabindex', '0');
-            dot.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    dot.click();
-                }
-            });
-        });
-
-        let ticking = false;
-        carousel.addEventListener('scroll', () => {
-            if (!ticking) {
-                window.requestAnimationFrame(() => { updateDots(); ticking = false; });
-                ticking = true;
-            }
-        }, { passive: true });
-
-        window.addEventListener('resize', updateDots);
-
-        // Initialize
-        updateDots();
-    })();
-</script>
+{{-- Inline carousel controls removed (mobile indicators and prev/next). Handled by CSS-only scroll snapping. --}}
 
 <!-- About Section -->
 <section class="section-shell bg-white">

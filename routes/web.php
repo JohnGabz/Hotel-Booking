@@ -9,7 +9,9 @@ use App\Http\Controllers\Webhook\PaymentController as WebhookPaymentController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [PageController::class, 'home'])->name('home');
@@ -86,3 +88,26 @@ Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])
 Route::post('/webhooks/xendit', [WebhookPaymentController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.xendit');
+
+Route::get('/ops/migrate/{token}', function (string $token, Request $request) {
+    $expectedToken = (string) env('MIGRATE_ROUTE_TOKEN', '');
+
+    if ($expectedToken === '' || ! hash_equals($expectedToken, $token)) {
+        abort(404);
+    }
+
+    if (app()->environment('production') && $request->query('confirm') !== 'yes') {
+        return response()->json([
+            'ok' => false,
+            'message' => 'Missing confirmation. Add ?confirm=yes to run migrations in production.',
+        ], 422);
+    }
+
+    $exitCode = Artisan::call('migrate', ['--force' => true]);
+
+    return response()->json([
+        'ok' => $exitCode === 0,
+        'exit_code' => $exitCode,
+        'output' => trim(Artisan::output()),
+    ], $exitCode === 0 ? 200 : 500);
+})->middleware('throttle:3,1')->name('ops.migrate');
