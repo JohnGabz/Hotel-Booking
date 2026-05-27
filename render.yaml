@@ -50,8 +50,12 @@ services:
         value: file
       - key: FILESYSTEM_DISK
         value: public
-      - key: XENDIT_API_KEY
+      - key: XENDIT_MODE
+        value: test
+      - key: XENDIT_SECRET_KEY
         sync: false
+      - key: XENDIT_INVOICE_BASE_URL
+        value: https://api.xendit.co
       - key: XENDIT_WEBHOOK_VERIFICATION_TOKEN
         sync: false
 

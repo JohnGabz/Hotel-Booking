@@ -82,10 +82,60 @@ function closeAccessibleModal(modal) {
     }
 }
 
+function modalHasUnsavedChanges(modal) {
+    const form = modal?.querySelector?.('[data-landing-section-form]');
+
+    return form?.dataset.dirty === '1' && form?.dataset.saving !== '1';
+}
+
+function resetModalFormState(modal) {
+    const form = modal?.querySelector?.('[data-landing-section-form]');
+    if (!form) return;
+
+    form.reset();
+    form.dataset.dirty = '0';
+    form.querySelectorAll('.form-input.error').forEach((input) => input.classList.remove('error'));
+    form.querySelectorAll('[data-field-error]').forEach((error) => {
+        error.textContent = '';
+        error.classList.add('hidden');
+    });
+    form.querySelector('[data-form-summary]')?.classList.add('hidden');
+
+    form.querySelectorAll('[data-image-input]').forEach((input) => {
+        const preview = document.getElementById(input.dataset.previewTarget || '');
+        const empty = document.getElementById(input.dataset.emptyTarget || '');
+        const initialSrc = preview?.dataset.initialSrc || '';
+
+        if (preview) {
+            preview.src = initialSrc;
+            preview.classList.toggle('hidden', initialSrc === '');
+        }
+
+        if (empty) {
+            empty.classList.toggle('hidden', empty.dataset.initialEmpty !== '1');
+        }
+    });
+}
+
+function requestCloseAccessibleModal(modal) {
+    if (!modal) return false;
+
+    if (modalHasUnsavedChanges(modal)) {
+        if (!window.confirm('Discard unsaved changes?')) {
+            return false;
+        }
+
+        resetModalFormState(modal);
+    }
+
+    closeAccessibleModal(modal);
+    return true;
+}
+
 document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && activeModal) {
         event.preventDefault();
-        closeAccessibleModal(activeModal);
+        requestCloseAccessibleModal(activeModal);
         return;
     }
 
@@ -172,6 +222,7 @@ window.VillaError = {
 window.VillaModal = {
     open: openAccessibleModal,
     close: closeAccessibleModal,
+    requestClose: requestCloseAccessibleModal,
 };
 
 // Provide a helper to fetch without triggering the global loader
@@ -550,7 +601,7 @@ document.querySelectorAll('[data-modal-close]').forEach(btn => {
         e.preventDefault();
         const modal = btn.closest('[id]');
         if (modal) {
-            closeAccessibleModal(modal);
+            requestCloseAccessibleModal(modal);
         }
     });
 });
@@ -737,6 +788,232 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         }
     });
 }
+
+(() => {
+    const forms = Array.from(document.querySelectorAll('[data-landing-section-form]'));
+    if (!forms.length) return;
+
+    const transport = window.fetchWithoutLoader || originalFetch;
+
+    const showToast = (message, type = 'success') => {
+        let region = document.getElementById('landing-settings-toast-region');
+
+        if (!region) {
+            region = document.createElement('div');
+            region.id = 'landing-settings-toast-region';
+            region.className = 'fixed right-4 top-4 z-[90] flex w-[calc(100%-2rem)] max-w-sm flex-col gap-3';
+            region.setAttribute('aria-live', 'polite');
+            document.body.appendChild(region);
+        }
+
+        const toast = document.createElement('div');
+        toast.className = `rounded-lg border px-4 py-3 text-sm shadow-lg ${
+            type === 'error'
+                ? 'border-red-200 bg-red-50 text-red-800'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+        }`;
+        toast.textContent = message;
+        region.appendChild(toast);
+
+        window.setTimeout(() => toast.remove(), 4200);
+    };
+
+    const clearErrors = (form) => {
+        form.querySelectorAll('.form-input.error').forEach((input) => input.classList.remove('error'));
+        form.querySelectorAll('[data-field-error]').forEach((error) => {
+            error.textContent = '';
+            error.classList.add('hidden');
+        });
+
+        const summary = form.querySelector('[data-form-summary]');
+        if (summary) {
+            summary.textContent = '';
+            summary.classList.add('hidden');
+        }
+    };
+
+    const showFieldError = (form, name, message) => {
+        const field = form.querySelector(`[name="${CSS.escape(name)}"]`);
+        const error = form.querySelector(`[data-field-error="${CSS.escape(name)}"]`);
+
+        field?.classList.add('error');
+
+        if (error) {
+            error.textContent = message;
+            error.classList.remove('hidden');
+        }
+    };
+
+    const validateLandingForm = (form) => {
+        clearErrors(form);
+        const errors = [];
+
+        form.querySelectorAll('input[name], textarea[name]').forEach((field) => {
+            if (field.type === 'hidden' || field.name === '_token') return;
+
+            const label = field.dataset.fieldLabel || field.name;
+            const value = field.value.trim();
+            const max = Number(field.dataset.maxlength || field.getAttribute('maxlength') || 0);
+
+            if (max && value.length > max) {
+                errors.push([field.name, `${label} must be ${max} characters or fewer.`]);
+            }
+
+            if (field.type === 'email' && value && !field.validity.valid) {
+                errors.push([field.name, `${label} must be a valid email address.`]);
+            }
+
+            if (field.type === 'url' && value && !field.validity.valid) {
+                errors.push([field.name, `${label} must be a valid URL.`]);
+            }
+
+            if (field.type === 'file' && field.files?.[0]) {
+                const file = field.files[0];
+
+                if (!file.type.startsWith('image/')) {
+                    errors.push([field.name, `${label} must be an image file.`]);
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    errors.push([field.name, `${label} must be 5 MB or smaller.`]);
+                }
+            }
+        });
+
+        errors.forEach(([name, message]) => showFieldError(form, name, message));
+
+        const summary = form.querySelector('[data-form-summary]');
+        if (summary && errors.length) {
+            summary.textContent = 'Please fix the highlighted fields before saving.';
+            summary.classList.remove('hidden');
+        }
+
+        return errors.length === 0;
+    };
+
+    const flattenServerErrors = (errors) => Object.entries(errors || {})
+        .flatMap(([name, messages]) => (Array.isArray(messages) ? messages : [messages]).map((message) => [name, message]))
+        .filter(([, message]) => message);
+
+    const syncFormDefaults = (form) => {
+        form.querySelectorAll('input[name], textarea[name]').forEach((field) => {
+            if (field.type === 'file') {
+                field.value = '';
+                return;
+            }
+
+            field.defaultValue = field.value;
+        });
+
+        form.querySelectorAll('[data-image-input]').forEach((input) => {
+            const preview = document.getElementById(input.dataset.previewTarget || '');
+            const empty = document.getElementById(input.dataset.emptyTarget || '');
+
+            if (preview) {
+                preview.dataset.initialSrc = preview.classList.contains('hidden') ? '' : preview.src;
+            }
+
+            if (empty) {
+                empty.dataset.initialEmpty = empty.classList.contains('hidden') ? '0' : '1';
+            }
+        });
+    };
+
+    forms.forEach((form) => {
+        const markDirty = () => {
+            form.dataset.dirty = '1';
+        };
+
+        form.addEventListener('input', markDirty);
+        form.addEventListener('change', markDirty);
+
+        form.querySelectorAll('[data-image-input]').forEach((input) => {
+            input.addEventListener('change', () => {
+                const file = input.files?.[0];
+                const preview = document.getElementById(input.dataset.previewTarget || '');
+                const empty = document.getElementById(input.dataset.emptyTarget || '');
+
+                if (!file || !preview) return;
+
+                preview.src = URL.createObjectURL(file);
+                preview.classList.remove('hidden');
+                empty?.classList.add('hidden');
+            });
+        });
+
+        form.addEventListener('submit', async (event) => {
+            event.preventDefault();
+
+            if (!validateLandingForm(form)) {
+                return;
+            }
+
+            const submit = form.querySelector('[data-landing-section-submit]');
+            const modal = form.closest('[id]');
+
+            form.dataset.saving = '1';
+            submit?.setAttribute('disabled', 'disabled');
+            window.VillaLoader?.show();
+
+            try {
+                const response = await transport(form.action, {
+                    method: 'POST',
+                    body: new FormData(form),
+                    headers: {
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                });
+
+                const payload = await response.json().catch(() => ({}));
+
+                if (!response.ok) {
+                    if (response.status === 422 && payload.errors) {
+                        const serverErrors = flattenServerErrors(payload.errors);
+                        serverErrors.forEach(([name, message]) => showFieldError(form, name, message));
+
+                        const summary = form.querySelector('[data-form-summary]');
+                        if (summary) {
+                            summary.textContent = payload.message || 'Please fix the highlighted fields before saving.';
+                            summary.classList.remove('hidden');
+                        }
+                        return;
+                    }
+
+                    throw new Error(payload.message || 'The section could not be saved.');
+                }
+
+                const card = document.querySelector(`[data-landing-section-card="${CSS.escape(form.dataset.sectionId || '')}"]`);
+                const preview = card?.querySelector('[data-landing-section-preview]');
+
+                if (preview && payload.section?.preview) {
+                    preview.textContent = payload.section.preview;
+                }
+
+                syncFormDefaults(form);
+                form.dataset.dirty = '0';
+                clearErrors(form);
+                closeAccessibleModal(modal);
+                showToast(payload.message || `${form.dataset.sectionTitle || 'Section'} updated successfully.`);
+            } catch (error) {
+                showToast(error?.message || 'The section could not be saved.', 'error');
+            } finally {
+                delete form.dataset.saving;
+                submit?.removeAttribute('disabled');
+                window.VillaLoader?.complete();
+            }
+        });
+    });
+
+    window.addEventListener('beforeunload', (event) => {
+        if (!forms.some((form) => form.dataset.dirty === '1' && form.dataset.saving !== '1')) {
+            return;
+        }
+
+        event.preventDefault();
+        event.returnValue = '';
+    });
+})();
 
 // Global image fallback: replace broken images with a sensible default
 (() => {

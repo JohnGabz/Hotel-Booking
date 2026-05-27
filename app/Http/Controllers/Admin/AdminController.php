@@ -454,8 +454,11 @@ class AdminController extends Controller
 
     public function settings(Request $request): View
     {
+        $siteContent = SiteContent::values(SiteContent::landingPageDefaults());
+
         return $this->renderAdminPage('settings', [
             'activeSettingsTab' => $request->query('tab', 'general'),
+            'landingSections' => $this->landingPageSections($siteContent),
             'seo' => [
                 'title' => 'Settings — ' . config('app.name'),
                 'description' => 'General, account, and preferences settings for the admin panel.',
@@ -492,6 +495,188 @@ class AdminController extends Controller
         ];
 
         return view('pages.admin.' . $page, array_merge($baseData, $extra));
+    }
+
+    protected function landingPageSections(array $siteContent): array
+    {
+        $sections = [
+            [
+                'id' => 'hero',
+                'title' => 'Hero',
+                'description' => 'Opening message, call-to-action, and hero background image.',
+                'fields' => [
+                    ['key' => 'hero_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'hero_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'hero_subtitle', 'label' => 'Subtitle', 'type' => 'textarea', 'rows' => 4, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'hero_button_text', 'label' => 'Button text', 'maxlength' => 80],
+                    ['key' => 'hero_background_image', 'label' => 'Background image', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'booking',
+                'title' => 'Booking',
+                'description' => 'Section title and supporting copy for the booking quick form.',
+                'fields' => [
+                    ['key' => 'booking_heading', 'label' => 'Heading', 'maxlength' => 200],
+                    ['key' => 'booking_subheading', 'label' => 'Subheading', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'services',
+                'title' => 'Services',
+                'description' => 'Intro copy and the four service cards shown on the landing page.',
+                'fields' => [
+                    ['key' => 'services_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'services_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'services_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'service_1_title', 'label' => 'Card 1 title', 'maxlength' => 200],
+                    ['key' => 'service_1_description', 'label' => 'Card 1 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'service_2_title', 'label' => 'Card 2 title', 'maxlength' => 200],
+                    ['key' => 'service_2_description', 'label' => 'Card 2 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'service_3_title', 'label' => 'Card 3 title', 'maxlength' => 200],
+                    ['key' => 'service_3_description', 'label' => 'Card 3 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'service_4_title', 'label' => 'Card 4 title', 'maxlength' => 200],
+                    ['key' => 'service_4_description', 'label' => 'Card 4 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'featured-rooms',
+                'title' => 'Featured Rooms',
+                'description' => 'Section heading and intro above the featured room cards.',
+                'fields' => [
+                    ['key' => 'featured_rooms_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'featured_rooms_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'featured_rooms_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'about',
+                'title' => 'About',
+                'description' => 'Copy and image used in the about section on the landing page.',
+                'fields' => [
+                    ['key' => 'about_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'about_heading', 'label' => 'Heading', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'about_body', 'label' => 'Body', 'type' => 'textarea', 'rows' => 4, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'about_secondary', 'label' => 'Secondary body', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'about_image', 'label' => 'Image', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'amenities',
+                'title' => 'Amenities',
+                'description' => 'Amenities heading and the four feature labels below it.',
+                'fields' => [
+                    ['key' => 'facilities_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'facilities_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'facilities_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'facility_1_label', 'label' => 'Facility 1 label', 'maxlength' => 120],
+                    ['key' => 'facility_2_label', 'label' => 'Facility 2 label', 'maxlength' => 120],
+                    ['key' => 'facility_3_label', 'label' => 'Facility 3 label', 'maxlength' => 120],
+                    ['key' => 'facility_4_label', 'label' => 'Facility 4 label', 'maxlength' => 120],
+                ],
+            ],
+            [
+                'id' => 'gallery',
+                'title' => 'Gallery',
+                'description' => 'The gallery heading and six images used in the masonry grid.',
+                'fields' => [
+                    ['key' => 'gallery_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'gallery_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_1', 'label' => 'Image 1', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_2', 'label' => 'Image 2', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_3', 'label' => 'Image 3', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_4', 'label' => 'Image 4', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_5', 'label' => 'Image 5', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_image_6', 'label' => 'Image 6', 'type' => 'image', 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'testimonials',
+                'title' => 'Testimonials',
+                'description' => 'Guest quotes and names shown in the testimonial cards.',
+                'fields' => [
+                    ['key' => 'testimonial_1_name', 'label' => 'Testimonial 1 name', 'maxlength' => 150],
+                    ['key' => 'testimonial_1_role', 'label' => 'Testimonial 1 role', 'maxlength' => 150],
+                    ['key' => 'testimonial_1_quote', 'label' => 'Testimonial 1 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'testimonial_2_name', 'label' => 'Testimonial 2 name', 'maxlength' => 150],
+                    ['key' => 'testimonial_2_role', 'label' => 'Testimonial 2 role', 'maxlength' => 150],
+                    ['key' => 'testimonial_2_quote', 'label' => 'Testimonial 2 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'testimonial_3_name', 'label' => 'Testimonial 3 name', 'maxlength' => 150],
+                    ['key' => 'testimonial_3_role', 'label' => 'Testimonial 3 role', 'maxlength' => 150],
+                    ['key' => 'testimonial_3_quote', 'label' => 'Testimonial 3 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'location',
+                'title' => 'Location',
+                'description' => 'Map embed, contact details, and arrival information.',
+                'fields' => [
+                    ['key' => 'location_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'location_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'location_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'location_map_url', 'label' => 'Map embed URL', 'type' => 'url', 'maxlength' => 2048, 'span' => 'xl:col-span-2'],
+                    ['key' => 'location_address_line1', 'label' => 'Address line 1', 'maxlength' => 250],
+                    ['key' => 'location_address_line2', 'label' => 'Address line 2', 'maxlength' => 250, 'span' => 'xl:col-span-2'],
+                    ['key' => 'location_phone', 'label' => 'Phone', 'type' => 'tel', 'maxlength' => 80],
+                    ['key' => 'location_email', 'label' => 'Email', 'type' => 'email', 'maxlength' => 150],
+                    ['key' => 'location_hours_1', 'label' => 'Hours line 1', 'maxlength' => 120],
+                    ['key' => 'location_hours_2', 'label' => 'Hours line 2', 'maxlength' => 120],
+                    ['key' => 'location_direction_url', 'label' => 'Directions URL', 'type' => 'url', 'maxlength' => 2048, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'contact-cta',
+                'title' => 'Contact CTA',
+                'description' => 'Final booking prompt shown at the bottom of the homepage.',
+                'fields' => [
+                    ['key' => 'cta_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
+                    ['key' => 'cta_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
+                    ['key' => 'cta_body', 'label' => 'Body', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'cta_button_text', 'label' => 'Button text', 'maxlength' => 80],
+                ],
+            ],
+            [
+                'id' => 'footer-content',
+                'title' => 'Footer content',
+                'description' => 'Contact details reused in footer-adjacent public page content.',
+                'fields' => [
+                    ['key' => 'contact_email', 'label' => 'Contact email', 'type' => 'email', 'maxlength' => 150],
+                    ['key' => 'contact_phone', 'label' => 'Contact phone', 'type' => 'tel', 'maxlength' => 80],
+                    ['key' => 'contact_address', 'label' => 'Public contact address', 'maxlength' => 250, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+            [
+                'id' => 'shared-copy',
+                'title' => 'Shared copy',
+                'description' => 'Support copy used on the about, services, FAQs, and contact pages.',
+                'fields' => [
+                    ['key' => 'faqs_intro', 'label' => 'FAQs intro', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                ],
+            ],
+        ];
+
+        return collect($sections)->map(function (array $section) use ($siteContent) {
+            $section['endpoint'] = route('admin.site-content.section.update', $section['id']);
+            $section['values'] = collect($section['fields'])
+                ->mapWithKeys(fn (array $field) => [$field['key'] => $siteContent[$field['key']] ?? ''])
+                ->all();
+            $section['preview'] = $this->landingSectionPreview($section, $siteContent);
+
+            return $section;
+        })->all();
+    }
+
+    protected function landingSectionPreview(array $section, array $siteContent): string
+    {
+        $parts = collect($section['fields'])
+            ->reject(fn (array $field) => ($field['type'] ?? 'text') === 'image')
+            ->map(fn (array $field) => trim((string) ($siteContent[$field['key']] ?? '')))
+            ->filter()
+            ->take(3)
+            ->implode(' · ');
+
+        return Str::limit($parts !== '' ? $parts : 'No content added yet.', 180);
     }
 
     protected function buildBookingCalendar(Room $room, ?string $monthInput): array
@@ -862,6 +1047,80 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.settings', ['tab' => 'landing'])->with('success', 'Site content updated successfully.');
+    }
+
+    public function updateSiteContentSection(Request $request, string $section): JsonResponse|RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $siteContent = SiteContent::values(SiteContent::landingPageDefaults());
+        $sectionConfig = collect($this->landingPageSections($siteContent))->firstWhere('id', $section);
+
+        abort_if(! $sectionConfig, 404);
+
+        $validated = $request->validate($this->landingSectionRules($sectionConfig));
+
+        foreach ($sectionConfig['fields'] as $field) {
+            $key = $field['key'];
+
+            if (($field['type'] ?? 'text') === 'image') {
+                $uploadField = $key . '_upload';
+
+                if ($request->hasFile($uploadField)) {
+                    SiteContent::setValue($key, $this->storePublicImage($request->file($uploadField), 'site-content'));
+                }
+
+                continue;
+            }
+
+            if (array_key_exists($key, $validated)) {
+                SiteContent::setValue($key, $validated[$key] ?? '');
+            }
+        }
+
+        $freshContent = SiteContent::values(SiteContent::landingPageDefaults());
+        $freshSection = collect($this->landingPageSections($freshContent))->firstWhere('id', $section);
+
+        if ($request->expectsJson() || $request->ajax()) {
+            return response()->json([
+                'message' => "{$freshSection['title']} updated successfully.",
+                'section' => $freshSection,
+            ]);
+        }
+
+        return redirect()
+            ->route('admin.settings', ['tab' => 'landing'])
+            ->with('success', "{$freshSection['title']} updated successfully.");
+    }
+
+    protected function landingSectionRules(array $section): array
+    {
+        $rules = [];
+
+        foreach ($section['fields'] as $field) {
+            $key = $field['key'];
+            $type = $field['type'] ?? 'text';
+
+            if ($type === 'image') {
+                $rules[$key . '_upload'] = 'nullable|image|max:5120';
+                continue;
+            }
+
+            $max = $field['maxlength'] ?? match (true) {
+                str_contains($key, 'email') => 150,
+                str_contains($key, 'url') => 2048,
+                str_contains($key, 'body'), str_contains($key, 'intro'), str_contains($key, 'quote') => 3000,
+                default => 500,
+            };
+
+            $rules[$key] = match ($type) {
+                'email' => "nullable|email|max:{$max}",
+                'url' => "nullable|url|max:{$max}",
+                default => "nullable|string|max:{$max}",
+            };
+        }
+
+        return $rules;
     }
 
     protected function makeUniqueRoomSlug(string $name, ?Room $ignoreRoom = null): string

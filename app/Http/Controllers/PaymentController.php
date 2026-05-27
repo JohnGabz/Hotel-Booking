@@ -4,31 +4,99 @@ namespace App\Http\Controllers;
 
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 class PaymentController extends Controller
 {
     public function create(Request $request, Booking $booking): RedirectResponse
     {
-        // Only the owner can create a payment for their booking
         if ((int) $booking->user_id !== (int) $request->user()->id) {
             abort(403);
         }
 
-        $apiKey = config('services.xendit.key');
-        if (! $apiKey) {
-            return back()->with('error', 'Xendit API key not configured in .env');
+        $booking->loadMissing('room');
+
+        if ($booking->payment_status === 'paid' && $booking->status === 'confirmed') {
+            return redirect()->route('dashboard')->with('success', 'This booking is already paid and confirmed.');
         }
 
-        $amount = (int) round($booking->total * 100);
-        $externalId = 'villa-estela-booking-' . $booking->id;
+        if ($existingCheckoutUrl = $this->existingCheckoutUrl($booking)) {
+            return redirect()->away($existingCheckoutUrl);
+        }
 
-        $payload = [
+        $secretKey = (string) config('services.xendit.secret_key', config('services.xendit.key'));
+        if ($secretKey === '') {
+            return back()->with('error', 'Xendit test credentials are not configured yet.');
+        }
+
+        $amount = round((float) $booking->total, 2);
+        $externalId = 'villa-estela-booking-' . $booking->id;
+        $payload = $this->buildInvoicePayload($booking, $amount, $externalId);
+        $invoiceUrl = rtrim((string) config('services.xendit.invoice_base_url', 'https://api.xendit.co'), '/') . '/v2/invoices';
+
+        try {
+            $response = Http::withBasicAuth($secretKey, '')
+                ->acceptJson()
+                ->withHeaders(['X-Idempotency-Key' => $externalId])
+                ->post($invoiceUrl, $payload);
+
+            if (! $response->successful()) {
+                Log::error('Xendit create invoice failed', ['resp' => $response->body()]);
+                return back()->with('error', 'Could not create a payment session right now. You can upload payment proof instead.');
+            }
+
+            $data = $response->json();
+            $checkoutUrl = data_get($data, 'invoice_url');
+            $invoiceId = data_get($data, 'id');
+
+            if (! $checkoutUrl || ! $invoiceId) {
+                Log::error('Xendit missing invoice_url', ['resp' => $response->body()]);
+                return back()->with('error', 'Payment gateway did not return a usable checkout link. Please try again.');
+            }
+
+            DB::transaction(function () use ($booking, $invoiceId, $externalId, $data) {
+                $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+                $lockedBooking->update([
+                    'payment_status' => 'pending',
+                    'payment_reference' => $invoiceId,
+                ]);
+
+                PaymentTransaction::updateOrCreate(
+                    [
+                        'booking_id' => $lockedBooking->id,
+                        'transaction_id' => $invoiceId,
+                    ],
+                    [
+                        'provider' => 'xendit',
+                        'amount' => $lockedBooking->total,
+                        'status' => 'pending',
+                        'payment_method' => $lockedBooking->payment_method,
+                        'payload' => array_merge($data, ['external_id' => $externalId]),
+                        'processed_at' => null,
+                    ]
+                );
+            });
+
+            return redirect()->away($checkoutUrl);
+        } catch (Throwable $e) {
+            Log::error('Xendit invoice creation exception', [
+                'booking_id' => $booking->id,
+                'message' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'Unable to start payment right now. Please try again or upload payment proof.');
+        }
+    }
+
+    protected function buildInvoicePayload(Booking $booking, float $amount, string $externalId): array
+    {
+        return [
             'external_id' => $externalId,
             'amount' => $amount,
             'currency' => 'PHP',
@@ -42,59 +110,27 @@ class PaymentController extends Controller
                 'mobile_number' => $booking->contact_phone,
             ],
         ];
-
-        try {
-            $response = Http::withBasicAuth($apiKey, '')
-                ->acceptJson()
-                ->post('https://api.xendit.co/invoices', $payload);
-
-            if (! $response->successful()) {
-                Log::error('Xendit create invoice failed', ['resp' => $response->body()]);
-                return back()->with('error', 'Could not create payment session. Try uploading a payment proof instead.');
-            }
-
-            $data = $response->json();
-            $checkoutUrl = data_get($data, 'invoice_url');
-            $invoiceId = data_get($data, 'id');
-
-            if (! $checkoutUrl) {
-                Log::error('Xendit missing invoice_url', ['resp' => $response->body()]);
-                return back()->with('error', 'Payment gateway did not return a checkout URL.');
-            }
-
-            DB::transaction(function () use ($booking, $invoiceId, $externalId, $data) {
-                $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
-                $reference = $invoiceId ?: $externalId;
-
-                $lockedBooking->update([
-                    'payment_status' => 'pending',
-                    'payment_reference' => $reference,
-                ]);
-
-                PaymentTransaction::updateOrCreate(
-                    [
-                        'booking_id' => $lockedBooking->id,
-                        'transaction_id' => $reference,
-                    ],
-                    [
-                        'provider' => 'xendit',
-                        'amount' => $lockedBooking->total,
-                        'status' => 'pending',
-                        'payment_method' => $lockedBooking->payment_method,
-                        'payload' => $data,
-                        'processed_at' => null,
-                    ]
-                );
-            });
-
-            return redirect($checkoutUrl);
-        } catch (\Exception $e) {
-            Log::error('Xendit exception', ['message' => $e->getMessage()]);
-            return back()->with('error', 'Payment creation failed: ' . $e->getMessage());
-        }
     }
 
-    public function webhook(Request $request): JsonResponse
+    protected function existingCheckoutUrl(Booking $booking): ?string
+    {
+        $transaction = PaymentTransaction::query()
+            ->where('booking_id', $booking->id)
+            ->where('provider', 'xendit')
+            ->whereIn('status', ['pending', 'created', 'processing'])
+            ->latest('id')
+            ->first();
+
+        if (! $transaction) {
+            return null;
+        }
+
+        $checkoutUrl = data_get($transaction->payload, 'invoice_url');
+
+        return $checkoutUrl ? (string) $checkoutUrl : null;
+    }
+
+    public function webhook(Request $request): \Illuminate\Http\JsonResponse
     {
         $expectedToken = config('services.xendit.webhook_token');
         if ($expectedToken && $request->header('X-Callback-Token') !== $expectedToken) {

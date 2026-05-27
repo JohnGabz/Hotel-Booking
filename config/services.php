@@ -36,8 +36,11 @@ return [
     ],
 
     'xendit' => [
-        'key' => env('XENDIT_API_KEY'),
+        'mode' => env('XENDIT_MODE', 'test'),
+        'key' => env('XENDIT_SECRET_KEY', env('XENDIT_API_KEY')),
+        'secret_key' => env('XENDIT_SECRET_KEY', env('XENDIT_API_KEY')),
         'webhook_token' => env('XENDIT_WEBHOOK_VERIFICATION_TOKEN'),
+        'invoice_base_url' => env('XENDIT_INVOICE_BASE_URL', 'https://api.xendit.co'),
     ],
 
     'payment' => [

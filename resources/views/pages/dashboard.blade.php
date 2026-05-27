@@ -55,7 +55,7 @@
                                     <div class="mt-4 grid gap-3 rounded-[1rem] border border-stone-200 bg-white p-4">
                                         <form action="{{ route('bookings.pay', $booking) }}" method="POST" class="flex gap-2 items-center">
                                             @csrf
-                                            <button type="submit" class="btn-primary">Pay now</button>
+                                            <button type="submit" class="btn-primary">Pay now with Xendit test mode</button>
                                         </form>
 
                                         <form action="{{ route('bookings.payment-proof', $booking) }}" method="POST" enctype="multipart/form-data" class="grid gap-3">

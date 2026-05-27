@@ -151,11 +151,14 @@ class PaymentController extends Controller
     {
         $reference = data_get($payload, 'payment_reference')
             ?? data_get($payload, 'data.payment_reference')
-            ?? data_get($payload, 'id')
             ?? data_get($payload, 'data.id')
             ?? data_get($payload, 'invoice.id');
 
-        return $reference ? (string) $reference : null;
+        if ($reference) {
+            return (string) $reference;
+        }
+
+        return data_get($payload, 'id') ? (string) data_get($payload, 'id') : null;
     }
 
     protected function findBooking(?int $bookingId, ?string $paymentReference): ?Booking

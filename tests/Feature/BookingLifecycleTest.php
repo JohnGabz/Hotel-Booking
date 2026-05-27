@@ -11,6 +11,7 @@ use App\Models\WebhookEvent;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
@@ -91,6 +92,9 @@ class BookingLifecycleTest extends TestCase
             'external_id' => 'villa-estela-booking-' . $booking->id,
             'status' => 'PAID',
             'payment_method' => 'gcash',
+            'invoice' => [
+                'id' => 'xnd_invoice_123',
+            ],
         ];
         $this->postJson(route('webhooks.payments'), $payload, ['X-Callback-Token' => 'test-secret'])
             ->assertOk()
@@ -106,7 +110,67 @@ class BookingLifecycleTest extends TestCase
         $this->assertSame('paid', $booking->payment_status);
         $this->assertNotNull($booking->paid_at);
         $this->assertSame(1, WebhookEvent::count());
-        $this->assertSame(1, PaymentTransaction::where('transaction_id', 'evt_123')->count());
+        $this->assertSame(1, PaymentTransaction::where('transaction_id', 'xnd_invoice_123')->count());
+    }
+
+    public function test_booking_payment_creates_xendit_invoice_once_and_reuses_existing_checkout_url(): void
+    {
+        $room = $this->room();
+        $guest = User::factory()->create();
+        $booking = Booking::create([
+            'user_id' => $guest->id,
+            'room_id' => $room->id,
+            'check_in' => now()->addDays(40)->toDateString(),
+            'check_out' => now()->addDays(42)->toDateString(),
+            'guests' => 2,
+            'contact_name' => 'Maria Santos',
+            'contact_email' => 'maria@example.com',
+            'contact_phone' => '+639123456789',
+            'status' => 'pending',
+            'payment_method' => 'gcash',
+            'payment_status' => 'pending',
+            'total' => 2500,
+            'source' => Booking::SOURCE_ONLINE,
+        ]);
+
+        Http::fake([
+            'https://api.xendit.co/v2/invoices' => Http::response([
+                'id' => 'xnd_invoice_123',
+                'external_id' => 'villa-estela-booking-' . $booking->id,
+                'invoice_url' => 'https://checkout.xendit.test/invoice-123',
+                'status' => 'PENDING',
+            ], 201),
+        ]);
+
+        Config::set('services.xendit.mode', 'test');
+        Config::set('services.xendit.secret_key', 'xnd_test_secret');
+        Config::set('services.xendit.invoice_base_url', 'https://api.xendit.co');
+
+        $this->actingAs($guest)
+            ->post(route('bookings.pay', $booking))
+            ->assertRedirect('https://checkout.xendit.test/invoice-123');
+
+        Http::assertSent(function ($request) use ($booking) {
+            $data = $request->data();
+
+            return $request->method() === 'POST'
+                && $request->url() === 'https://api.xendit.co/v2/invoices'
+                && $data['external_id'] === 'villa-estela-booking-' . $booking->id
+                && (float) $data['amount'] === 2500.0;
+        });
+
+        $booking->refresh();
+
+        $this->assertSame('xnd_invoice_123', $booking->payment_reference);
+        $this->assertSame('pending', $booking->payment_status);
+        $this->assertSame(1, PaymentTransaction::count());
+        Http::assertSentCount(1);
+
+        $this->actingAs($guest)
+            ->post(route('bookings.pay', $booking))
+            ->assertRedirect('https://checkout.xendit.test/invoice-123');
+
+        Http::assertSentCount(1);
     }
 
     public function test_manual_payment_proof_and_admin_verification_confirm_booking(): void
@@ -130,7 +194,7 @@ class BookingLifecycleTest extends TestCase
         $booking->refresh();
 
         $this->assertSame('for_verification', $booking->payment_status);
-        Storage::disk('public')->assertExists($booking->payment_proof_path);
+        $this->assertTrue(Storage::disk('public')->exists($booking->payment_proof_path));
 
         $this->actingAs($admin)
             ->post(route('admin.bookings.payment-status', $booking), [

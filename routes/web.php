@@ -77,6 +77,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
         Route::post('/bookings/{booking}/payment-status', [AdminController::class, 'updatePaymentStatus'])->name('bookings.payment-status');
         Route::post('/site-content', [AdminController::class, 'updateSiteContent'])->name('site-content.update');
+        Route::post('/site-content/{section}', [AdminController::class, 'updateSiteContentSection'])->name('site-content.section.update');
     });
 });
 
