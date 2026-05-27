@@ -6,6 +6,7 @@ use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\Room;
+use App\Support\ImageStorage;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -13,7 +14,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
 use Throwable;
 
@@ -107,7 +107,7 @@ class BookingController extends Controller
             'payment_proof' => 'required|image|max:5120',
         ]);
 
-        $proofPath = $request->file('payment_proof')->store('payment-proofs', 'public');
+        $proofPath = ImageStorage::store($request->file('payment_proof'), 'payment-proofs');
         $oldProofPath = $booking->payment_proof_path;
 
         DB::transaction(function () use ($booking, $request, $proofPath) {
@@ -137,7 +137,7 @@ class BookingController extends Controller
         });
 
         if ($oldProofPath) {
-            Storage::disk('public')->delete($oldProofPath);
+            ImageStorage::delete($oldProofPath);
         }
 
         return redirect()->route('dashboard')->with('success', 'Payment proof uploaded. Our staff will verify your payment shortly.');

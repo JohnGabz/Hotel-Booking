@@ -8,7 +8,7 @@
         'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1200&q=80',
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
     ];
-    $resolveRoomImage = fn (?string $image) => $image ? (str_starts_with($image, 'http') ? $image : asset('storage/' . $image)) : null;
+    $resolveRoomImage = fn (?string $image) => \App\Support\ImageStorage::url($image, '');
 @endphp
 
 <section class="section-shell pt-8 sm:pt-10">

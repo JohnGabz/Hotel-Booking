@@ -18,7 +18,8 @@ class BookingAdminTest extends TestCase
 
     public function test_admin_can_create_walkin_booking_with_payment_proof(): void
     {
-        Storage::fake('public');
+        config(['filesystems.uploads_disk' => 'uploads']);
+        Storage::fake('uploads');
         Event::fake([BookingCreated::class]);
 
         $admin = User::factory()->create(['is_admin' => true]);
@@ -50,7 +51,7 @@ class BookingAdminTest extends TestCase
         $this->assertSame(Booking::SOURCE_WALK_IN, $booking->source);
         $this->assertSame('Walk In Guest', $booking->contact_name);
         $this->assertSame('Front desk booking.', $booking->notes);
-        Storage::disk('public')->assertExists($booking->payment_proof_path);
+        Storage::disk('uploads')->assertExists($booking->payment_proof_path);
         Event::assertDispatched(BookingCreated::class, fn (BookingCreated $event) => $event->bookingId === $booking->id);
     }
 

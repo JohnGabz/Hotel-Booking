@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Room;
 use App\Models\SiteContent;
+use App\Support\ImageStorage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -15,7 +16,10 @@ class PageController extends Controller
         $featuredRooms = Room::available()->take(3)->get();
         $landingContent = SiteContent::values(SiteContent::landingPageDefaults());
 
-        $heroBackground = $this->resolveImageUrl($landingContent['hero_background_image']);
+        $heroBackground = $this->resolveImageUrl(
+            $landingContent['hero_background_image'],
+            'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80'
+        );
 
         $services = [
             [
@@ -128,23 +132,9 @@ class PageController extends Controller
         ]);
     }
 
-    protected function resolveImageUrl(string $value): string
+    protected function resolveImageUrl(string $value, ?string $fallback = null): string
     {
-        if ($value === '') {
-            return '';
-        }
-
-        if (str_starts_with($value, 'http://') || str_starts_with($value, 'https://')) {
-            return $value;
-        }
-
-        $path = ltrim($value, '/');
-
-        if (str_starts_with($path, 'storage/')) {
-            return asset($path);
-        }
-
-        return asset('storage/' . $path);
+        return ImageStorage::url($value, $fallback);
     }
 
     public function submitContact(Request $request): RedirectResponse

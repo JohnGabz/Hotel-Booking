@@ -43,21 +43,7 @@
     $aboutHeading = $content['about_heading'] ?? 'A refined booking experience for guests and staff.';
     $aboutBody = $content['about_body'] ?? 'Villa Estella brings reservations, room discovery, and guest management together in one premium hospitality workflow.';
     $aboutSecondary = $content['about_secondary'] ?? 'Whether you\'re making a quick stopover or planning a dedicated trip, our doors are always open to offer you an exceptional stay.';
-    $resolveContentImage = function (?string $value, string $fallback = '') {
-        if (blank($value)) {
-            return $fallback;
-        }
-
-        if (filter_var($value, FILTER_VALIDATE_URL)) {
-            return $value;
-        }
-
-        $path = ltrim($value, '/');
-
-        return str_starts_with($path, 'storage/')
-            ? asset($path)
-            : asset('storage/' . $path);
-    };
+    $resolveContentImage = fn (?string $value, string $fallback = '') => \App\Support\ImageStorage::url($value, $fallback);
     $aboutImage = $resolveContentImage(
         $content['about_image'] ?? '',
         'https://images.unsplash.com/photo-1571896349842-33c89424de2d?auto=format&fit=crop&w=800&q=80'
@@ -111,16 +97,7 @@
 
     $rawHero = filled($heroBackground ?? '') ? $heroBackground : ($content['hero_background_image'] ?? '');
 
-    if (filter_var($rawHero, FILTER_VALIDATE_URL)) {
-        $heroBackground = $rawHero;
-    } elseif (filled($rawHero)) {
-        $candidate = ltrim($rawHero, '/');
-        $heroBackground = str_starts_with($candidate, 'storage/')
-            ? asset($candidate)
-            : asset('storage/' . $candidate);
-    } else {
-        $heroBackground = 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80';
-    }
+    $heroBackground = $resolveContentImage($rawHero, 'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1920&q=80');
 @endphp
 
 <!-- Hero Section -->
@@ -229,13 +206,15 @@
 
         <div class="featured-rooms-carousel scroll-animate-stagger" tabindex="0" role="region" aria-label="Featured rooms carousel">
             @forelse ($featuredRooms as $room)
+                @php
+                    $featuredRoomImage = \App\Support\ImageStorage::url(
+                        collect($room->images ?? [])->first() ?: ($room->image ?? ''),
+                        'https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80'
+                    );
+                @endphp
                 <div class="featured-room-slide group bg-white rounded-2xl border border-stone-200 overflow-hidden shadow-lg hover:border-brand-primary/40 hover:shadow-2xl transition-all duration-300 hover:-translate-y-1">
                     <div class="relative h-64 sm:h-72 overflow-hidden bg-stone-200">
-                        @if ($room->image)
-                            <img src="{{ asset('storage/' . $room->image) }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
-                        @else
-                            <img src="https://images.unsplash.com/photo-1566073771259-6a8506099945?auto=format&fit=crop&w=1200&q=80" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
-                        @endif
+                        <img src="{{ $featuredRoomImage }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                         <div class="absolute inset-0 bg-gradient-to-t from-stone-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg text-sm font-semibold text-brand-primary shadow-lg">
                             ₱{{ number_format($room->price_per_night, 0) }}/night

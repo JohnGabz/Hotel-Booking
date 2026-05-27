@@ -175,7 +175,8 @@ class BookingLifecycleTest extends TestCase
 
     public function test_manual_payment_proof_and_admin_verification_confirm_booking(): void
     {
-        Storage::fake('public');
+        config(['filesystems.uploads_disk' => 'uploads']);
+        Storage::fake('uploads');
 
         $guest = User::factory()->create();
         $admin = User::factory()->create(['is_admin' => true]);
@@ -194,7 +195,7 @@ class BookingLifecycleTest extends TestCase
         $booking->refresh();
 
         $this->assertSame('for_verification', $booking->payment_status);
-        $this->assertTrue(Storage::disk('public')->exists($booking->payment_proof_path));
+        $this->assertTrue(Storage::disk(config('filesystems.uploads_disk'))->exists($booking->payment_proof_path));
 
         $this->actingAs($admin)
             ->post(route('admin.bookings.payment-status', $booking), [

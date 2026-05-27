@@ -12,6 +12,7 @@ use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
 use App\Models\User;
+use App\Support\ImageStorage;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
@@ -499,6 +499,11 @@ class AdminController extends Controller
 
     protected function landingPageSections(array $siteContent): array
     {
+        $records = SiteContent::query()
+            ->whereIn('key', array_keys(SiteContent::landingPageDefaults()))
+            ->get()
+            ->keyBy('key');
+
         $sections = [
             [
                 'id' => 'hero',
@@ -656,12 +661,22 @@ class AdminController extends Controller
             ],
         ];
 
-        return collect($sections)->map(function (array $section) use ($siteContent) {
+        return collect($sections)->map(function (array $section) use ($siteContent, $records) {
             $section['endpoint'] = route('admin.site-content.section.update', $section['id']);
             $section['values'] = collect($section['fields'])
                 ->mapWithKeys(fn (array $field) => [$field['key'] => $siteContent[$field['key']] ?? ''])
                 ->all();
             $section['preview'] = $this->landingSectionPreview($section, $siteContent);
+            $section['thumbnail'] = $this->landingSectionThumbnail($section, $siteContent);
+            $section['status'] = $this->landingSectionStatus($section, $siteContent);
+            $section['updated_at'] = collect($section['fields'])
+                ->map(fn (array $field) => $records->get($field['key'])?->updated_at)
+                ->filter()
+                ->sortDesc()
+                ->first();
+            $section['updated_label'] = $section['updated_at']
+                ? 'Updated ' . $section['updated_at']->diffForHumans()
+                : 'Using default content';
 
             return $section;
         })->all();
@@ -677,6 +692,36 @@ class AdminController extends Controller
             ->implode(' · ');
 
         return Str::limit($parts !== '' ? $parts : 'No content added yet.', 180);
+    }
+
+    protected function landingSectionThumbnail(array $section, array $siteContent): string
+    {
+        $imageField = collect($section['fields'])->first(fn (array $field) => ($field['type'] ?? 'text') === 'image');
+
+        if (! $imageField) {
+            return '';
+        }
+
+        return ImageStorage::url($siteContent[$imageField['key']] ?? '', '');
+    }
+
+    protected function landingSectionStatus(array $section, array $siteContent): array
+    {
+        $editableFields = collect($section['fields']);
+        $missing = $editableFields
+            ->reject(fn (array $field) => ($field['type'] ?? 'text') === 'image')
+            ->filter(fn (array $field) => blank($siteContent[$field['key']] ?? ''))
+            ->count();
+
+        $imageFields = $editableFields->filter(fn (array $field) => ($field['type'] ?? 'text') === 'image');
+        $missing += $imageFields
+            ->filter(fn (array $field) => blank($siteContent[$field['key']] ?? ''))
+            ->count();
+
+        return [
+            'label' => $missing === 0 ? 'Configured' : "{$missing} missing",
+            'tone' => $missing === 0 ? 'success' : 'warning',
+        ];
     }
 
     protected function buildBookingCalendar(Room $room, ?string $monthInput): array
@@ -840,7 +885,7 @@ class AdminController extends Controller
 
         foreach ($removedImages as $removedImage) {
             if (! str_starts_with($removedImage, 'http')) {
-                Storage::disk('public')->delete($removedImage);
+                ImageStorage::delete($removedImage);
             }
         }
 
@@ -868,7 +913,7 @@ class AdminController extends Controller
 
         foreach (($room->images ?? []) as $image) {
             if (! str_starts_with($image, 'http')) {
-                Storage::disk('public')->delete($image);
+                ImageStorage::delete($image);
             }
         }
 
@@ -906,15 +951,7 @@ class AdminController extends Controller
 
     protected function storePublicImage($image, string $directory): string
     {
-        Storage::disk('public')->makeDirectory($directory);
-
-        $path = $image->storePublicly($directory, 'public');
-
-        if (! is_string($path) || ! Storage::disk('public')->exists($path)) {
-            abort(500, 'The image could not be saved. Please check the persistent storage configuration.');
-        }
-
-        return $path;
+        return ImageStorage::store($image, $directory);
     }
 
     public function approveReview(Review $review): RedirectResponse
@@ -1065,8 +1102,13 @@ class AdminController extends Controller
 
             if (($field['type'] ?? 'text') === 'image') {
                 $uploadField = $key . '_upload';
+                $removeField = $key . '_remove';
 
-                if ($request->hasFile($uploadField)) {
+                if ($request->boolean($removeField)) {
+                    ImageStorage::delete($sectionConfig['values'][$key] ?? '');
+                    SiteContent::setValue($key, '');
+                } elseif ($request->hasFile($uploadField)) {
+                    ImageStorage::delete($sectionConfig['values'][$key] ?? '');
                     SiteContent::setValue($key, $this->storePublicImage($request->file($uploadField), 'site-content'));
                 }
 
@@ -1103,6 +1145,7 @@ class AdminController extends Controller
 
             if ($type === 'image') {
                 $rules[$key . '_upload'] = 'nullable|image|max:5120';
+                $rules[$key . '_remove'] = 'nullable|boolean';
                 continue;
             }
 

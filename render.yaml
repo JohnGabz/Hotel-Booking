@@ -4,10 +4,6 @@ services:
     env: docker
     dockerfilePath: ./Dockerfile
     plan: free
-    disk:
-      name: villa-estela-storage
-      mountPath: /var/www/html/storage
-      sizeGB: 1
     startCommand: mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs storage/app/public && php artisan optimize:clear && php artisan storage:link --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=8000
     autoDeploy: true
     envVars:
@@ -50,6 +46,24 @@ services:
         value: file
       - key: FILESYSTEM_DISK
         value: public
+      # Preferred durable upload storage: configure AWS/R2/B2 values in Render Dashboard.
+      # If using the Render disk fallback instead, set FILESYSTEM_UPLOADS_DISK=public.
+      - key: FILESYSTEM_UPLOADS_DISK
+        value: s3
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: AWS_DEFAULT_REGION
+        sync: false
+      - key: AWS_BUCKET
+        sync: false
+      - key: AWS_URL
+        sync: false
+      - key: AWS_ENDPOINT
+        sync: false
+      - key: AWS_USE_PATH_STYLE_ENDPOINT
+        value: true
       - key: XENDIT_MODE
         value: test
       - key: XENDIT_SECRET_KEY

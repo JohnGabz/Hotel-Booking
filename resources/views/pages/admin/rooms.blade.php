@@ -7,7 +7,8 @@
         'https://images.unsplash.com/photo-1505693416388-ac5ce068fe85?auto=format&fit=crop&w=1200&q=80',
         'https://images.unsplash.com/photo-1512918728675-ed5a9ecdebfd?auto=format&fit=crop&w=1200&q=80',
     ];
-    $resolveRoomImage = fn (?string $image) => $image ? (str_starts_with($image, 'http') ? $image : asset('storage/' . $image)) : null;
+    $resolveRoomImage = fn (?string $image) => \App\Support\ImageStorage::url($image, '');
+    $uploadUrlBase = rtrim(\Illuminate\Support\Facades\Storage::disk(config('filesystems.uploads_disk'))->url(''), '/');
     $viewMode = $viewMode ?? 'grid';
 @endphp
 
@@ -272,7 +273,13 @@
     (() => {
         const resolveImageUrl = (path) => {
             if (!path) return '';
-            return path.startsWith('http') ? path : `${window.location.origin}/storage/${path}`;
+            if (!path) return '';
+            if (path.startsWith('http') || path.startsWith('data:')) return path;
+
+            const normalized = path.replace(/^\\/+/, '').replace(/^storage\\//, '');
+            const uploadBaseUrl = @json($uploadUrlBase);
+
+            return `${uploadBaseUrl}/${normalized}`;
         };
 
         const createImageFigure = (src, alt = 'Room image') => {

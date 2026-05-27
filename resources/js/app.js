@@ -94,6 +94,7 @@ function resetModalFormState(modal) {
 
     form.reset();
     form.dataset.dirty = '0';
+    form.querySelector('[data-landing-section-submit]')?.setAttribute('disabled', 'disabled');
     form.querySelectorAll('.form-input.error').forEach((input) => input.classList.remove('error'));
     form.querySelectorAll('[data-field-error]').forEach((error) => {
         error.textContent = '';
@@ -104,7 +105,11 @@ function resetModalFormState(modal) {
     form.querySelectorAll('[data-image-input]').forEach((input) => {
         const preview = document.getElementById(input.dataset.previewTarget || '');
         const empty = document.getElementById(input.dataset.emptyTarget || '');
+        const removeInput = document.getElementById(input.dataset.removeTarget || '');
         const initialSrc = preview?.dataset.initialSrc || '';
+
+        input.value = '';
+        if (removeInput) removeInput.value = '0';
 
         if (preview) {
             preview.src = initialSrc;
@@ -902,6 +907,10 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                 return;
             }
 
+            if (field.dataset.imageRemoveInput !== undefined) {
+                field.value = '0';
+            }
+
             field.defaultValue = field.value;
         });
 
@@ -920,8 +929,11 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
     };
 
     forms.forEach((form) => {
+        const submit = form.querySelector('[data-landing-section-submit]');
+
         const markDirty = () => {
             form.dataset.dirty = '1';
+            submit?.removeAttribute('disabled');
         };
 
         form.addEventListener('input', markDirty);
@@ -932,12 +944,59 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                 const file = input.files?.[0];
                 const preview = document.getElementById(input.dataset.previewTarget || '');
                 const empty = document.getElementById(input.dataset.emptyTarget || '');
+                const removeInput = document.getElementById(input.dataset.removeTarget || '');
 
                 if (!file || !preview) return;
 
+                if (removeInput) removeInput.value = '0';
                 preview.src = URL.createObjectURL(file);
                 preview.classList.remove('hidden');
                 empty?.classList.add('hidden');
+            });
+        });
+
+        form.querySelectorAll('[data-image-dropzone]').forEach((dropzone) => {
+            const input = dropzone.querySelector('[data-image-input]');
+            if (!input) return;
+
+            ['dragenter', 'dragover'].forEach((eventName) => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropzone.classList.add('border-brand-primary', 'bg-brand-primary/5');
+                });
+            });
+
+            ['dragleave', 'drop'].forEach((eventName) => {
+                dropzone.addEventListener(eventName, (event) => {
+                    event.preventDefault();
+                    dropzone.classList.remove('border-brand-primary', 'bg-brand-primary/5');
+                });
+            });
+
+            dropzone.addEventListener('drop', (event) => {
+                const files = event.dataTransfer?.files;
+                if (!files?.length) return;
+
+                input.files = files;
+                input.dispatchEvent(new Event('change', { bubbles: true }));
+            });
+        });
+
+        form.querySelectorAll('[data-image-clear]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const input = document.getElementById(button.dataset.imageClear || '');
+                const preview = document.getElementById(input?.dataset.previewTarget || '');
+                const empty = document.getElementById(input?.dataset.emptyTarget || '');
+                const removeInput = document.getElementById(input?.dataset.removeTarget || '');
+
+                if (input) input.value = '';
+                if (removeInput) removeInput.value = '1';
+                if (preview) {
+                    preview.removeAttribute('src');
+                    preview.classList.add('hidden');
+                }
+                empty?.classList.remove('hidden');
+                markDirty();
             });
         });
 
@@ -948,11 +1007,12 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                 return;
             }
 
-            const submit = form.querySelector('[data-landing-section-submit]');
             const modal = form.closest('[id]');
+            const card = document.querySelector(`[data-landing-section-card="${CSS.escape(form.dataset.sectionId || '')}"]`);
 
             form.dataset.saving = '1';
             submit?.setAttribute('disabled', 'disabled');
+            card?.classList.add('opacity-60', 'pointer-events-none');
             window.VillaLoader?.show();
 
             try {
@@ -983,11 +1043,41 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                     throw new Error(payload.message || 'The section could not be saved.');
                 }
 
-                const card = document.querySelector(`[data-landing-section-card="${CSS.escape(form.dataset.sectionId || '')}"]`);
                 const preview = card?.querySelector('[data-landing-section-preview]');
+                const updated = card?.querySelector('[data-landing-section-updated]');
+                const status = card?.querySelector('[data-landing-section-status]');
+                const thumbnail = card?.querySelector('[data-landing-section-thumbnail]');
+                const thumbnailEmpty = card?.querySelector('[data-landing-section-thumbnail-empty]');
+                const thumbnailOverlay = card?.querySelector('[data-landing-section-thumbnail-overlay]');
 
                 if (preview && payload.section?.preview) {
                     preview.textContent = payload.section.preview;
+                }
+
+                if (updated && payload.section?.updated_label) {
+                    updated.textContent = payload.section.updated_label;
+                }
+
+                if (status && payload.section?.status?.label) {
+                    status.textContent = payload.section.status.label;
+                    status.classList.toggle('border-emerald-200', payload.section.status.tone === 'success');
+                    status.classList.toggle('bg-emerald-50', payload.section.status.tone === 'success');
+                    status.classList.toggle('text-emerald-700', payload.section.status.tone === 'success');
+                    status.classList.toggle('border-amber-200', payload.section.status.tone !== 'success');
+                    status.classList.toggle('bg-amber-50', payload.section.status.tone !== 'success');
+                    status.classList.toggle('text-amber-700', payload.section.status.tone !== 'success');
+                }
+
+                if (thumbnail && payload.section?.thumbnail) {
+                    thumbnail.src = payload.section.thumbnail;
+                    thumbnail.classList.remove('hidden');
+                    thumbnailEmpty?.classList.add('hidden');
+                    thumbnailOverlay?.classList.remove('hidden');
+                } else if (thumbnail && payload.section?.thumbnail === '') {
+                    thumbnail.removeAttribute('src');
+                    thumbnail.classList.add('hidden');
+                    thumbnailEmpty?.classList.remove('hidden');
+                    thumbnailOverlay?.classList.add('hidden');
                 }
 
                 syncFormDefaults(form);
@@ -999,7 +1089,12 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                 showToast(error?.message || 'The section could not be saved.', 'error');
             } finally {
                 delete form.dataset.saving;
-                submit?.removeAttribute('disabled');
+                if (form.dataset.dirty === '1') {
+                    submit?.removeAttribute('disabled');
+                } else {
+                    submit?.setAttribute('disabled', 'disabled');
+                }
+                card?.classList.remove('opacity-60', 'pointer-events-none');
                 window.VillaLoader?.complete();
             }
         });

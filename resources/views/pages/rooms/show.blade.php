@@ -7,7 +7,7 @@
         'https://images.unsplash.com/photo-1551882547-ff40c63fe5fa?auto=format&fit=crop&w=1400&q=80',
         'https://images.unsplash.com/photo-1542314831-068cd1dbfeeb?auto=format&fit=crop&w=1400&q=80',
     ];
-    $resolveRoomImage = fn (?string $image) => $image ? (str_starts_with($image, 'http') ? $image : asset('storage/' . $image)) : null;
+    $resolveRoomImage = fn (?string $image) => \App\Support\ImageStorage::url($image, '');
     $roomCarouselImages = collect($room->images ?? [])
         ->map(fn ($image) => $resolveRoomImage($image))
         ->filter()
