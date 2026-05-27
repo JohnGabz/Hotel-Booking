@@ -744,5 +744,10 @@
     .safe-scroll {
         -webkit-overflow-scrolling: touch;
         overscroll-behavior: contain;
+        /* Make modal panels scrollable within the viewport so content can be accessed
+           when body scroll is locked (e.g. while a modal is open). */
+        max-height: calc(100vh - 96px);
+        overflow-y: auto;
+        touch-action: pan-y;
     }
 }
