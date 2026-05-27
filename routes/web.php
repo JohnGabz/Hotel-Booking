@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\BookingController;
 use App\Http\Controllers\PageController;
 use App\Http\Controllers\Webhook\PaymentController as WebhookPaymentController;
+use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\ReviewController;
 use App\Http\Controllers\RoomController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -78,6 +79,7 @@ Route::middleware('auth')->group(function () {
         Route::post('/bookings/{booking}/payment-status', [AdminController::class, 'updatePaymentStatus'])->name('bookings.payment-status');
         Route::post('/site-content', [AdminController::class, 'updateSiteContent'])->name('site-content.update');
         Route::post('/site-content/{section}', [AdminController::class, 'updateSiteContentSection'])->name('site-content.section.update');
+        Route::get('/settings/landing/{section}/edit', [AdminController::class, 'landingSectionEdit'])->name('settings.landing.edit');
     });
 });
 
@@ -87,3 +89,4 @@ Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])
 Route::post('/webhooks/xendit', [WebhookPaymentController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.xendit');
+Route::post('/availability/check', [AvailabilityController::class, 'check'])->name('availability.check');

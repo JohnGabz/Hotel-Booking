@@ -399,6 +399,88 @@ window.addEventListener('load', () => {
     }
 });
 
+// Availability check helper for landing page quick form
+function debounce(fn, wait = 350) {
+    let t;
+    return (...args) => {
+        clearTimeout(t);
+        t = setTimeout(() => fn(...args), wait);
+    };
+}
+
+async function checkAvailability(payload) {
+    try {
+        const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+        const resp = await fetch('/availability/check', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': token || '',
+                'Accept': 'application/json',
+            },
+            body: JSON.stringify(payload),
+        });
+
+        if (!resp.ok) {
+            return { error: true };
+        }
+
+        return await resp.json();
+    } catch (err) {
+        return { error: true };
+    }
+}
+
+function initLandingAvailability() {
+    const form = document.querySelector('form[action="/bookings/search"]');
+    if (!form) return;
+
+    const checkIn = form.querySelector('input[name="check_in"]');
+    const checkOut = form.querySelector('input[name="check_out"]');
+    const submit = form.querySelector('button[type="submit"]');
+
+    const statusEl = document.createElement('div');
+    statusEl.className = 'mt-3 text-sm';
+    submit.parentNode.insertBefore(statusEl, submit);
+
+    const doCheck = debounce(async () => {
+        if (!checkIn.value || !checkOut.value) {
+            statusEl.textContent = '';
+            submit.disabled = false;
+            return;
+        }
+
+        statusEl.textContent = 'Checking availability...';
+        submit.disabled = true;
+
+        const result = await checkAvailability({ check_in: checkIn.value, check_out: checkOut.value });
+
+        if (result.error) {
+            statusEl.textContent = 'Unable to check availability right now.';
+            submit.disabled = false;
+            return;
+        }
+
+        if (result.available) {
+            statusEl.innerHTML = '<span class="text-emerald-600">Available — you can proceed to search or book.</span>';
+            submit.disabled = false;
+        } else {
+            const suggestion = result.suggestions && result.suggestions[0];
+            if (suggestion) {
+                statusEl.innerHTML = `<span class="text-amber-700">No rooms available for selected dates. Try ${suggestion.start} to ${suggestion.end}.</span>`;
+            } else {
+                statusEl.innerHTML = '<span class="text-amber-700">No rooms available for selected dates.</span>';
+            }
+            submit.disabled = false;
+        }
+    }, 400);
+
+    checkIn.addEventListener('change', doCheck);
+    checkOut.addEventListener('change', doCheck);
+}
+
+document.addEventListener('DOMContentLoaded', () => initLandingAvailability());
+
 window.addEventListener('pageshow', (event) => {
     if (event.persisted && pendingFetchCount === 0) {
         completeGlobalLoader();

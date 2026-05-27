@@ -466,6 +466,25 @@ class AdminController extends Controller
         ]);
     }
 
+    public function landingSectionEdit(Request $request, string $sectionId): View
+    {
+        $siteContent = SiteContent::values(SiteContent::landingPageDefaults());
+
+        $sections = $this->landingPageSections($siteContent);
+        $section = collect($sections)->firstWhere('id', $sectionId);
+
+        if (! $section) {
+            abort(404);
+        }
+
+        return $this->renderAdminPage('landing-edit', [
+            'section' => $section,
+            'seo' => [
+                'title' => 'Edit ' . $section['title'] . ' — ' . config('app.name'),
+            ],
+        ]);
+    }
+
     protected function renderAdminPage(string $page, array $extra = []): View
     {
         $this->ensureAdmin();

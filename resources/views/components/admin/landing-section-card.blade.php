@@ -34,9 +34,9 @@
             <p class="text-xs uppercase tracking-[0.18em] text-stone-500" data-landing-section-updated>
                 {{ $section['updated_label'] ?? 'Using default content' }}
             </p>
-            <button type="button" class="btn-primary w-full" data-modal-open="landing-section-modal-{{ $section['id'] }}" aria-label="Edit {{ $section['title'] }} section">
+            <a href="{{ route('admin.settings.landing.edit', $section['id']) }}" class="btn-primary w-full inline-flex items-center justify-center" aria-label="Edit {{ $section['title'] }} section">
                 Edit Section
-            </button>
+            </a>
         </div>
     </div>
 </article>
