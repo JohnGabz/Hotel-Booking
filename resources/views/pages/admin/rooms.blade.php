@@ -17,10 +17,10 @@
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
                 <span class="eyebrow">Rooms</span>
-                <h1 class="mt-4 responsive-title lg:text-5xl">Room inventory designed as a visual catalog.</h1>
-                <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Switch between grid and table modes, inspect rates, and update availability from one consistent screen.</p>
+                <h1 class="mt-4 responsive-title lg:text-5xl">Room types and physical room inventory.</h1>
+                <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Manage the public room types guests book, plus the individual physical rooms that determine real availability.</p>
             </div>
-            <a href="#" data-modal-open="add-room-modal" data-modal-title="Add room" class="btn-primary">Add room</a>
+            <a href="#" data-modal-open="add-room-modal" data-modal-title="Add room type" class="btn-primary">Add room type</a>
         </div>
 
         <div class="mt-6 flex flex-wrap gap-3">
@@ -36,7 +36,8 @@
                 <table class="mobile-card-table md:min-w-full">
                     <thead class="bg-stone-50 text-xs uppercase tracking-[0.18em] text-stone-500">
                         <tr>
-                            <th class="px-5 py-4">Room</th>
+                            <th class="px-5 py-4">Room type</th>
+                            <th class="px-5 py-4">Physical rooms</th>
                             <th class="px-5 py-4">Status</th>
                             <th class="px-5 py-4">Capacity</th>
                             <th class="px-5 py-4">Rate</th>
@@ -46,7 +47,13 @@
                     <tbody class="divide-y divide-stone-100">
                         @foreach ($rooms as $room)
                             <tr class="transition hover:bg-stone-50/80">
-                                <td class="px-5 py-4 font-semibold text-stone-950" data-label="Room">{{ $room->name }}</td>
+                                <td class="px-5 py-4 font-semibold text-stone-950" data-label="Room type">{{ $room->name }}</td>
+                                <td class="px-5 py-4 text-stone-600" data-label="Physical rooms">
+                                    <div class="flex flex-col gap-1">
+                                        <span>{{ $room->physical_rooms_count }} {{ Str::plural('room', $room->physical_rooms_count) }}</span>
+                                        <span class="text-xs text-stone-500">{{ $room->physicalRooms->where('status', 'available')->count() }} available</span>
+                                    </div>
+                                </td>
                                 <td class="px-5 py-4" data-label="Status">
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $room->status === 'available' ? 'bg-emerald-100 text-emerald-700' : ($room->status === 'maintenance' ? 'bg-amber-200 text-amber-950 ring-1 ring-amber-400' : 'bg-amber-100 text-amber-800') }}">
                                         {{ $room->status === 'maintenance' ? 'Maintenance' : ucfirst($room->status) }}
@@ -68,6 +75,7 @@
                                            data-room-status="{{ $room->status }}"
                                            data-room-amenities='@json($room->amenities ?? [])'
                                            data-room-images='@json($room->images ?? [])'
+                                           data-room-physical-rooms='@json($room->physicalRooms->map(fn ($physicalRoom) => ['id' => $physicalRoom->id, 'name' => $physicalRoom->name, 'status' => $physicalRoom->status])->values())'
                                            data-room-update-url="{{ route('admin.rooms.update', $room) }}"
                                            class="btn-secondary text-sm btn-edit">Edit</a>
                                     </div>
@@ -94,6 +102,10 @@
                             <div>
                                 <h2 class="text-2xl font-semibold text-stone-950">{{ $room->name }}</h2>
                                 <p class="mt-1 text-sm text-stone-500">{{ ucfirst($room->status) }} · Capacity {{ $room->capacity }}</p>
+                                <p class="mt-2 text-xs font-semibold uppercase tracking-[0.18em] text-stone-400">
+                                    {{ $room->physical_rooms_count }} {{ Str::plural('physical room', $room->physical_rooms_count) }}
+                                    · {{ $room->physicalRooms->where('status', 'available')->count() }} available
+                                </p>
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 <span class="badge-primary">₱{{ number_format($room->price, 0) }}</span>
@@ -116,6 +128,7 @@
                                data-room-status="{{ $room->status }}"
                                data-room-amenities='@json($room->amenities ?? [])'
                                data-room-images='@json($room->images ?? [])'
+                               data-room-physical-rooms='@json($room->physicalRooms->map(fn ($physicalRoom) => ['id' => $physicalRoom->id, 'name' => $physicalRoom->name, 'status' => $physicalRoom->status])->values())'
                                data-room-update-url="{{ route('admin.rooms.update', $room) }}"
                                class="btn-secondary btn-edit">Edit</a>
                             <a href="#" data-modal-open="generic-action-modal" data-modal-title="Delete room" data-action-url="{{ route('admin.rooms.destroy', $room) }}" data-action-method="DELETE" class="btn-secondary btn-delete">Delete</a>
@@ -135,7 +148,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
             <div class="form-group">
-                <label class="form-label" for="add_room_name">Room name</label>
+                <label class="form-label" for="add_room_name">Room type name</label>
                 <input type="text" id="add_room_name" name="name" class="form-input @error('name') error @enderror" value="{{ old('name') }}" required>
                 @error('name') <p class="form-error">{{ $message }}</p> @enderror
             </div>
@@ -162,6 +175,18 @@
                     <option value="maintenance" @selected(old('status') === 'maintenance')>Maintenance</option>
                 </select>
                 @error('status') <p class="form-error">{{ $message }}</p> @enderror
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="add_physical_room_count">Physical room count</label>
+                <input type="number" id="add_physical_room_count" name="physical_room_count" min="1" max="100" class="form-input @error('physical_room_count') error @enderror" value="{{ old('physical_room_count', 1) }}" required>
+                @error('physical_room_count') <p class="form-error">{{ $message }}</p> @enderror
+                <p class="mt-2 text-xs text-stone-500">Used when you do not list individual physical rooms below.</p>
+            </div>
+            <div class="form-group md:col-span-2">
+                <label class="form-label" for="add_physical_rooms">Physical rooms</label>
+                <textarea id="add_physical_rooms" name="physical_rooms" rows="4" class="form-input @error('physical_rooms') error @enderror" placeholder="Room 101 | available&#10;Room 102 | maintenance">{{ old('physical_rooms') }}</textarea>
+                @error('physical_rooms') <p class="form-error">{{ $message }}</p> @enderror
+                <p class="mt-2 text-xs text-stone-500">One per line. Use “name | available” or “name | maintenance”. Guests book the room type; the system assigns one available physical room.</p>
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_amenities">Amenities</label>
@@ -209,7 +234,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
             <div class="form-group">
-                <label class="form-label" for="edit_room_name">Room name</label>
+                <label class="form-label" for="edit_room_name">Room type name</label>
                 <input type="text" id="edit_room_name" name="name" class="form-input" required>
             </div>
             <div class="form-group md:col-span-2">
@@ -231,6 +256,11 @@
                     <option value="occupied">Occupied</option>
                     <option value="maintenance">Maintenance</option>
                 </select>
+            </div>
+            <div class="form-group md:col-span-2">
+                <label class="form-label" for="edit_physical_rooms">Physical rooms</label>
+                <textarea id="edit_physical_rooms" name="physical_rooms" rows="5" class="form-input" placeholder="Room 101 | available&#10;Room 102 | maintenance"></textarea>
+                <p class="mt-2 text-xs text-stone-500">One per line. Existing rows use “id | name | status”. Removing a booked physical room moves it to maintenance to preserve reservation history.</p>
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="edit_room_amenities">Amenities</label>
@@ -387,6 +417,7 @@
             capacity: document.getElementById('edit_room_capacity'),
             price: document.getElementById('edit_room_price'),
             status: document.getElementById('edit_room_status'),
+            physicalRooms: document.getElementById('edit_physical_rooms'),
             amenities: document.getElementById('edit_room_amenities'),
         };
 
@@ -398,6 +429,15 @@
                 fields.capacity.value = button.dataset.roomCapacity || '';
                 fields.price.value = button.dataset.roomPrice || '';
                 fields.status.value = button.dataset.roomStatus || 'available';
+
+                try {
+                    const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
+                    fields.physicalRooms.value = Array.isArray(physicalRooms)
+                        ? physicalRooms.map((physicalRoom) => `${physicalRoom.id} | ${physicalRoom.name} | ${physicalRoom.status}`).join('\n')
+                        : '';
+                } catch {
+                    fields.physicalRooms.value = '';
+                }
 
                 try {
                     const amenities = JSON.parse(button.dataset.roomAmenities || '[]');

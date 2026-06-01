@@ -11,7 +11,7 @@
             <div>
                 <span class="eyebrow">Bookings</span>
                 <h1 class="mt-4 responsive-title lg:text-5xl">Filter and manage reservations with a table-first workflow.</h1>
-                <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Use the filters to narrow by stay date, status, or room, then expand rows for quick action.</p>
+                <p class="mt-4 max-w-2xl text-sm leading-7 text-stone-600">Use the filters to narrow by stay date, status, or room type, then inspect the physical room assigned to each booking.</p>
             </div>
             <button type="button" class="btn-primary" data-modal-open="walkin-booking-modal" data-walkin-room="{{ $selectedRoom?->id }}">Add walk-in booking</button>
         </div>
@@ -34,9 +34,9 @@
                 </select>
             </div>
             <div class="form-group">
-                <label class="form-label" for="booking_room">Room</label>
+                <label class="form-label" for="booking_room">Room type</label>
                 <select id="booking_room" name="room" class="form-input">
-                    <option value="all">All rooms</option>
+                    <option value="all">All room types</option>
                     @foreach ($rooms as $room)
                         <option value="{{ $room->id }}" @selected(($filters['room'] ?? 'all') == $room->id)>{{ $room->name }}</option>
                     @endforeach
@@ -124,7 +124,7 @@
                                     </div>
                                     @if ($day['isCurrentMonth'])
                                         <div class="admin-calendar-status">
-                                            {{ $statusLabel }}
+                                            {{ $day['status'] === 'open' ? $day['availableCount'] . ' open' : $statusLabel }}
                                         </div>
                                     @endif
                                 </div>
@@ -150,7 +150,7 @@
                     <thead class="bg-stone-50 text-xs uppercase tracking-[0.18em] text-stone-500">
                         <tr>
                             <th class="px-5 py-4">Guest</th>
-                            <th class="px-5 py-4">Room</th>
+                            <th class="px-5 py-4">Room assignment</th>
                             <th class="px-5 py-4">Dates</th>
                             <th class="px-5 py-4">Status</th>
                             <th class="px-5 py-4">Amount</th>
@@ -170,7 +170,10 @@
                                         @endif
                                     </div>
                                 </td>
-                                <td class="px-5 py-4 text-stone-700" data-label="Room">{{ $booking->room?->name ?? 'Room' }}</td>
+                                <td class="px-5 py-4 text-stone-700" data-label="Room assignment">
+                                    <p class="font-semibold text-stone-950">{{ $booking->room?->name ?? 'Room type' }}</p>
+                                    <p class="mt-1 text-xs text-stone-500">{{ $booking->physicalRoom?->name ? 'Assigned: ' . $booking->physicalRoom->name : 'No physical room assigned' }}</p>
+                                </td>
                                 <td class="px-5 py-4 text-stone-600" data-label="Dates">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
                                 <td class="px-5 py-4" data-label="Status">
                                     <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $booking->status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : ($booking->status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-700') }}">
@@ -233,7 +236,7 @@
 
         <div class="grid gap-4 md:grid-cols-2">
             <div class="form-group">
-                <label class="form-label" for="walkin_room_id">Room</label>
+                <label class="form-label" for="walkin_room_id">Room type</label>
                 <select id="walkin_room_id" name="room_id" class="form-input" required>
                     @foreach ($rooms as $room)
                         <option value="{{ $room->id }}" @selected(($selectedRoom?->id ?? null) === $room->id)>{{ $room->name }} - {{ $room->capacity }} guests</option>

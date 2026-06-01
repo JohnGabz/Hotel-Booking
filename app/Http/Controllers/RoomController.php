@@ -57,20 +57,21 @@ class RoomController extends Controller
         $checkIn = $request->query('check_in');
         $checkOut = $request->query('check_out');
 
-        $hasOverlap = false;
+        $isAvailable = false;
+        $availableCount = 0;
 
         if ($checkIn && $checkOut) {
-            $hasOverlap = Booking::overlaps($room->id, $checkIn, $checkOut);
+            $availableCount = $room->availablePhysicalRoomCountForRange($checkIn, $checkOut);
+            $isAvailable = $availableCount > 0;
         }
-
-        $isAvailable = $room->status === 'available' && ! $hasOverlap;
 
         return response()->json([
             'room_status' => $room->status,
             'available' => $isAvailable,
+            'available_physical_rooms' => $availableCount,
             'message' => $isAvailable
-                ? 'Room is available for the selected dates.'
-                : 'Room is unavailable for the selected dates.',
+                ? 'This room type is available for the selected dates.'
+                : 'All rooms of this type are unavailable for the selected dates.',
             'checked_at' => now()->toIso8601String(),
         ]);
     }
@@ -90,6 +91,7 @@ class RoomController extends Controller
         $nextMonth = $monthStart->copy()->addMonthNoOverflow()->format('Y-m');
 
         $bookings = Booking::query()
+            ->with('physicalRoom')
             ->where('room_id', $room->id)
             ->whereIn('status', Booking::BLOCKING_STATUSES)
             ->whereDate('check_in', '<=', $monthEnd)
@@ -111,12 +113,13 @@ class RoomController extends Controller
         ];
 
         for ($date = $calendarStart->copy(); $date->lte($calendarEnd); $date->addDay()) {
-            $matchingBooking = $bookings->first(function (Booking $booking) use ($date) {
+            $matchingBookings = $bookings->filter(function (Booking $booking) use ($date) {
                 return $date->betweenIncluded(
                     Carbon::parse($booking->check_in)->startOfDay(),
                     Carbon::parse($booking->check_out)->subDay()->endOfDay()
                 );
             });
+            $availableCount = $room->availablePhysicalRoomCountForDate($date->toDateString());
 
             $isCurrentMonth = $date->month === $monthStart->month && $date->year === $monthStart->year;
             
@@ -127,7 +130,7 @@ class RoomController extends Controller
                 $status = 'past';
             } elseif ($room->status !== 'available') {
                 $status = 'unavailable';
-            } elseif ($matchingBooking) {
+            } elseif ($availableCount <= 0) {
                 $status = 'occupied';
             } else {
                 $status = 'open';
@@ -140,9 +143,10 @@ class RoomController extends Controller
                 'isCurrentMonth' => $isCurrentMonth,
                 'isToday' => $date->isToday(),
                 'status' => $status,
-                'booking' => $matchingBooking ? [
-                    'check_in' => Carbon::parse($matchingBooking->check_in),
-                    'check_out' => Carbon::parse($matchingBooking->check_out),
+                'availableCount' => $availableCount,
+                'booking' => $matchingBookings->first() ? [
+                    'check_in' => Carbon::parse($matchingBookings->first()->check_in),
+                    'check_out' => Carbon::parse($matchingBookings->first()->check_out),
                 ] : null,
             ];
 

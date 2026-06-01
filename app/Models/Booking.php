@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source'])]
+#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source'])]
 class Booking extends Model
 {
     use HasFactory;
@@ -42,6 +42,11 @@ class Booking extends Model
         return $this->belongsTo(Room::class);
     }
 
+    public function physicalRoom(): BelongsTo
+    {
+        return $this->belongsTo(PhysicalRoom::class);
+    }
+
     public function paymentTransactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);
@@ -64,6 +69,20 @@ class Booking extends Model
     public static function overlaps(int $roomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES): bool
     {
         return static::query()->overlapping($roomId, $checkIn, $checkOut, $statuses)->exists();
+    }
+
+    public function scopeOverlappingPhysicalRoom($query, int $physicalRoomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES)
+    {
+        return $query
+            ->where('physical_room_id', $physicalRoomId)
+            ->whereIn('status', $statuses)
+            ->whereDate('check_in', '<', $checkOut)
+            ->whereDate('check_out', '>', $checkIn);
+    }
+
+    public static function overlapsPhysicalRoom(int $physicalRoomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES): bool
+    {
+        return static::query()->overlappingPhysicalRoom($physicalRoomId, $checkIn, $checkOut, $statuses)->exists();
     }
 
     public function confirmPayment(?string $reference = null, ?string $method = null, ?string $provider = null, ?array $payload = null): void

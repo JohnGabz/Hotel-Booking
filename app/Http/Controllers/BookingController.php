@@ -37,7 +37,9 @@ class BookingController extends Controller
                 return null;
             }
 
-            if (Booking::overlaps($lockedRoom->id, $validated['check_in'], $validated['check_out'])) {
+            $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
+
+            if (! $assignedPhysicalRoom) {
                 return false;
             }
 
@@ -47,6 +49,7 @@ class BookingController extends Controller
             $payload = [
                 'user_id' => Auth::id(),
                 'room_id' => $lockedRoom->id,
+                'physical_room_id' => $assignedPhysicalRoom->id,
                 'check_in' => $validated['check_in'],
                 'check_out' => $validated['check_out'],
                 'guests' => 1,
@@ -186,12 +189,9 @@ class BookingController extends Controller
 
         $rooms = Room::available()
             ->where('capacity', '>=', $guests)
-            ->whereDoesntHave('bookings', function ($query) use ($checkIn, $checkOut) {
-                $query->whereIn('status', Booking::BLOCKING_STATUSES)
-                    ->whereDate('check_in', '<', $checkOut)
-                    ->whereDate('check_out', '>', $checkIn);
-            })
-            ->get();
+            ->get()
+            ->filter(fn (Room $room) => $room->isAvailableFor($checkIn, $checkOut))
+            ->values();
 
         return view('pages.rooms.index', compact('rooms'), [
             'seo' => [

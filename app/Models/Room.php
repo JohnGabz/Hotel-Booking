@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Collection;
 
 #[\Illuminate\Database\Eloquent\Attributes\Fillable(['name', 'slug', 'description', 'capacity', 'price', 'status', 'amenities', 'images'])]
 class Room extends Model
@@ -22,6 +23,16 @@ class Room extends Model
         return $this->hasMany(Booking::class);
     }
 
+    public function physicalRooms(): HasMany
+    {
+        return $this->hasMany(PhysicalRoom::class);
+    }
+
+    public function availablePhysicalRooms()
+    {
+        return $this->physicalRooms()->available();
+    }
+
     public function reviews(): HasMany
     {
         return $this->hasMany(Review::class)->where('approved', true);
@@ -29,6 +40,69 @@ class Room extends Model
 
     public function scopeAvailable($query)
     {
-        return $query->where('status', 'available');
+        return $query
+            ->where('status', 'available')
+            ->whereHas('physicalRooms', fn ($physicalRooms) => $physicalRooms->available());
+    }
+
+    public function availablePhysicalRoomFor(string $checkIn, string $checkOut, bool $lock = false): ?PhysicalRoom
+    {
+        if ($this->status !== 'available') {
+            return null;
+        }
+
+        $query = $this->availablePhysicalRooms()->orderBy('id');
+
+        if ($lock) {
+            $query->lockForUpdate();
+        }
+
+        return $query->get()->first(
+            fn (PhysicalRoom $physicalRoom) => ! Booking::overlapsPhysicalRoom($physicalRoom->id, $checkIn, $checkOut)
+        );
+    }
+
+    public function isAvailableFor(string $checkIn, string $checkOut): bool
+    {
+        return $this->availablePhysicalRoomFor($checkIn, $checkOut) !== null;
+    }
+
+    public function occupiedPhysicalRoomIdsForDate(string $date): Collection
+    {
+        return Booking::query()
+            ->where('room_id', $this->id)
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
+            ->whereDate('check_in', '<=', $date)
+            ->whereDate('check_out', '>', $date)
+            ->pluck('physical_room_id')
+            ->filter()
+            ->unique()
+            ->values();
+    }
+
+    public function availablePhysicalRoomCountForDate(string $date): int
+    {
+        if ($this->status !== 'available') {
+            return 0;
+        }
+
+        $occupiedIds = $this->occupiedPhysicalRoomIdsForDate($date);
+
+        return $this->availablePhysicalRooms()
+            ->whereNotIn('id', $occupiedIds)
+            ->count();
+    }
+
+    public function availablePhysicalRoomCountForRange(string $checkIn, string $checkOut): int
+    {
+        if ($this->status !== 'available') {
+            return 0;
+        }
+
+        return $this->availablePhysicalRooms()
+            ->orderBy('id')
+            ->get()
+            ->filter(fn (PhysicalRoom $physicalRoom) => ! Booking::overlapsPhysicalRoom($physicalRoom->id, $checkIn, $checkOut))
+            ->count();
     }
 }

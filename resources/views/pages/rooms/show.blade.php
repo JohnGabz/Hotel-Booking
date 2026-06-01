@@ -123,7 +123,7 @@
                         <div>
                             <span class="eyebrow">Booking calendar</span>
                             <h2 class="mt-4 text-3xl font-semibold text-stone-950">Open and occupied dates</h2>
-                            <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month to see when this room is open, occupied, unavailable, or outside the selected month.</p>
+                            <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month to see when at least one physical room under this room type is open.</p>
                         </div>
                         <div class="room-calendar-nav">
                             <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-3 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
@@ -198,7 +198,7 @@
                                             </div>
                                             <div class="room-calendar-cell-status">
                                                 <span class="room-calendar-status-dot {{ $statusDotClasses }}" aria-hidden="true"></span>
-                                                <span class="room-calendar-status-label">{{ $statusLabel }}</span>
+                                                <span class="room-calendar-status-label">{{ $day['status'] === 'open' ? $day['availableCount'] . ' open' : $statusLabel }}</span>
                                             </div>
                                         </button>
                                     @endforeach
@@ -220,7 +220,7 @@
                     <div class="mt-5 space-y-3 text-sm text-stone-600">
                         <div class="flex items-center gap-3">
                             <span class="h-3 w-3 rounded-full bg-emerald-500"></span>
-                            <span>Open for booking</span>
+                            <span>At least one physical room is open for booking</span>
                         </div>
                         <div class="flex items-center gap-3">
                             <span class="h-3 w-3 rounded-full bg-rose-500"></span>

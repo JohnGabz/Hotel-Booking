@@ -24,24 +24,10 @@ class AvailabilityController extends Controller
         // Number of nights
         $nights = $checkIn->diffInDays($checkOut);
 
-        // Find any room that is available and has no overlapping bookings in blocking statuses
         $rooms = Room::where('status', 'available')->get();
-
-        $availableRoom = null;
-
-        foreach ($rooms as $room) {
-            $conflict = Booking::query()
-                ->where('room_id', $room->id)
-                ->whereIn('status', Booking::BLOCKING_STATUSES)
-                ->whereDate('check_in', '<', $checkOut->toDateString())
-                ->whereDate('check_out', '>', $checkIn->toDateString())
-                ->exists();
-
-            if (! $conflict) {
-                $availableRoom = $room;
-                break;
-            }
-        }
+        $availableRoom = $rooms->first(
+            fn (Room $room) => $room->isAvailableFor($checkIn->toDateString(), $checkOut->toDateString())
+        );
 
         $result = ['available' => (bool) $availableRoom, 'suggestions' => []];
 
@@ -53,14 +39,9 @@ class AvailabilityController extends Controller
             while ($searchStart->lte($limit)) {
                 $searchEnd = $searchStart->copy()->addDays($nights);
 
-                $free = Room::where('status', 'available')->get()->first(function ($room) use ($searchStart, $searchEnd) {
-                    return ! Booking::query()
-                        ->where('room_id', $room->id)
-                        ->whereIn('status', Booking::BLOCKING_STATUSES)
-                        ->whereDate('check_in', '<', $searchEnd->toDateString())
-                        ->whereDate('check_out', '>', $searchStart->toDateString())
-                        ->exists();
-                });
+                $free = Room::where('status', 'available')->get()->first(
+                    fn (Room $room) => $room->isAvailableFor($searchStart->toDateString(), $searchEnd->toDateString())
+                );
 
                 if ($free) {
                     $result['suggestions'][] = [

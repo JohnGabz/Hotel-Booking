@@ -8,6 +8,7 @@ use App\Events\PaymentVerified;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
+use App\Models\PhysicalRoom;
 use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
@@ -47,13 +48,13 @@ class AdminController extends Controller
 
     public function bookings(Request $request): View
     {
-        $rooms = Room::latest()->get();
+        $rooms = Room::withCount('physicalRooms')->latest()->get();
         $selectedRoom = $rooms->firstWhere('id', (int) $request->query('room')) ?? $rooms->first();
         $status = $request->query('status', 'all');
         $roomFilter = $request->query('room', 'all');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
-        $filteredBookings = Booking::with(['room', 'user'])
+        $filteredBookings = Booking::with(['room', 'physicalRoom', 'user'])
             ->when(in_array($status, ['confirmed', 'pending', 'cancelled'], true), fn ($query) => $query->where('status', $status))
             ->when($roomFilter !== 'all' && $roomFilter !== null, fn ($query) => $query->where('room_id', $roomFilter))
             ->when($dateFrom, fn ($query) => $query->whereDate('check_in', '>=', $dateFrom))
@@ -105,9 +106,11 @@ class AdminController extends Controller
                 ]);
             }
 
-            if (Booking::overlaps($lockedRoom->id, $validated['check_in'], $validated['check_out'])) {
+            $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
+
+            if (! $assignedPhysicalRoom) {
                 throw ValidationException::withMessages([
-                    'check_in' => 'The selected dates are already reserved. Please choose different dates.',
+                    'check_in' => 'All physical rooms under this room type are reserved for the selected dates.',
                 ]);
             }
 
@@ -123,6 +126,7 @@ class AdminController extends Controller
             $payload = [
                 'user_id' => null,
                 'room_id' => $lockedRoom->id,
+                'physical_room_id' => $assignedPhysicalRoom->id,
                 'check_in' => $validated['check_in'],
                 'check_out' => $validated['check_out'],
                 'guests' => $validated['guests'],
@@ -233,6 +237,8 @@ class AdminController extends Controller
             'capacity' => 'required|integer|min:1|max:20',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
+            'physical_room_count' => 'nullable|integer|min:1|max:100',
+            'physical_rooms' => 'nullable|string|max:5000',
             'amenities' => 'nullable|string|max:3000',
             'images' => 'nullable|array|min:1',
             'images.*' => 'image|max:5120',
@@ -262,7 +268,7 @@ class AdminController extends Controller
                 ->withErrors(['images' => 'Add at least one room image by uploading a file or pasting a valid image URL.']);
         }
 
-        Room::create([
+        $room = Room::create([
             'name' => $validated['name'],
             'slug' => $this->makeUniqueRoomSlug($validated['name']),
             'description' => $validated['description'],
@@ -276,6 +282,8 @@ class AdminController extends Controller
                 ->all(),
             'images' => $imagePaths,
         ]);
+
+        $this->syncPhysicalRooms($room, $validated['physical_rooms'] ?? null, (int) ($validated['physical_room_count'] ?? 1));
 
         return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
     }
@@ -491,7 +499,7 @@ class AdminController extends Controller
         $siteContent = SiteContent::values(SiteContent::landingPageDefaults());
 
         $baseData = [
-            'rooms' => Room::latest()->get(),
+            'rooms' => Room::with(['physicalRooms' => fn ($query) => $query->orderBy('id')])->withCount('physicalRooms')->latest()->get(),
             'bookings' => Booking::with(['room', 'user'])->latest()->take(12)->get(),
             'pendingPayments' => Booking::with(['room', 'user'])
                 ->whereIn('payment_status', ['pending', 'for_verification'])
@@ -758,6 +766,7 @@ class AdminController extends Controller
         $nextMonth = $monthStart->copy()->addMonthNoOverflow()->format('Y-m');
 
         $bookings = Booking::query()
+            ->with('physicalRoom')
             ->where('room_id', $room->id)
             ->whereIn('status', Booking::BLOCKING_STATUSES)
             ->whereDate('check_in', '<=', $monthEnd)
@@ -779,12 +788,13 @@ class AdminController extends Controller
         ];
 
         for ($date = $calendarStart->copy(); $date->lte($calendarEnd); $date->addDay()) {
-            $matchingBooking = $bookings->first(function (Booking $booking) use ($date) {
+            $matchingBookings = $bookings->filter(function (Booking $booking) use ($date) {
                 return $date->betweenIncluded(
                     Carbon::parse($booking->check_in)->startOfDay(),
                     Carbon::parse($booking->check_out)->subDay()->endOfDay()
                 );
             });
+            $availableCount = $room->availablePhysicalRoomCountForDate($date->toDateString());
 
             $isCurrentMonth = $date->month === $monthStart->month && $date->year === $monthStart->year;
 
@@ -794,7 +804,7 @@ class AdminController extends Controller
                 $status = 'past';
             } elseif ($room->status !== 'available') {
                 $status = 'unavailable';
-            } elseif ($matchingBooking) {
+            } elseif ($availableCount <= 0) {
                 $status = 'occupied';
             } else {
                 $status = 'open';
@@ -807,9 +817,10 @@ class AdminController extends Controller
                 'isCurrentMonth' => $isCurrentMonth,
                 'isToday' => $date->isToday(),
                 'status' => $status,
-                'booking' => $matchingBooking ? [
-                    'check_in' => Carbon::parse($matchingBooking->check_in),
-                    'check_out' => Carbon::parse($matchingBooking->check_out),
+                'availableCount' => $availableCount,
+                'booking' => $matchingBookings->first() ? [
+                    'check_in' => Carbon::parse($matchingBookings->first()->check_in),
+                    'check_out' => Carbon::parse($matchingBookings->first()->check_out),
                 ] : null,
             ];
 
@@ -855,6 +866,7 @@ class AdminController extends Controller
             'capacity' => 'required|integer|min:1|max:20',
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
+            'physical_rooms' => 'nullable|string|max:5000',
             'amenities' => 'nullable|string|max:3000',
             'images' => 'nullable|array',
             'images.*' => 'image|max:5120',
@@ -922,6 +934,8 @@ class AdminController extends Controller
                 ->all(),
             'images' => $images,
         ]);
+
+        $this->syncPhysicalRooms($room, $validated['physical_rooms'] ?? null);
 
         return redirect()->route('admin.rooms')->with('success', 'Room updated successfully.');
     }
@@ -1183,6 +1197,81 @@ class AdminController extends Controller
         }
 
         return $rules;
+    }
+
+    protected function syncPhysicalRooms(Room $room, ?string $physicalRoomsInput, int $defaultCount = 1): void
+    {
+        $existing = $room->physicalRooms()->withCount('bookings')->get()->keyBy('id');
+        $lines = collect(preg_split('/\r\n|\r|\n/', $physicalRoomsInput ?? '') ?: [])
+            ->map(fn (string $line) => trim($line))
+            ->filter()
+            ->values();
+
+        if ($lines->isEmpty()) {
+            if ($existing->isNotEmpty()) {
+                return;
+            }
+
+            for ($index = 1; $index <= max(1, $defaultCount); $index++) {
+                $room->physicalRooms()->create([
+                    'name' => $room->name . ' ' . $index,
+                    'code' => Str::slug($room->name) . '-' . $index,
+                    'status' => $room->status === 'maintenance' ? 'maintenance' : 'available',
+                ]);
+            }
+
+            return;
+        }
+
+        $keptIds = [];
+
+        foreach ($lines as $index => $line) {
+            $parts = array_map('trim', explode('|', $line));
+            $id = null;
+
+            if (count($parts) >= 3 && is_numeric($parts[0])) {
+                $id = (int) array_shift($parts);
+            }
+
+            $name = $parts[0] ?? '';
+            $status = $parts[1] ?? 'available';
+            $status = in_array($status, ['available', 'maintenance'], true) ? $status : 'available';
+
+            if ($name === '') {
+                $name = $room->name . ' ' . ($index + 1);
+            }
+
+            if ($id && $existing->has($id)) {
+                $physicalRoom = $existing->get($id);
+                $physicalRoom->update([
+                    'name' => $name,
+                    'code' => $physicalRoom->code ?: Str::slug($name),
+                    'status' => $status,
+                ]);
+                $keptIds[] = $id;
+
+                continue;
+            }
+
+            $physicalRoom = $room->physicalRooms()->create([
+                'name' => $name,
+                'code' => Str::slug($name),
+                'status' => $status,
+            ]);
+
+            $keptIds[] = $physicalRoom->id;
+        }
+
+        $existing
+            ->reject(fn (PhysicalRoom $physicalRoom) => in_array($physicalRoom->id, $keptIds, true))
+            ->each(function (PhysicalRoom $physicalRoom): void {
+                if ($physicalRoom->bookings_count > 0) {
+                    $physicalRoom->update(['status' => 'maintenance']);
+                    return;
+                }
+
+                $physicalRoom->delete();
+            });
     }
 
     protected function makeUniqueRoomSlug(string $name, ?Room $ignoreRoom = null): string
