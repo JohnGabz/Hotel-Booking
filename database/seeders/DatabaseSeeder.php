@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Booking;
+use App\Models\PhysicalRoom;
 use App\Models\Review;
 use App\Models\Room;
 use App\Models\User;
@@ -10,6 +11,7 @@ use App\Models\SiteContent;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class DatabaseSeeder extends Seeder
 {
@@ -59,6 +61,7 @@ class DatabaseSeeder extends Seeder
                     'https://images.unsplash.com/photo-1584622614875-2f8151013e50?w=800',
                     'https://images.unsplash.com/photo-1582719471384-894fbb16e074?w=800',
                 ],
+                'physical_room_count' => 2,
             ],
             [
                 'name' => 'Garden Villa',
@@ -75,6 +78,7 @@ class DatabaseSeeder extends Seeder
                     'https://images.unsplash.com/photo-1616394584738-fc6e612ce4d0?w=800',
                     'https://images.unsplash.com/photo-1613395877344-13d4a8e0d49e?w=800',
                 ],
+                'physical_room_count' => 3,
             ],
             [
                 'name' => 'Romantic Hideaway',
@@ -90,6 +94,7 @@ class DatabaseSeeder extends Seeder
                     'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=800',
                     'https://images.unsplash.com/photo-1566995671694-98e992b83b42?w=800',
                 ],
+                'physical_room_count' => 2,
             ],
             [
                 'name' => 'Executive Loft',
@@ -104,6 +109,7 @@ class DatabaseSeeder extends Seeder
                     'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=800',
                     'https://images.unsplash.com/photo-1586288949529-03b39b1b253e?w=800',
                 ],
+                'physical_room_count' => 1,
             ],
             [
                 'name' => 'Courtyard Family Room',
@@ -120,12 +126,31 @@ class DatabaseSeeder extends Seeder
                     'https://images.unsplash.com/photo-1609892612177-5f85cdcd30df?w=800',
                     'https://images.unsplash.com/photo-1617393866418-b2c8bcaecf4e?w=800',
                 ],
+                'physical_room_count' => 2,
             ],
         ])->map(function (array $room) {
-            return Room::query()->updateOrCreate(
+            $physicalRoomCount = $room['physical_room_count'] ?? 1;
+            unset($room['physical_room_count']);
+
+            $seededRoom = Room::query()->updateOrCreate(
                 ['slug' => $room['slug']],
                 $room
             );
+
+            for ($index = 1; $index <= $physicalRoomCount; $index++) {
+                PhysicalRoom::query()->updateOrCreate(
+                    [
+                        'room_id' => $seededRoom->id,
+                        'code' => Str::slug($seededRoom->slug) . '-' . $index,
+                    ],
+                    [
+                        'name' => $seededRoom->name . ' ' . $index,
+                        'status' => $seededRoom->status === 'maintenance' ? 'maintenance' : 'available',
+                    ]
+                );
+            }
+
+            return $seededRoom;
         });
 
         $bookings = [
@@ -212,6 +237,7 @@ class DatabaseSeeder extends Seeder
                     'check_out' => $bookingData['check_out'],
                 ],
                 [
+                    'physical_room_id' => $bookingData['room']->physicalRooms()->orderBy('id')->value('id'),
                     'guests' => $bookingData['guests'],
                     'status' => $bookingData['status'],
                     'payment_method' => $bookingData['payment_method'],

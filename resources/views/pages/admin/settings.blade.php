@@ -28,6 +28,29 @@
                 <div class="form-group"><label class="form-label">Secondary color</label><input class="form-input" value="#B57D59"></div>
             </div>
         </section>
+        @if (app()->environment(['local', 'testing']))
+            <section class="surface border border-red-200 bg-red-50/40 p-6 sm:p-8">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <span class="eyebrow text-red-700">Development reset</span>
+                        <h2 class="mt-3 text-2xl font-semibold text-stone-950">Reset dummy data and apply latest schema</h2>
+                        <p class="mt-2 max-w-2xl text-sm leading-7 text-stone-600">This runs Laravel's migration refresh with seed data. It is available only in local/testing environments.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="/admin/dev-reset" class="mt-5 grid gap-4 lg:grid-cols-[1fr_auto]" onsubmit="return confirm('Reset the database and reseed demo data? This cannot be undone.');">
+                    @csrf
+                    <div class="form-group">
+                        <label class="form-label" for="confirmation_token">Type RESET-DUMMY-DATA to confirm</label>
+                        <input id="confirmation_token" name="confirmation_token" type="text" class="form-input @error('confirmation_token') error @enderror" autocomplete="off" required>
+                        @error('confirmation_token') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="flex items-end">
+                        <button type="submit" class="btn-primary bg-red-700 hover:bg-red-800">Reset database</button>
+                    </div>
+                </form>
+            </section>
+        @endif
     @elseif ($tab === 'account')
         <section class="surface p-6 sm:p-8">
             <h2 class="text-3xl font-semibold text-stone-950">Account settings</h2>

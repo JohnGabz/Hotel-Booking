@@ -83,6 +83,10 @@ Route::middleware('auth')->group(function () {
     });
 });
 
+Route::post('/admin/dev-reset', [AdminController::class, 'resetDatabase'])
+    ->middleware('auth')
+    ->name('admin.dev.reset');
+
 Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.payments');

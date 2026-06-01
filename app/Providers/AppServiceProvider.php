@@ -31,9 +31,5 @@ class AppServiceProvider extends ServiceProvider
         Event::listen(PaymentVerified::class, SyncBookingLifecycleData::class);
         Event::listen(BookingConfirmed::class, SyncBookingLifecycleData::class);
         Event::listen(BookingConfirmed::class, QueueBookingLifecycleEmail::class);
-
-        if (app()->environment('production')) {
-            URL::forceScheme('https');
-        }
     }
 }

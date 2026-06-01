@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Room;
+use App\Models\PhysicalRoom;
 use App\Models\SiteContent;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -61,12 +62,7 @@ class EditModalFocusTest extends TestCase
     {
         $admin = User::factory()->create(['is_admin' => true]);
         $room = $this->room();
-
-        $physicalRoom = $room->physicalRooms()->create([
-            'name' => 'Garden Villa 1',
-            'code' => 'garden-villa-1',
-            'status' => 'available',
-        ]);
+        $physicalRoom = $room->physicalRooms()->firstOrFail();
 
         $this->actingAs($admin)
             ->get(route('admin.rooms'))
@@ -94,7 +90,7 @@ class EditModalFocusTest extends TestCase
 
     protected function room(): Room
     {
-        return Room::create([
+        $room = Room::create([
             'name' => 'Garden Villa',
             'slug' => 'garden-villa',
             'description' => 'A test room.',
@@ -104,5 +100,14 @@ class EditModalFocusTest extends TestCase
             'amenities' => ['Wi-Fi'],
             'images' => ['https://example.com/room.jpg'],
         ]);
+
+        PhysicalRoom::create([
+            'room_id' => $room->id,
+            'name' => 'Garden Villa 1',
+            'code' => 'garden-villa-1',
+            'status' => 'available',
+        ]);
+
+        return $room->fresh();
     }
 }

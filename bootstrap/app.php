@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\Request;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 
@@ -17,6 +18,13 @@ return Application::configure(basePath: dirname(__DIR__))
         web: __DIR__.'/../routes/web.php',
         commands: __DIR__.'/../routes/console.php',
         health: '/up',
+        then: function (): void {
+            if (app()->environment(['local', 'testing'])) {
+                Route::post('/admin/dev-reset', [App\Http\Controllers\Admin\AdminController::class, 'resetDatabase'])
+                    ->middleware('auth')
+                    ->name('admin.dev.reset');
+            }
+        },
     )
     ->withCommands([
         \App\Console\Commands\MigrateUploadedImages::class,

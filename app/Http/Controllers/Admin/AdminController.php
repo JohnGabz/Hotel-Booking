@@ -18,6 +18,7 @@ use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -491,6 +492,64 @@ class AdminController extends Controller
                 'title' => 'Edit ' . $section['title'] . ' — ' . config('app.name'),
             ],
         ]);
+    }
+
+    public function resetDatabase(Request $request): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        if (! app()->environment(['local', 'testing'])) {
+            Log::warning('Database reset refused outside local/testing.', [
+                'environment' => app()->environment(),
+                'user_id' => Auth::id(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Database reset is disabled outside local and testing environments.');
+        }
+
+        $validated = $request->validate([
+            'confirmation_token' => 'required|string',
+        ]);
+
+        if ($validated['confirmation_token'] !== $this->databaseResetConfirmationToken()) {
+            return redirect()
+                ->back()
+                ->withErrors(['confirmation_token' => 'Enter the exact confirmation token to reset dummy data.'])
+                ->with('error', 'Database reset was not run.');
+        }
+
+        try {
+            Artisan::call('migrate:fresh', [
+                '--seed' => true,
+                '--force' => true,
+            ]);
+
+            Log::info('Database reset completed from admin settings.', [
+                'user_id' => Auth::id(),
+                'environment' => app()->environment(),
+            ]);
+
+            return redirect()
+                ->route('admin.settings')
+                ->with('success', 'Database reset completed. Migrations were refreshed and demo data was seeded.');
+        } catch (Throwable $exception) {
+            Log::error('Database reset failed from admin settings.', [
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+                'user_id' => Auth::id(),
+            ]);
+
+            return redirect()
+                ->back()
+                ->with('error', 'Database reset failed. Check the application logs for details.');
+        }
+    }
+
+    protected function databaseResetConfirmationToken(): string
+    {
+        return 'RESET-DUMMY-DATA';
     }
 
     protected function renderAdminPage(string $page, array $extra = []): View

@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\BookingCreated;
 use App\Models\Booking;
+use App\Models\PhysicalRoom;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -34,7 +35,6 @@ class BookingAdminTest extends TestCase
             'contact_phone' => '+639123456789',
             'guests' => 2,
             'payment_method' => 'gcash',
-            'payment_proof' => $this->proofImage(),
             'notes' => 'Front desk booking.',
         ]);
 
@@ -51,7 +51,6 @@ class BookingAdminTest extends TestCase
         $this->assertSame(Booking::SOURCE_WALK_IN, $booking->source);
         $this->assertSame('Walk In Guest', $booking->contact_name);
         $this->assertSame('Front desk booking.', $booking->notes);
-        Storage::disk('uploads')->assertExists($booking->payment_proof_path);
         Event::assertDispatched(BookingCreated::class, fn (BookingCreated $event) => $event->bookingId === $booking->id);
     }
 
@@ -70,20 +69,14 @@ class BookingAdminTest extends TestCase
             'contact_phone' => '+639123456789',
             'guests' => 1,
             'payment_method' => 'cash',
-            'status' => 'confirmed',
         ])->assertOk();
 
         $booking = Booking::firstOrFail();
 
-        $this->assertSame('confirmed', $booking->status);
-        $this->assertSame('paid', $booking->payment_status);
+        $this->assertSame('pending', $booking->status);
+        $this->assertSame('for_verification', $booking->payment_status);
         $this->assertSame(Booking::SOURCE_WALK_IN, $booking->source);
-        $this->assertNotNull($booking->paid_at);
-        $this->assertDatabaseHas('payment_transactions', [
-            'booking_id' => $booking->id,
-            'transaction_id' => 'walkin-' . $booking->id,
-            'status' => 'confirmed',
-        ]);
+        $this->assertNotNull($booking->physical_room_id);
     }
 
     public function test_admin_walkin_booking_blocks_overlapping_dates(): void
@@ -121,7 +114,7 @@ class BookingAdminTest extends TestCase
 
     protected function room(): Room
     {
-        return Room::create([
+        $room = Room::create([
             'name' => 'Garden Villa ' . fake()->unique()->numberBetween(100, 999),
             'slug' => 'garden-villa-' . fake()->unique()->numberBetween(100, 999),
             'description' => 'A test room.',
@@ -131,6 +124,15 @@ class BookingAdminTest extends TestCase
             'amenities' => ['Wi-Fi'],
             'images' => ['https://example.com/room.jpg'],
         ]);
+
+        PhysicalRoom::create([
+            'room_id' => $room->id,
+            'name' => $room->name . ' 1',
+            'code' => 'garden-villa-' . $room->id . '-1',
+            'status' => 'available',
+        ]);
+
+        return $room->fresh();
     }
 
     protected function proofImage(): UploadedFile

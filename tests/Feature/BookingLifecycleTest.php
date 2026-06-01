@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Events\BookingCreated;
 use App\Models\Booking;
+use App\Models\PhysicalRoom;
 use App\Models\PaymentTransaction;
 use App\Models\Room;
 use App\Models\User;
@@ -24,6 +25,8 @@ class BookingLifecycleTest extends TestCase
     {
         $room = $this->room();
         $guest = User::factory()->create();
+        $roomUrl = '/rooms/' . $room->slug;
+        $bookUrl = $roomUrl . '/book';
 
         $payload = [
             'check_in' => now()->addDays(10)->toDateString(),
@@ -35,8 +38,8 @@ class BookingLifecycleTest extends TestCase
         ];
 
         $this->actingAs($guest)
-            ->post(route('bookings.store', $room), $payload)
-            ->assertRedirect(route('rooms.show', $room))
+            ->post($bookUrl, $payload)
+            ->assertRedirect($roomUrl)
             ->assertSessionHas('success', 'Reservation received - pending payment verification.');
 
         $booking = Booking::firstOrFail();
@@ -47,7 +50,7 @@ class BookingLifecycleTest extends TestCase
         $this->assertTrue(Booking::overlaps($room->id, $payload['check_in'], $payload['check_out']));
 
         $this->actingAs($guest)
-            ->post(route('bookings.store', $room), $payload)
+            ->post($bookUrl, $payload)
             ->assertSessionHasErrors('check_in');
     }
 
@@ -59,9 +62,11 @@ class BookingLifecycleTest extends TestCase
 
         $room = $this->room();
         $guest = User::factory()->create();
+        $roomUrl = '/rooms/' . $room->slug;
+        $bookUrl = $roomUrl . '/book';
 
         $this->actingAs($guest)
-            ->post(route('bookings.store', $room), [
+            ->post($bookUrl, [
                 'check_in' => now()->addDays(30)->toDateString(),
                 'check_out' => now()->addDays(32)->toDateString(),
                 'contact_name' => 'Maria Santos',
@@ -69,7 +74,7 @@ class BookingLifecycleTest extends TestCase
                 'contact_phone' => '+639123456789',
                 'payment_method' => 'gcash',
             ])
-            ->assertRedirect(route('rooms.show', $room))
+            ->assertRedirect($roomUrl)
             ->assertSessionHas('success');
 
         $this->assertDatabaseHas('bookings', [
@@ -238,7 +243,7 @@ class BookingLifecycleTest extends TestCase
 
     protected function room(): Room
     {
-        return Room::create([
+        $room = Room::create([
             'name' => 'Garden Villa ' . fake()->unique()->numberBetween(100, 999),
             'slug' => 'garden-villa-' . fake()->unique()->numberBetween(100, 999),
             'description' => 'A test room.',
@@ -248,5 +253,14 @@ class BookingLifecycleTest extends TestCase
             'amenities' => ['Wi-Fi'],
             'images' => ['https://example.com/room.jpg'],
         ]);
+
+        PhysicalRoom::create([
+            'room_id' => $room->id,
+            'name' => $room->name . ' 1',
+            'code' => 'garden-villa-' . $room->id . '-1',
+            'status' => 'available',
+        ]);
+
+        return $room->fresh();
     }
 }

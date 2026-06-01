@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Booking;
+use App\Models\PhysicalRoom;
 use App\Models\Room;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -29,6 +30,15 @@ class AdminReportsTest extends TestCase
             'amenities' => ['Wi-Fi'],
             'images' => ['https://example.com/room.jpg'],
         ]);
+
+        PhysicalRoom::create([
+            'room_id' => $room->id,
+            'name' => 'Sunset Suite 1',
+            'code' => 'sunset-suite-1',
+            'status' => 'available',
+        ]);
+
+        $room = $room->fresh();
 
         $booking = Booking::create([
             'user_id' => $guest->id,

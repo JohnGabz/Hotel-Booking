@@ -26,7 +26,7 @@
             <h1 class="mt-4 text-3xl font-bold text-stone-950 sm:text-5xl">{{ $title }}</h1>
             <p class="mt-4 text-base leading-7 text-stone-600">{{ $message }}</p>
 
-            @if ($errors->any())
+            @if (! empty($errors) && $errors->any())
                 <div class="mt-6 rounded-xl border border-red-200 bg-red-50 p-4">
                     <p class="text-sm font-semibold text-red-800">Please check these fields:</p>
                     <ul class="mt-3 list-disc space-y-1 pl-5 text-sm text-red-700">

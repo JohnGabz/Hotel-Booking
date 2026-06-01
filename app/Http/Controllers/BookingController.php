@@ -94,8 +94,7 @@ class BookingController extends Controller
             ]);
         }
 
-        return redirect()
-            ->route('rooms.show', $room)
+        return redirect('/rooms/' . $room->slug)
             ->with('success', 'Reservation received - pending payment verification.');
     }
 

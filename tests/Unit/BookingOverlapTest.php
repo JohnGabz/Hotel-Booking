@@ -3,6 +3,7 @@
 namespace Tests\Unit;
 
 use App\Models\Booking;
+use App\Models\PhysicalRoom;
 use App\Models\Room;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -35,7 +36,7 @@ class BookingOverlapTest extends TestCase
 
     protected function room(): Room
     {
-        return Room::create([
+        $room = Room::create([
             'name' => 'Garden Villa',
             'slug' => 'garden-villa',
             'description' => 'A test room.',
@@ -45,5 +46,14 @@ class BookingOverlapTest extends TestCase
             'amenities' => ['Wi-Fi'],
             'images' => ['https://example.com/room.jpg'],
         ]);
+
+        PhysicalRoom::create([
+            'room_id' => $room->id,
+            'name' => 'Garden Villa 1',
+            'code' => 'garden-villa-1',
+            'status' => 'available',
+        ]);
+
+        return $room->fresh();
     }
 }
