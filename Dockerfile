@@ -49,4 +49,4 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 
 EXPOSE 8000
 
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=8000"]
+CMD ["sh", "-c", "mkdir -p storage/framework/views storage/framework/cache storage/framework/sessions storage/logs storage/app/public && php artisan optimize:clear && php artisan storage:link --force && php artisan migrate --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}"]

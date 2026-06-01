@@ -2,6 +2,7 @@
 
 @php
     $imageUrl = fn (?string $value): string => \App\Support\ImageStorage::url($value, '');
+    $fields = $section['modal_fields'] ?? $section['fields'];
 @endphp
 
 <form
@@ -24,7 +25,7 @@
     <div class="hidden rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700" data-form-summary></div>
 
     <div class="grid gap-4 xl:grid-cols-2">
-        @foreach ($section['fields'] as $field)
+        @foreach ($fields as $field)
             @php
                 $type = $field['type'] ?? 'text';
                 $key = $field['key'];

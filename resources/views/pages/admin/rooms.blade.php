@@ -267,28 +267,9 @@
                 <textarea id="edit_room_amenities" name="amenities" rows="4" class="form-input" placeholder="Wi-Fi, Air conditioning, Pool, Breakfast"></textarea>
                 <p class="mt-2 text-xs text-stone-500">Separate amenities with commas.</p>
             </div>
-            <div class="form-group md:col-span-2">
-                <label class="form-label">Room images source</label>
-                <div class="mt-2 flex gap-3">
-                    <span class="btn-secondary px-4 py-2 text-sm">Keep existing</span>
-                    <span class="btn-secondary px-4 py-2 text-sm">Add files</span>
-                    <span class="btn-secondary px-4 py-2 text-sm">Add URLs</span>
-                </div>
-            </div>
-
-            <div id="edit-room-upload-section" class="form-group md:col-span-2">
-                <label class="form-label" for="edit_room_images">Upload images</label>
-                <input type="file" id="edit_room_images" name="images[]" class="form-input" accept="image/*" multiple>
-                <p class="mt-2 text-xs text-stone-500">New uploads are added to the gallery. Uncheck existing images below to remove them.</p>
-                <div id="edit-room-current-images" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <div id="edit-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-            </div>
-
-            <div id="edit-room-link-section" class="form-group md:col-span-2">
-                <label class="form-label" for="edit_room_image_links">Image URLs</label>
-                <textarea id="edit_room_image_links" name="image_links" rows="4" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg"></textarea>
-                <div id="edit-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <p class="text-xs text-stone-500">Paste image URLs (one per line). Images must be publicly accessible.</p>
+            <div class="form-group md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 p-4">
+                <p class="text-sm font-semibold text-stone-900">Room images are preserved.</p>
+                <p class="mt-1 text-xs leading-6 text-stone-500">Use Add room for new galleries. Existing images are kept when saving this focused edit form.</p>
             </div>
         </div>
 

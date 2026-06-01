@@ -693,6 +693,11 @@ class AdminController extends Controller
             $section['values'] = collect($section['fields'])
                 ->mapWithKeys(fn (array $field) => [$field['key'] => $siteContent[$field['key']] ?? ''])
                 ->all();
+            $focusedKeys = $this->focusedLandingFieldKeys($section['id']);
+            $section['modal_fields'] = collect($section['fields'])
+                ->filter(fn (array $field) => in_array($field['key'], $focusedKeys, true))
+                ->values()
+                ->all();
             $section['preview'] = $this->landingSectionPreview($section, $siteContent);
             $section['thumbnail'] = $this->landingSectionThumbnail($section, $siteContent);
             $section['status'] = $this->landingSectionStatus($section, $siteContent);
@@ -707,6 +712,32 @@ class AdminController extends Controller
 
             return $section;
         })->all();
+    }
+
+    protected function focusedLandingFieldKeys(string $sectionId): array
+    {
+        return match ($sectionId) {
+            'hero' => ['hero_title', 'hero_subtitle', 'hero_button_text', 'hero_background_image'],
+            'services' => ['services_title', 'services_intro'],
+            'about' => ['about_heading', 'about_body', 'about_image'],
+            'amenities' => ['facilities_title', 'facilities_intro', 'facility_1_label', 'facility_2_label', 'facility_3_label', 'facility_4_label'],
+            'gallery' => ['gallery_title', 'gallery_intro', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3'],
+            'testimonials' => ['testimonial_1_name', 'testimonial_1_quote', 'testimonial_2_name', 'testimonial_2_quote', 'testimonial_3_name', 'testimonial_3_quote'],
+            'location' => ['location_title', 'location_intro', 'location_address_line1', 'location_phone', 'location_email'],
+            'contact-cta' => ['cta_title', 'cta_body', 'cta_button_text'],
+            default => collect($this->landingPageSectionsFieldKeys($sectionId))->take(4)->all(),
+        };
+    }
+
+    protected function landingPageSectionsFieldKeys(string $sectionId): array
+    {
+        return match ($sectionId) {
+            'booking' => ['booking_heading', 'booking_subheading'],
+            'featured-rooms' => ['featured_rooms_title', 'featured_rooms_intro'],
+            'footer-content' => ['contact_email', 'contact_phone', 'contact_address'],
+            'shared-copy' => ['faqs_intro'],
+            default => [],
+        };
     }
 
     protected function landingSectionPreview(array $section, array $siteContent): string
@@ -882,10 +913,15 @@ class AdminController extends Controller
         }
 
         $existingImages = collect($room->images ?? [])->filter()->values();
-        $retainedImages = collect($validated['retained_images'] ?? [])
-            ->filter(fn ($image) => $existingImages->contains($image))
-            ->values()
-            ->all();
+        $imageControlsSubmitted = $request->hasFile('images')
+            || $request->filled('image_links')
+            || $request->has('retained_images');
+        $retainedImages = $imageControlsSubmitted
+            ? collect($validated['retained_images'] ?? [])
+                ->filter(fn ($image) => $existingImages->contains($image))
+                ->values()
+                ->all()
+            : $existingImages->all();
 
         $images = $retainedImages;
 
@@ -1130,7 +1166,7 @@ class AdminController extends Controller
 
         $validated = $request->validate($this->landingSectionRules($sectionConfig));
 
-        foreach ($sectionConfig['fields'] as $field) {
+        foreach ($sectionConfig['modal_fields'] ?? $sectionConfig['fields'] as $field) {
             $key = $field['key'];
 
             if (($field['type'] ?? 'text') === 'image') {
@@ -1172,7 +1208,7 @@ class AdminController extends Controller
     {
         $rules = [];
 
-        foreach ($section['fields'] as $field) {
+        foreach ($section['modal_fields'] ?? $section['fields'] as $field) {
             $key = $field['key'];
             $type = $field['type'] ?? 'text';
 

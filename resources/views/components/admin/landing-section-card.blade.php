@@ -24,7 +24,7 @@
         <div class="space-y-3">
             <div class="flex items-start justify-between gap-3">
                 <h3 class="text-xl font-semibold text-stone-950">{{ $section['title'] }}</h3>
-                <span class="badge-secondary">{{ count($section['fields']) }} fields</span>
+                <span class="badge-secondary">{{ count($section['modal_fields'] ?? $section['fields']) }} key fields</span>
             </div>
             <p class="text-sm leading-7 text-stone-600">{{ $section['description'] }}</p>
             <p class="line-clamp-3 text-sm leading-7 text-stone-500" data-landing-section-preview>{{ $section['preview'] }}</p>
@@ -34,7 +34,11 @@
             <p class="text-xs uppercase tracking-[0.18em] text-stone-500" data-landing-section-updated>
                 {{ $section['updated_label'] ?? 'Using default content' }}
             </p>
-            <a href="{{ route('admin.settings.landing.edit', $section['id']) }}" class="btn-primary w-full inline-flex items-center justify-center" aria-label="Edit {{ $section['title'] }} section">
+            <a href="#"
+                class="btn-primary w-full inline-flex items-center justify-center"
+                data-modal-open="landing-section-modal-{{ $section['id'] }}"
+                data-modal-title="Edit {{ $section['title'] }}"
+                aria-label="Edit {{ $section['title'] }} section">
                 Edit Section
             </a>
         </div>
