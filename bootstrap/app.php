@@ -117,6 +117,21 @@ return Application::configure(basePath: dirname(__DIR__))
             );
         });
 
+        $exceptions->render(function (\Illuminate\Http\Exceptions\PostTooLargeException $exception, Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'message' => 'The uploaded files exceed the size limits. Please ensure individual files are under 10MB and total size is under 50MB.',
+                    'title' => 'Uploaded files too large',
+                    'status' => 413,
+                ], 413);
+            }
+
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['images' => 'The uploaded files exceed the size limits (individual files under 10MB, total size under 50MB).'])
+                ->with('error', 'The uploaded files are too large.');
+        });
+
         $exceptions->render(function (Throwable $exception, Request $request) use ($renderError) {
             $status = $exception instanceof HttpExceptionInterface
                 ? $exception->getStatusCode()

@@ -84,6 +84,16 @@ class BookingController extends Controller
             'source' => $booking->source,
         ]);
 
+        // Trigger database notification for admin
+        try {
+            $adminUsers = \App\Models\User::where('is_admin', true)->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notify(new \App\Notifications\BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to notify admins on booking creation: ' . $e->getMessage());
+        }
+
         try {
             event(new BookingCreated($booking->id));
         } catch (Throwable $exception) {
@@ -140,6 +150,16 @@ class BookingController extends Controller
 
         if ($oldProofPath) {
             ImageStorage::delete($oldProofPath);
+        }
+
+        // Trigger database notification for admin
+        try {
+            $adminUsers = \App\Models\User::where('is_admin', true)->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notify(new \App\Notifications\PaymentProofUploadedNotification($booking->id, $booking->contact_name ?? $booking->user?->name ?? 'Guest', $request->payment_reference));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to notify admins on payment proof upload: ' . $e->getMessage());
         }
 
         return redirect()->route('dashboard')->with('success', 'Payment proof uploaded. Our staff will verify your payment shortly.');

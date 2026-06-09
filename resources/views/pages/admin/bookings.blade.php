@@ -158,7 +158,17 @@
                     </thead>
                     <tbody class="divide-y divide-stone-100">
                         @forelse ($bookings as $booking)
-                            <tr class="align-top transition hover:bg-stone-50/80">
+                            <tr class="align-top transition hover:bg-stone-50/80 cursor-pointer"
+                                data-booking-id="{{ $booking->id }}"
+                                data-room-name="{{ $booking->room?->name ?? 'Room type' }}"
+                                data-guest-name="{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}"
+                                data-check-in="{{ $booking->check_in->format('F j') }}"
+                                data-check-out="{{ $booking->check_out->format('F j') }}"
+                                data-physical-room="{{ $booking->physicalRoom ? $booking->physicalRoom->name . ' (' . $booking->physicalRoom->code . ')' : 'None' }}"
+                                data-payment-method="{{ strtoupper($booking->payment_method) }}"
+                                data-payment-status="{{ ucfirst(str_replace('_', ' ', $booking->payment_status)) }}"
+                                data-guests="{{ $booking->guests }}"
+                            >
                                 <td class="px-5 py-4" data-label="Guest">
                                     <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
                                     <div class="mt-1 flex flex-wrap items-center gap-2">
@@ -172,7 +182,13 @@
                                 </td>
                                 <td class="px-5 py-4 text-stone-700" data-label="Room assignment">
                                     <p class="font-semibold text-stone-950">{{ $booking->room?->name ?? 'Room type' }}</p>
-                                    <p class="mt-1 text-xs text-stone-500">{{ $booking->physicalRoom?->name ? 'Assigned: ' . $booking->physicalRoom->name : 'No physical room assigned' }}</p>
+                                    <p class="mt-1 text-xs text-stone-500">
+                                        @if ($booking->physicalRoom)
+                                            Assigned: {{ $booking->physicalRoom->name }} ({{ $booking->physicalRoom->code }})
+                                        @else
+                                            No physical room assigned
+                                        @endif
+                                    </p>
                                 </td>
                                 <td class="px-5 py-4 text-stone-600" data-label="Dates">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
                                 <td class="px-5 py-4" data-label="Status">
@@ -196,12 +212,13 @@
                 <span class="eyebrow">Booking detail</span>
                 @php($primaryBooking = $bookings->first())
                 @if ($primaryBooking)
-                    <h3 class="mt-4 text-2xl font-semibold text-stone-950">{{ $primaryBooking->room?->name ?? 'Room' }}</h3>
-                    <p class="mt-2 text-sm text-stone-600">{{ $primaryBooking->contact_name ?? $primaryBooking->user?->name ?? 'Guest' }} · {{ $primaryBooking->check_in->format('F j') }} - {{ $primaryBooking->check_out->format('F j') }}</p>
+                    <h3 class="mt-4 text-2xl font-semibold text-stone-950" id="detail-room-name">{{ $primaryBooking->room?->name ?? 'Room' }}</h3>
+                    <p class="mt-2 text-sm text-stone-600" id="detail-guest-dates">{{ $primaryBooking->contact_name ?? $primaryBooking->user?->name ?? 'Guest' }} · {{ $primaryBooking->check_in->format('F j') }} - {{ $primaryBooking->check_out->format('F j') }}</p>
                     <div class="mt-4 grid gap-3 text-sm text-stone-600">
-                        <div class="rounded-2xl bg-stone-50 p-4">Payment method: <strong>{{ strtoupper($primaryBooking->payment_method) }}</strong></div>
-                        <div class="rounded-2xl bg-stone-50 p-4">Payment status: <strong>{{ ucfirst(str_replace('_', ' ', $primaryBooking->payment_status)) }}</strong></div>
-                        <div class="rounded-2xl bg-stone-50 p-4">Guests: <strong>{{ $primaryBooking->guests }}</strong></div>
+                        <div class="rounded-2xl bg-stone-50 p-4">Assigned Room: <strong id="detail-physical-room">{{ $primaryBooking->physicalRoom ? $primaryBooking->physicalRoom->name . ' (' . $primaryBooking->physicalRoom->code . ')' : 'None' }}</strong></div>
+                        <div class="rounded-2xl bg-stone-50 p-4">Payment method: <strong id="detail-payment-method">{{ strtoupper($primaryBooking->payment_method) }}</strong></div>
+                        <div class="rounded-2xl bg-stone-50 p-4">Payment status: <strong id="detail-payment-status">{{ ucfirst(str_replace('_', ' ', $primaryBooking->payment_status)) }}</strong></div>
+                        <div class="rounded-2xl bg-stone-50 p-4">Guests: <strong id="detail-guests">{{ $primaryBooking->guests }}</strong></div>
                     </div>
                 @else
                     <p class="mt-4 text-sm text-stone-500">No booking details available yet.</p>
@@ -285,9 +302,23 @@
             </div>
         </div>
 
-        <div class="form-group">
-            <label class="form-label" for="walkin_payment_proof">Payment proof</label>
+        <div class="form-group md:col-span-2">
+            <label class="form-label">Payment proof source</label>
+            <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
+                <button type="button" id="walkin-toggle-upload" class="walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload file</button>
+                <button type="button" id="walkin-toggle-link" class="walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URL</button>
+            </div>
+            <input type="hidden" id="walkin_payment_proof_mode" name="payment_proof_mode" value="upload">
+        </div>
+
+        <div id="walkin-upload-section" class="form-group">
+            <label class="form-label" for="walkin_payment_proof">Payment proof image file</label>
             <input id="walkin_payment_proof" name="payment_proof" type="file" accept="image/*" class="form-input">
+        </div>
+
+        <div id="walkin-link-section" class="form-group hidden">
+            <label class="form-label" for="walkin_payment_proof_link">Payment proof image URL</label>
+            <input id="walkin_payment_proof_link" name="payment_proof_link" type="url" class="form-input" placeholder="https://example.com/proof.jpg">
         </div>
 
         <div class="form-group">
@@ -311,6 +342,31 @@
         const checkOut = document.getElementById('walkin_check_out');
         const roomSelect = document.getElementById('walkin_room_id');
         const openButtons = document.querySelectorAll('[data-modal-open="walkin-booking-modal"]');
+
+        // Walk-in Image Toggle Logic
+        const toggleUploadBtn = document.getElementById('walkin-toggle-upload');
+        const toggleLinkBtn = document.getElementById('walkin-toggle-link');
+        const uploadSection = document.getElementById('walkin-upload-section');
+        const linkSection = document.getElementById('walkin-link-section');
+        const proofModeInput = document.getElementById('walkin_payment_proof_mode');
+
+        if (toggleUploadBtn && toggleLinkBtn && uploadSection && linkSection && proofModeInput) {
+            toggleUploadBtn.addEventListener('click', () => {
+                toggleUploadBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
+                toggleLinkBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
+                uploadSection.classList.remove('hidden');
+                linkSection.classList.add('hidden');
+                proofModeInput.value = 'upload';
+            });
+
+            toggleLinkBtn.addEventListener('click', () => {
+                toggleUploadBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
+                toggleLinkBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
+                uploadSection.classList.add('hidden');
+                linkSection.classList.remove('hidden');
+                proofModeInput.value = 'link';
+            });
+        }
 
         if (!form || !errors || !checkIn || !checkOut) return;
 
@@ -372,6 +428,15 @@
                 return;
             }
 
+            // Clear values of hidden input modes before submission
+            if (proofModeInput && proofModeInput.value === 'upload') {
+                const linkInput = document.getElementById('walkin_payment_proof_link');
+                if (linkInput) linkInput.value = '';
+            } else if (proofModeInput) {
+                const fileInput = document.getElementById('walkin_payment_proof');
+                if (fileInput) fileInput.value = '';
+            }
+
             submit?.setAttribute('disabled', 'disabled');
             submit?.classList.add('opacity-70');
 
@@ -400,6 +465,38 @@
                 submit?.removeAttribute('disabled');
                 submit?.classList.remove('opacity-70');
             }
+        });
+
+        // Interactive row clicking for booking details
+        document.querySelectorAll('tr[data-booking-id]').forEach(row => {
+            row.addEventListener('click', () => {
+                const roomName = row.dataset.roomName;
+                const guestName = row.dataset.guestName;
+                const checkIn = row.dataset.checkIn;
+                const checkOut = row.dataset.checkOut;
+                const physicalRoom = row.dataset.physicalRoom;
+                const paymentMethod = row.dataset.paymentMethod;
+                const paymentStatus = row.dataset.paymentStatus;
+                const guests = row.dataset.guests;
+
+                const detailRoomName = document.getElementById('detail-room-name');
+                const detailGuestDates = document.getElementById('detail-guest-dates');
+                const detailPhysicalRoom = document.getElementById('detail-physical-room');
+                const detailPaymentMethod = document.getElementById('detail-payment-method');
+                const detailPaymentStatus = document.getElementById('detail-payment-status');
+                const detailGuests = document.getElementById('detail-guests');
+
+                if (detailRoomName) detailRoomName.textContent = roomName;
+                if (detailGuestDates) detailGuestDates.textContent = `${guestName} · ${checkIn} - ${checkOut}`;
+                if (detailPhysicalRoom) detailPhysicalRoom.textContent = physicalRoom;
+                if (detailPaymentMethod) detailPaymentMethod.textContent = paymentMethod;
+                if (detailPaymentStatus) detailPaymentStatus.textContent = paymentStatus;
+                if (detailGuests) detailGuests.textContent = guests;
+
+                // Highlight active row
+                document.querySelectorAll('tr[data-booking-id]').forEach(r => r.classList.remove('bg-brand-primary/5'));
+                row.classList.add('bg-brand-primary/5');
+            });
         });
     })();
 </script>

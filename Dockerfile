@@ -8,6 +8,8 @@ RUN apt-get update && apt-get install -y \
     pdo_pgsql pdo_mysql mbstring zip exif pcntl bcmath intl gd \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+RUN echo "upload_max_filesize = 64M\npost_max_size = 64M" > /usr/local/etc/php/conf.d/uploads.ini
+
 # Composer prefers a clean worktree; keep the local vendor tree out of the image.
 ENV COMPOSER_ALLOW_SUPERUSER=1
 

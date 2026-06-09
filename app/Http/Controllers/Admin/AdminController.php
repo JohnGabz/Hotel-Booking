@@ -94,6 +94,7 @@ class AdminController extends Controller
             'guests' => 'required|integer|min:1|max:20',
             'payment_method' => 'required|in:gcash,landbank,cash,bank_transfer',
             'payment_proof' => 'nullable|image|max:5120',
+            'payment_proof_link' => 'nullable|string|max:2048',
             'status' => 'nullable|in:pending,confirmed,for_verification',
             'notes' => 'nullable|string|max:2000',
         ]);
@@ -115,9 +116,12 @@ class AdminController extends Controller
                 ]);
             }
 
-            $proofPath = $request->hasFile('payment_proof')
-                ? $this->storePublicImage($request->file('payment_proof'), 'payment-proofs')
-                : null;
+            $proofPath = null;
+            if ($request->hasFile('payment_proof')) {
+                $proofPath = $this->storePublicImage($request->file('payment_proof'), 'payment-proofs');
+            } elseif ($request->filled('payment_proof_link')) {
+                $proofPath = $request->input('payment_proof_link');
+            }
 
             $status = $validated['status'] ?? 'pending';
             $paymentStatus = $status === 'confirmed' ? 'paid' : 'for_verification';
@@ -180,6 +184,16 @@ class AdminController extends Controller
             'admin_user_id' => Auth::id(),
             'source' => $booking->source,
         ]);
+
+        // Send notifications to all admins
+        try {
+            $adminUsers = User::where('is_admin', true)->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notify(new \App\Notifications\BookingCreatedNotification($booking->id, $lockedRoom->name, $booking->contact_name, true));
+            }
+        } catch (\Throwable $e) {
+            Log::error('Failed to notify admins on walk-in booking creation: ' . $e->getMessage());
+        }
 
         try {
             event(new BookingCreated($booking->id));
@@ -571,7 +585,7 @@ class AdminController extends Controller
             'bookingsCount' => Booking::count(),
             'confirmedCount' => Booking::where('status', 'confirmed')->count(),
             'reviewsCount' => Review::count(),
-            'availableRooms' => Room::where('status', 'available')->count(),
+            'availableRooms' => Room::available()->count(),
             'totalRevenue' => Booking::sum('total'),
             'occupancyRate' => Booking::count() > 0 ? round((Booking::where('status', 'confirmed')->count() / Booking::count()) * 100) : 0,
             'seo' => [
@@ -1143,6 +1157,15 @@ class AdminController extends Controller
             event(new BookingConfirmed($booking->id));
         }
 
+        // Notify guest user
+        if ($booking->user_id) {
+            try {
+                $booking->user->notify(new \App\Notifications\PaymentStatusUpdatedNotification($booking->id, $booking->room?->name ?? 'Room', $booking->status, $booking->payment_status));
+            } catch (\Throwable $e) {
+                Log::error('Failed to notify guest on payment status update: ' . $e->getMessage());
+            }
+        }
+
         return redirect()->route('admin.dashboard')->with('success', 'Payment status updated successfully.');
     }
 
@@ -1231,6 +1254,7 @@ class AdminController extends Controller
             if (($field['type'] ?? 'text') === 'image') {
                 $uploadField = $key . '_upload';
                 $removeField = $key . '_remove';
+                $linkField = $key . '_link';
 
                 if ($request->boolean($removeField)) {
                     ImageStorage::delete($sectionConfig['values'][$key] ?? '');
@@ -1238,6 +1262,9 @@ class AdminController extends Controller
                 } elseif ($request->hasFile($uploadField)) {
                     ImageStorage::delete($sectionConfig['values'][$key] ?? '');
                     SiteContent::setValue($key, $this->storePublicImage($request->file($uploadField), 'site-content'));
+                } elseif ($request->filled($linkField)) {
+                    ImageStorage::delete($sectionConfig['values'][$key] ?? '');
+                    SiteContent::setValue($key, $request->input($linkField));
                 }
 
                 continue;
@@ -1274,6 +1301,7 @@ class AdminController extends Controller
             if ($type === 'image') {
                 $rules[$key . '_upload'] = 'nullable|image|max:5120';
                 $rules[$key . '_remove'] = 'nullable|boolean';
+                $rules[$key . '_link'] = 'nullable|url|max:2048';
                 continue;
             }
 

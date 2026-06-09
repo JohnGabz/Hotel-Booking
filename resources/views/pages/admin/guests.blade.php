@@ -34,6 +34,9 @@
                     <div>
                         <h2 class="text-2xl font-semibold text-stone-950">{{ $selectedGuest->name }}</h2>
                         <p class="text-sm text-stone-500">{{ $selectedGuest->email }}</p>
+                        @if ($selectedGuest->contact_number)
+                            <p class="text-sm text-stone-500 font-medium mt-0.5">Contact: {{ $selectedGuest->contact_number }}</p>
+                        @endif
                     </div>
                 </div>
 

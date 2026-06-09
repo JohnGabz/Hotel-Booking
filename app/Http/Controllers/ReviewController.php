@@ -32,7 +32,7 @@ class ReviewController extends Controller
             return back()->with('error', 'You can only leave a review after completing a confirmed stay.');
         }
 
-        Review::create([
+        $review = Review::create([
             'user_id' => Auth::id(),
             'room_id' => $room->id,
             'booking_id' => Booking::where('user_id', Auth::id())
@@ -44,6 +44,16 @@ class ReviewController extends Controller
             'comment' => $request->comment,
             'approved' => false,
         ]);
+
+        // Trigger database notification for admin
+        try {
+            $adminUsers = \App\Models\User::where('is_admin', true)->get();
+            foreach ($adminUsers as $admin) {
+                $admin->notify(new \App\Notifications\ReviewSubmittedNotification($review->id, $room->name, Auth::user()->name, $review->rating));
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::error('Failed to notify admins on review submission: ' . $e->getMessage());
+        }
 
         return back()->with('success', 'Thanks for your review. It will be visible once approved by staff.');
     }

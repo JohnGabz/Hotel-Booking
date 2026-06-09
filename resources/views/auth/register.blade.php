@@ -23,6 +23,11 @@
                         @error('email') <p class="form-error">{{ $message }}</p> @enderror
                     </div>
                     <div class="form-group">
+                        <label class="form-label" for="contact_number">Contact Number</label>
+                        <input id="contact_number" name="contact_number" type="tel" class="form-input" value="{{ old('contact_number') }}" required placeholder="e.g., +63 912 345 6789">
+                        @error('contact_number') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="password">Password</label>
                         <input id="password" name="password" type="password" class="form-input" autocomplete="new-password" required>
                         @error('password') <p class="form-error">{{ $message }}</p> @enderror

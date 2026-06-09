@@ -183,10 +183,29 @@
                 <p class="mt-2 text-xs text-stone-500">Used when you do not list individual physical rooms below.</p>
             </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label" for="add_physical_rooms">Physical rooms</label>
-                <textarea id="add_physical_rooms" name="physical_rooms" rows="4" class="form-input @error('physical_rooms') error @enderror" placeholder="Room 101 | available&#10;Room 102 | maintenance">{{ old('physical_rooms') }}</textarea>
+                <label class="form-label">Physical rooms inventory</label>
+                <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
+                    <table class="min-w-full divide-y divide-stone-100 text-sm">
+                        <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-600">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Room Name/Number</th>
+                                <th class="px-4 py-3 text-left">Status</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="add-physical-rooms-table-body" class="divide-y divide-stone-100">
+                            <!-- JS will populate rows -->
+                        </tbody>
+                    </table>
+                    <div class="p-3 bg-stone-50 border-t border-stone-100 flex justify-between items-center">
+                        <span class="text-xs text-stone-500">Guests book general room type; staff assigns physical rooms.</span>
+                        <button type="button" id="add-physical-rooms-add-row" class="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1 font-semibold">
+                            <span>+ Add Room</span>
+                        </button>
+                    </div>
+                </div>
+                <textarea id="add_physical_rooms" name="physical_rooms" class="hidden">{{ old('physical_rooms') }}</textarea>
                 @error('physical_rooms') <p class="form-error">{{ $message }}</p> @enderror
-                <p class="mt-2 text-xs text-stone-500">One per line. Use “name | available” or “name | maintenance”. Guests book the room type; the system assigns one available physical room.</p>
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_amenities">Amenities</label>
@@ -196,9 +215,9 @@
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label">Room images source</label>
-                <div class="mt-2 flex gap-3">
-                    <span class="btn-secondary px-4 py-2 text-sm">Upload files</span>
-                    <span class="btn-secondary px-4 py-2 text-sm">Paste URLs</span>
+                <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
+                    <button type="button" id="add-room-toggle-upload" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload files</button>
+                    <button type="button" id="add-room-toggle-link" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URLs</button>
                 </div>
             </div>
 
@@ -208,15 +227,13 @@
                 <div id="add-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
                 @error('images') <p class="form-error">{{ $message }}</p> @enderror
                 @error('images.*') <p class="form-error">{{ $message }}</p> @enderror
-                <p class="text-xs text-stone-500">Select one or more images, paste image URLs below, or use both.</p>
             </div>
 
-            <div id="add-room-link-section" class="form-group md:col-span-2">
+            <div id="add-room-link-section" class="form-group md:col-span-2 hidden">
                 <label class="form-label" for="add_room_image_links">Image URLs</label>
                 <textarea id="add_room_image_links" name="image_links" rows="4" class="form-input @error('image_links') error @enderror" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg">{{ old('image_links') }}</textarea>
                 <div id="add-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
                 @error('image_links') <p class="form-error">{{ $message }}</p> @enderror
-                <p class="text-xs text-stone-500">Paste image URLs (one per line). Images must be publicly accessible.</p>
             </div>
         </div>
 
@@ -258,18 +275,56 @@
                 </select>
             </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label" for="edit_physical_rooms">Physical rooms</label>
-                <textarea id="edit_physical_rooms" name="physical_rooms" rows="5" class="form-input" placeholder="Room 101 | available&#10;Room 102 | maintenance"></textarea>
-                <p class="mt-2 text-xs text-stone-500">One per line. Existing rows use “id | name | status”. Removing a booked physical room moves it to maintenance to preserve reservation history.</p>
+                <label class="form-label">Physical rooms inventory</label>
+                <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
+                    <table class="min-w-full divide-y divide-stone-100 text-sm">
+                        <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-600">
+                            <tr>
+                                <th class="px-4 py-3 text-left">Room Name/Number</th>
+                                <th class="px-4 py-3 text-left">Status</th>
+                                <th class="px-4 py-3 text-right">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="edit-physical-rooms-table-body" class="divide-y divide-stone-100">
+                            <!-- JS will populate rows -->
+                        </tbody>
+                    </table>
+                    <div class="p-3 bg-stone-50 border-t border-stone-100 flex justify-between items-center">
+                        <span class="text-xs text-stone-500">Guests book general room type; staff assigns physical rooms.</span>
+                        <button type="button" id="edit-physical-rooms-add-row" class="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1 font-semibold">
+                            <span>+ Add Room</span>
+                        </button>
+                    </div>
+                </div>
+                <textarea id="edit_physical_rooms" name="physical_rooms" class="hidden"></textarea>
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="edit_room_amenities">Amenities</label>
                 <textarea id="edit_room_amenities" name="amenities" rows="4" class="form-input" placeholder="Wi-Fi, Air conditioning, Pool, Breakfast"></textarea>
                 <p class="mt-2 text-xs text-stone-500">Separate amenities with commas.</p>
             </div>
-            <div class="form-group md:col-span-2 rounded-lg border border-stone-200 bg-stone-50 p-4">
-                <p class="text-sm font-semibold text-stone-900">Room images are preserved.</p>
-                <p class="mt-1 text-xs leading-6 text-stone-500">Use Add room for new galleries. Existing images are kept when saving this focused edit form.</p>
+            <div class="form-group md:col-span-2">
+                <label class="form-label">Current room images</label>
+                <div id="edit-room-current-images" class="mt-2 grid gap-3 sm:grid-cols-3">
+                    <!-- JS will populate current images -->
+                </div>
+            </div>
+            <div class="form-group md:col-span-2">
+                <label class="form-label">Add more room images source</label>
+                <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
+                    <button type="button" id="edit-room-toggle-upload" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload files</button>
+                    <button type="button" id="edit-room-toggle-link" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URLs</button>
+                </div>
+            </div>
+            <div id="edit-room-upload-section" class="form-group md:col-span-2">
+                <label class="form-label" for="edit_room_images">Upload new images</label>
+                <input type="file" id="edit_room_images" name="images[]" class="form-input" accept="image/*" multiple>
+                <div id="edit-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+            </div>
+            <div id="edit-room-link-section" class="form-group md:col-span-2 hidden">
+                <label class="form-label" for="edit_room_image_links">New image URLs</label>
+                <textarea id="edit_room_image_links" name="image_links" rows="3" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg"></textarea>
+                <div id="edit-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
             </div>
         </div>
 
@@ -283,7 +338,6 @@
 <script>
     (() => {
         const resolveImageUrl = (path) => {
-            if (!path) return '';
             if (!path) return '';
             if (path.startsWith('http') || path.startsWith('data:')) return path;
 
@@ -364,13 +418,177 @@
             });
         };
 
+        // File size and count validation helper
+        const validateFiles = (files) => {
+            if (!files || files.length === 0) return true;
+            if (files.length > 5) {
+                alert('You can upload a maximum of 5 images.');
+                return false;
+            }
+            let totalSize = 0;
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                if (file.size > 10 * 1024 * 1024) {
+                    alert(`File "${file.name}" exceeds the 10MB maximum size limit.`);
+                    return false;
+                }
+                totalSize += file.size;
+            }
+            if (totalSize > 50 * 1024 * 1024) {
+                alert('Total size of uploaded files exceeds the 50MB limit.');
+                return false;
+            }
+            return true;
+        };
+
+        // Reusable physical rooms table builder setup
+        const setupPhysicalRoomsTable = (tableBody, addRowBtn, textarea, initialRooms = []) => {
+            tableBody.innerHTML = '';
+
+            const createRow = (id, name, status) => {
+                const tr = document.createElement('tr');
+                tr.className = 'transition hover:bg-stone-50/50';
+
+                // Name Column
+                const nameTd = document.createElement('td');
+                nameTd.className = 'px-4 py-3';
+                const nameInput = document.createElement('input');
+                nameInput.type = 'text';
+                nameInput.value = name;
+                nameInput.placeholder = 'e.g. Room 101';
+                nameInput.className = 'form-input py-1.5 px-3 text-xs w-full';
+                nameInput.required = true;
+                if (id) nameInput.dataset.id = id;
+                nameInput.addEventListener('input', serialize);
+                nameTd.appendChild(nameInput);
+                tr.appendChild(nameTd);
+
+                // Status Column
+                const statusTd = document.createElement('td');
+                statusTd.className = 'px-4 py-3';
+                const statusSelect = document.createElement('select');
+                statusSelect.className = 'form-input py-1.5 px-3 text-xs w-full';
+                statusSelect.innerHTML = `
+                    <option value="available">Available</option>
+                    <option value="maintenance">Maintenance</option>
+                `;
+                statusSelect.value = status || 'available';
+                statusSelect.addEventListener('change', serialize);
+                statusTd.appendChild(statusSelect);
+                tr.appendChild(statusTd);
+
+                // Action Column
+                const actionTd = document.createElement('td');
+                actionTd.className = 'px-4 py-3 text-right';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'text-red-600 hover:text-red-900 text-xs font-semibold px-2 py-1';
+                removeBtn.textContent = 'Remove';
+                removeBtn.addEventListener('click', () => {
+                    tr.remove();
+                    serialize();
+                });
+                actionTd.appendChild(removeBtn);
+                tr.appendChild(actionTd);
+
+                tableBody.appendChild(tr);
+                serialize();
+            };
+
+            function serialize() {
+                const rows = Array.from(tableBody.querySelectorAll('tr'));
+                const serialized = rows.map(tr => {
+                    const nameInput = tr.querySelector('input');
+                    const select = tr.querySelector('select');
+                    const id = nameInput.dataset.id;
+                    const name = nameInput.value.trim().replace(/\|/g, '');
+                    const status = select.value;
+                    if (!name) return '';
+                    return id ? `${id} | ${name} | ${status}` : `${name} | ${status}`;
+                }).filter(Boolean).join('\n');
+                
+                textarea.value = serialized;
+            }
+
+            // Populate initial rooms
+            if (initialRooms && initialRooms.length > 0) {
+                initialRooms.forEach(room => {
+                    createRow(room.id || null, room.name || '', room.status || 'available');
+                });
+            } else if (textarea.value.trim()) {
+                textarea.value.split('\n').forEach(line => {
+                    const parts = line.split('|').map(p => p.trim());
+                    if (parts.length === 3) {
+                        createRow(parts[0], parts[1], parts[2]);
+                    } else if (parts.length === 2) {
+                        createRow(null, parts[0], parts[1]);
+                    }
+                });
+            }
+
+            addRowBtn.onclick = (e) => {
+                e.preventDefault();
+                createRow(null, '', 'available');
+            };
+        };
+
+        // Setup image input toggle for a modal
+        const setupImageToggle = (toggleUploadBtn, toggleLinkBtn, uploadSection, linkSection, fileInput, textareaInput) => {
+            let activeMode = 'upload'; // default
+
+            const setMode = (mode) => {
+                activeMode = mode;
+                if (mode === 'upload') {
+                    toggleUploadBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
+                    toggleLinkBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
+                    uploadSection.classList.remove('hidden');
+                    linkSection.classList.add('hidden');
+                } else {
+                    toggleUploadBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
+                    toggleLinkBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
+                    uploadSection.classList.add('hidden');
+                    linkSection.classList.remove('hidden');
+                }
+            };
+
+            toggleUploadBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('upload'); });
+            toggleLinkBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('link'); });
+
+            return {
+                getMode: () => activeMode,
+                sanitize: () => {
+                    if (activeMode === 'upload') {
+                        textareaInput.value = '';
+                    } else {
+                        fileInput.value = '';
+                    }
+                }
+            };
+        };
+
+        // --- Add Room Form Setup ---
+        const addForm = document.getElementById('add-room-form');
+        const addPhysicalTableBody = document.getElementById('add-physical-rooms-table-body');
+        const addPhysicalAddRowBtn = document.getElementById('add-physical-rooms-add-row');
+        const addPhysicalTextarea = document.getElementById('add_physical_rooms');
+
+        if (addForm && addPhysicalTableBody && addPhysicalAddRowBtn && addPhysicalTextarea) {
+            setupPhysicalRoomsTable(addPhysicalTableBody, addPhysicalAddRowBtn, addPhysicalTextarea, []);
+        }
+
         const addImagesInput = document.getElementById('add_room_images');
         const addPreview = document.getElementById('add-room-upload-preview');
         if (addImagesInput && addPreview) {
-            addImagesInput.addEventListener('change', () => renderFilePreviews(addImagesInput.files, addPreview));
+            addImagesInput.addEventListener('change', () => {
+                if (validateFiles(addImagesInput.files)) {
+                    renderFilePreviews(addImagesInput.files, addPreview);
+                } else {
+                    addImagesInput.value = '';
+                    addPreview.innerHTML = '';
+                }
+            });
         }
 
-        // Handle image link textarea input for add room
         const addImageLinksInput = document.getElementById('add_room_image_links');
         const addImageLinkPreview = document.getElementById('add-room-link-preview');
         if (addImageLinksInput && addImageLinkPreview) {
@@ -383,14 +601,49 @@
             });
         }
 
-        const modal = document.getElementById('edit-room-modal');
-        const form = document.getElementById('edit-room-form');
+        const addRoomToggleUpload = document.getElementById('add-room-toggle-upload');
+        const addRoomToggleLink = document.getElementById('add-room-toggle-link');
+        const addRoomUploadSection = document.getElementById('add-room-upload-section');
+        const addRoomLinkSection = document.getElementById('add-room-link-section');
+
+        let addRoomImageToggle = null;
+        if (addRoomToggleUpload && addRoomToggleLink && addRoomUploadSection && addRoomLinkSection && addImagesInput && addImageLinksInput) {
+            addRoomImageToggle = setupImageToggle(addRoomToggleUpload, addRoomToggleLink, addRoomUploadSection, addRoomLinkSection, addImagesInput, addImageLinksInput);
+        }
+
+        if (addForm) {
+            addForm.addEventListener('submit', (e) => {
+                if (addRoomImageToggle) {
+                    addRoomImageToggle.sanitize();
+                }
+                if (addImagesInput && addImagesInput.files.length > 0) {
+                    if (!validateFiles(addImagesInput.files)) {
+                        e.preventDefault();
+                    }
+                }
+            });
+        }
+
+        // --- Edit Room Form Setup ---
+        const editForm = document.getElementById('edit-room-form');
+        const editPhysicalTableBody = document.getElementById('edit-physical-rooms-table-body');
+        const editPhysicalAddRowBtn = document.getElementById('edit-physical-rooms-add-row');
+        const editPhysicalTextarea = document.getElementById('edit_physical_rooms');
         const currentImagesContainer = document.getElementById('edit-room-current-images');
         const uploadPreviewContainer = document.getElementById('edit-room-upload-preview');
         const linkPreviewContainer = document.getElementById('edit-room-link-preview');
         const editImagesInput = document.getElementById('edit_room_images');
         const editImageLinksInput = document.getElementById('edit_room_image_links');
-        if (!modal || !form) return;
+
+        const editRoomToggleUpload = document.getElementById('edit-room-toggle-upload');
+        const editRoomToggleLink = document.getElementById('edit-room-toggle-link');
+        const editRoomUploadSection = document.getElementById('edit-room-upload-section');
+        const editRoomLinkSection = document.getElementById('edit-room-link-section');
+
+        let editRoomImageToggle = null;
+        if (editRoomToggleUpload && editRoomToggleLink && editRoomUploadSection && editRoomLinkSection && editImagesInput && editImageLinksInput) {
+            editRoomImageToggle = setupImageToggle(editRoomToggleUpload, editRoomToggleLink, editRoomUploadSection, editRoomLinkSection, editImagesInput, editImageLinksInput);
+        }
 
         const fields = {
             name: document.getElementById('edit_room_name'),
@@ -398,26 +651,25 @@
             capacity: document.getElementById('edit_room_capacity'),
             price: document.getElementById('edit_room_price'),
             status: document.getElementById('edit_room_status'),
-            physicalRooms: document.getElementById('edit_physical_rooms'),
+            physicalRooms: editPhysicalTextarea,
             amenities: document.getElementById('edit_room_amenities'),
         };
 
         document.querySelectorAll('[data-modal-open="edit-room-modal"]').forEach((button) => {
             button.addEventListener('click', () => {
-                form.action = button.dataset.roomUpdateUrl || '#';
+                editForm.action = button.dataset.roomUpdateUrl || '#';
                 fields.name.value = button.dataset.roomName || '';
                 fields.description.value = button.dataset.roomDescription || '';
                 fields.capacity.value = button.dataset.roomCapacity || '';
                 fields.price.value = button.dataset.roomPrice || '';
                 fields.status.value = button.dataset.roomStatus || 'available';
 
+                // Populate physical rooms inventory table builder
                 try {
                     const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
-                    fields.physicalRooms.value = Array.isArray(physicalRooms)
-                        ? physicalRooms.map((physicalRoom) => `${physicalRoom.id} | ${physicalRoom.name} | ${physicalRoom.status}`).join('\n')
-                        : '';
+                    setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, physicalRooms);
                 } catch {
-                    fields.physicalRooms.value = '';
+                    setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, []);
                 }
 
                 try {
@@ -438,8 +690,6 @@
                 try {
                     const images = JSON.parse(button.dataset.roomImages || '[]');
                     const imageArray = Array.isArray(images) ? images : [];
-                    
-                    // Display current images
                     renderStoredImages(imageArray, currentImagesContainer);
                 } catch {
                     renderStoredImages([], currentImagesContainer);
@@ -456,10 +706,16 @@
         });
 
         if (editImagesInput && uploadPreviewContainer) {
-            editImagesInput.addEventListener('change', () => renderFilePreviews(editImagesInput.files, uploadPreviewContainer));
+            editImagesInput.addEventListener('change', () => {
+                if (validateFiles(editImagesInput.files)) {
+                    renderFilePreviews(editImagesInput.files, uploadPreviewContainer);
+                } else {
+                    editImagesInput.value = '';
+                    uploadPreviewContainer.innerHTML = '';
+                }
+            });
         }
 
-        // Handle image link textarea input for edit room
         if (editImageLinksInput && linkPreviewContainer) {
             editImageLinksInput.addEventListener('input', () => {
                 const urls = editImageLinksInput.value
@@ -467,6 +723,19 @@
                     .map(line => line.trim())
                     .filter(line => line && line.startsWith('http'));
                 renderImageUrlPreviews(urls, linkPreviewContainer);
+            });
+        }
+
+        if (editForm) {
+            editForm.addEventListener('submit', (e) => {
+                if (editRoomImageToggle) {
+                    editRoomImageToggle.sanitize();
+                }
+                if (editImagesInput && editImagesInput.files.length > 0) {
+                    if (!validateFiles(editImagesInput.files)) {
+                        e.preventDefault();
+                    }
+                }
             });
         }
     })();

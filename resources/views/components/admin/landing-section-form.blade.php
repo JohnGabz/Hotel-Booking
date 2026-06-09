@@ -49,7 +49,14 @@
                     <p class="form-hint">Keep this concise and scannable on mobile screens.</p>
                 @elseif ($type === 'image')
                     @php $preview = $imageUrl($value); @endphp
-                    <div class="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-4 transition hover:border-brand-primary/50" data-image-dropzone>
+                    
+                    <div class="mb-3 inline-flex rounded-lg p-1 bg-stone-100" role="group">
+                        <button type="button" data-landing-toggle-mode="upload" data-target="{{ $inputId }}" class="landing-mode-btn-{{ $inputId }} px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload files</button>
+                        <button type="button" data-landing-toggle-mode="link" data-target="{{ $inputId }}" class="landing-mode-btn-{{ $inputId }} px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URL</button>
+                    </div>
+
+                    <!-- Upload dropzone -->
+                    <div id="{{ $inputId }}_upload_container" class="rounded-lg border border-dashed border-stone-300 bg-stone-50 p-4 transition hover:border-brand-primary/50" data-image-dropzone>
                         <input
                             id="{{ $inputId }}_upload"
                             name="{{ $key }}_upload"
@@ -70,6 +77,20 @@
                             <label for="{{ $inputId }}_upload" class="btn-secondary cursor-pointer px-4 py-2 text-sm">Choose image</label>
                         </div>
                     </div>
+
+                    <!-- URL input -->
+                    <div id="{{ $inputId }}_link_container" class="hidden rounded-lg border border-stone-200 bg-stone-50 p-4">
+                        <label class="form-label" for="{{ $inputId }}_link">Image URL</label>
+                        <input
+                            id="{{ $inputId }}_link"
+                            name="{{ $key }}_link"
+                            type="url"
+                            class="form-input mt-1"
+                            placeholder="https://example.com/image.jpg"
+                            data-field-label="{{ $field['label'] }} URL"
+                        >
+                    </div>
+
                     <input type="hidden" id="{{ $inputId }}_remove" name="{{ $key }}_remove" value="0" data-image-remove-input>
                     <div class="mt-3 space-y-3">
                         <img
@@ -111,3 +132,91 @@
         <button type="submit" class="btn-primary" data-landing-section-submit disabled>Save section</button>
     </div>
 </form>
+
+<script>
+    (() => {
+        const form = document.querySelector('[data-landing-section-form]');
+        if (!form) return;
+
+        // Mode toggling
+        form.querySelectorAll('[data-landing-toggle-mode]').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const mode = btn.dataset.landingToggleMode;
+                const inputId = btn.dataset.target;
+                const uploadContainer = document.getElementById(`${inputId}_upload_container`);
+                const linkContainer = document.getElementById(`${inputId}_link_container`);
+                
+                // Toggle sections
+                if (mode === 'upload') {
+                    uploadContainer?.classList.remove('hidden');
+                    linkContainer?.classList.add('hidden');
+                } else {
+                    uploadContainer?.classList.add('hidden');
+                    linkContainer?.classList.remove('hidden');
+                }
+
+                // Update active state of buttons
+                form.querySelectorAll(`.landing-mode-btn-${inputId}`).forEach(b => {
+                    if (b.dataset.landingToggleMode === mode) {
+                        b.className = `landing-mode-btn-${inputId} px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm`;
+                    } else {
+                        b.className = `landing-mode-btn-${inputId} px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900`;
+                    }
+                });
+
+                // Set mode tracking attribute
+                btn.parentNode.setAttribute('data-active-mode', mode);
+            });
+        });
+
+        // Watch url changes to update preview
+        form.querySelectorAll('input[type="url"]').forEach(input => {
+            input.addEventListener('input', () => {
+                const url = input.value.trim();
+                const previewId = input.id.replace('_link', '_preview');
+                const emptyId = input.id.replace('_link', '_empty');
+                const previewImg = document.getElementById(previewId);
+                const emptyDiv = document.getElementById(emptyId);
+
+                if (url && url.startsWith('http')) {
+                    if (previewImg) {
+                        previewImg.src = url;
+                        previewImg.classList.remove('hidden');
+                    }
+                    if (emptyDiv) {
+                        emptyDiv.classList.add('hidden');
+                    }
+                }
+            });
+        });
+
+        // Sanitize on submission
+        form.addEventListener('submit', () => {
+            form.querySelectorAll('[data-landing-toggle-mode="upload"]').forEach(btn => {
+                const mode = btn.parentNode.getAttribute('data-active-mode') || 'upload';
+                const inputId = btn.dataset.target;
+                if (mode === 'upload') {
+                    // Clear link input
+                    const linkInput = document.getElementById(`${inputId}_link`);
+                    if (linkInput) linkInput.value = '';
+                } else {
+                    // Clear file input
+                    const fileInput = document.getElementById(`${inputId}_upload`);
+                    if (fileInput) fileInput.value = '';
+                    const removeInput = document.getElementById(`${inputId}_remove`);
+                    if (removeInput) removeInput.value = '0';
+                }
+            });
+        });
+
+        // Extend the generic image clear button to clear URL links as well
+        form.querySelectorAll('[data-image-clear]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const inputId = btn.dataset.imageClear.replace('_upload', '');
+                const linkInput = document.getElementById(`${inputId}_link`);
+                if (linkInput) linkInput.value = '';
+            });
+        });
+    })();
+</script>
