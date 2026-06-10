@@ -34,7 +34,7 @@ class PhysicalRoomController extends Controller
             'status' => $request->boolean('is_available', true) ? 'available' : 'maintenance',
         ]);
 
-        return redirect()->route('admin.dashboard', ['section' => 'rooms'])
+        return redirect()->route('admin.rooms')
             ->with('success', 'Physical room added successfully.');
     }
 
@@ -43,13 +43,13 @@ class PhysicalRoomController extends Controller
         $this->ensureAdmin();
 
         if ($physicalRoom->bookings()->exists()) {
-            return redirect()->route('admin.dashboard', ['section' => 'rooms'])
+            return redirect()->route('admin.rooms')
                 ->with('error', 'Cannot delete a physical room that has bookings.');
         }
 
         $physicalRoom->delete();
 
-        return redirect()->route('admin.dashboard', ['section' => 'rooms'])
+        return redirect()->route('admin.rooms')
             ->with('success', 'Physical room removed successfully.');
     }
 }

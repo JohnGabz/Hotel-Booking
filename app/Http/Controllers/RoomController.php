@@ -82,7 +82,7 @@ class RoomController extends Controller
 
         $images = ImageInput::resolveMany($request);
         if (empty($images)) {
-            return redirect()->route('admin.dashboard', ['section' => 'rooms'])
+            return redirect()->route('admin.rooms')
                 ->withInput()
                 ->withErrors(['images' => 'Add at least one room image.']);
         }
@@ -110,7 +110,7 @@ class RoomController extends Controller
             ]);
         }
 
-        return redirect()->route('admin.dashboard', ['section' => 'rooms'])->with('success', 'Room created successfully.');
+        return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
     }
 
     public function update(Request $request, Room $room): RedirectResponse
@@ -147,7 +147,7 @@ class RoomController extends Controller
             'images' => $images,
         ]);
 
-        return redirect()->route('admin.dashboard', ['section' => 'rooms'])->with('success', 'Room updated successfully.');
+        return redirect()->route('admin.rooms')->with('success', 'Room updated successfully.');
     }
 
     public function destroy(Room $room): RedirectResponse
@@ -158,7 +158,7 @@ class RoomController extends Controller
 
         $room->delete();
 
-        return redirect()->route('admin.dashboard', ['section' => 'rooms'])->with('success', 'Room deleted successfully.');
+        return redirect()->route('admin.rooms')->with('success', 'Room deleted successfully.');
     }
 
     public function availability(Request $request, Room $room): JsonResponse

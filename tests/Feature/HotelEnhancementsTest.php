@@ -302,7 +302,7 @@ class HotelEnhancementsTest extends TestCase
                 'image_links' => "https://images.unsplash.com/photo-1566073771259-6a8506099945\nhttps://images.unsplash.com/photo-1505693416388",
             ]);
 
-        $response->assertRedirect(route('admin.dashboard', ['section' => 'rooms']));
+        $response->assertRedirect(route('admin.rooms'));
         $response->assertSessionHas('success');
 
         $room = Room::where('name', 'Royal Suite')->firstOrFail();
