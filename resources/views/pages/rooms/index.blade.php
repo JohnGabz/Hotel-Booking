@@ -1,4 +1,4 @@
-﻿@extends('layouts.site')
+@extends('layouts.site')
 
 @section('content')
 @php
@@ -69,7 +69,7 @@
                     <div class="p-6">
                         <div class="flex items-start justify-between gap-4">
                             <div>
-                                <h2 class="text-2xl font-semibold text-stone-950">{{ $room->name }}</h2>
+                                <h2 class="text-2xl font-semibold text-stone-950">{{ $room->type_label }}</h2>
                                 <p class="mt-2 text-sm uppercase tracking-[0.2em] text-stone-500">{{ $room->capacity }} guests</p>
                             </div>
                             <div class="rounded-full bg-amber-100 px-3 py-1 text-xs font-semibold text-amber-800">4.9</div>

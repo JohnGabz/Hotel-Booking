@@ -67,6 +67,34 @@ class Room extends Model
         return $this->availablePhysicalRoomFor($checkIn, $checkOut) !== null;
     }
 
+    public function isAvailableForDates(string $checkIn, string $checkOut): bool
+    {
+        if ($this->physicalRooms()->exists()) {
+            return $this->isAvailableFor($checkIn, $checkOut);
+        }
+
+        return $this->status === 'available' && ! Booking::overlaps($this->id, $checkIn, $checkOut);
+    }
+
+    public function getTypeLabelAttribute(): string
+    {
+        $name = strtolower($this->name);
+
+        if (str_contains($name, 'single')) {
+            return 'Single Bed Room';
+        }
+
+        if (str_contains($name, 'matrimonial') || str_contains($name, 'double')) {
+            return 'Matrimonial Bed Room';
+        }
+
+        if (str_contains($name, 'twin')) {
+            return 'Twin Bed Room';
+        }
+
+        return $this->name;
+    }
+
     public function occupiedPhysicalRoomIdsForDate(string $date): Collection
     {
         return Booking::query()

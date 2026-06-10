@@ -1,4 +1,4 @@
-﻿@extends('layouts.site')
+@extends('layouts.site')
 
 @section('content')
 @php
@@ -223,7 +223,7 @@
                     <div class="p-6 sm:p-7">
                         <div class="flex items-start justify-between gap-3 mb-3">
                             <div>
-                                <h3 class="text-xl font-semibold text-stone-900">{{ $room->name }}</h3>
+                                <h3 class="text-xl font-semibold text-stone-900">{{ $room->type_label }}</h3>
                                 <p class="mt-1 text-xs uppercase tracking-[0.2em] text-stone-500">{{ ucfirst($room->status) }}</p>
                             </div>
                         </div>

@@ -13,7 +13,9 @@ use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
 use App\Models\User;
+use App\Support\ImageInput;
 use App\Support\ImageStorage;
+use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -37,14 +39,95 @@ class AdminController extends Controller
         }
     }
 
-    public function dashboard(): View
+    public function dashboard(Request $request): View
     {
-        return $this->renderAdminPage('dashboard', [
+        $this->ensureAdmin();
+        $section = $request->query('section', 'dashboard');
+
+        if ($request->ajax() && $section !== 'dashboard') {
+            return $this->section($request);
+        }
+
+        return view('admin.dashboard', array_merge($this->sectionData($section), [
+            'activeSection' => $section,
             'seo' => [
                 'title' => 'Admin Dashboard — ' . config('app.name'),
                 'description' => 'Overview of bookings, revenue, and room operations for Villa Estella.',
             ],
+        ]));
+    }
+
+    public function section(Request $request): View
+    {
+        $this->ensureAdmin();
+        $section = $request->query('section', 'dashboard');
+
+        if (! view()->exists('admin.sections.' . $section)) {
+            abort(404);
+        }
+
+        return view('admin.sections.' . $section, $this->sectionData($section));
+    }
+
+    public function assignPhysicalRoom(Request $request, Booking $booking): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'physical_room_id' => ['required', 'exists:physical_rooms,id'],
         ]);
+
+        $physicalRoom = PhysicalRoom::query()->findOrFail($validated['physical_room_id']);
+
+        if ($physicalRoom->room_id !== $booking->room_id) {
+            return redirect()->route('admin.dashboard', ['section' => 'bookings'])
+                ->with('error', 'Selected physical room does not belong to this booking\'s room type.');
+        }
+
+        if (! $physicalRoom->isAvailableForDates(
+            $booking->check_in->toDateString(),
+            $booking->check_out->toDateString(),
+            $booking->id
+        )) {
+            return redirect()->route('admin.dashboard', ['section' => 'bookings'])
+                ->with('error', 'Selected physical room is not available for these dates.');
+        }
+
+        $booking->update(['physical_room_id' => $physicalRoom->id]);
+
+        return redirect()->route('admin.dashboard', ['section' => 'bookings'])
+            ->with('success', 'Physical room assigned successfully.');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    protected function sectionData(string $section): array
+    {
+        $base = [
+            'rooms' => Room::with(['physicalRooms' => fn ($query) => $query->orderBy('id')])->withCount('physicalRooms')->latest()->get(),
+            'bookingsCount' => Booking::count(),
+            'confirmedCount' => Booking::where('status', 'confirmed')->count(),
+            'availableRooms' => Room::available()->count(),
+            'totalRevenue' => Booking::sum('total'),
+            'physicalRoomCount' => PhysicalRoom::count(),
+        ];
+
+        return match ($section) {
+            'rooms' => $base,
+            'bookings' => array_merge($base, [
+                'bookings' => Booking::with(['room', 'physicalRoom', 'user'])->latest()->get(),
+                'physicalRoomsByRoom' => PhysicalRoom::query()
+                    ->where('status', 'available')
+                    ->orderBy('name')
+                    ->get()
+                    ->groupBy('room_id'),
+            ]),
+            'users' => array_merge($base, [
+                'users' => User::query()->latest()->get(),
+            ]),
+            default => $base,
+        };
     }
 
     public function bookings(Request $request): View
@@ -253,20 +336,25 @@ class AdminController extends Controller
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
             'physical_room_count' => 'nullable|integer|min:1|max:100',
-            'physical_rooms' => 'nullable|string|max:5000',
+            'physical_rooms' => ['nullable'],
             'amenities' => 'nullable|string|max:3000',
-            'images' => 'nullable|array|min:1',
-            'images.*' => 'image|max:5120',
+            'images' => 'nullable|array',
+            'images.*' => 'image|max:10240',
+            'image' => 'nullable|image|max:10240',
+            'image_url' => 'nullable|url|max:2048',
             'image_links' => 'nullable|string|max:5000',
+            'image_input_mode' => 'nullable|in:upload,url',
+            'physical_rooms.*.name' => ['required_with:physical_rooms', 'string', 'max:255'],
+            'physical_rooms.*.code' => ['required_with:physical_rooms', 'string', 'max:50', 'distinct', Rule::unique('physical_rooms', 'code')],
         ]);
 
         if ($this->hasInvalidImageLinks($validated['image_links'] ?? '')) {
-            return redirect()->back()
+            return redirect()->route('admin.dashboard', ['section' => 'rooms'])
                 ->withInput()
                 ->withErrors(['image_links' => 'Enter valid HTTP or HTTPS image URLs, one per line.']);
         }
 
-        $imagePaths = $this->parseImageLinks($validated['image_links'] ?? '');
+        $imagePaths = ImageInput::resolveMany($request);
 
         if ($request->hasFile('images') && $request->file('images')) {
             $uploadedImages = collect($request->file('images', []))
@@ -277,8 +365,14 @@ class AdminController extends Controller
             $imagePaths = array_merge($imagePaths, $uploadedImages);
         }
 
+        if ($request->filled('image_links')) {
+            $imagePaths = array_merge($imagePaths, $this->parseImageLinks($validated['image_links'] ?? ''));
+        }
+
+        $imagePaths = array_values(array_unique($imagePaths));
+
         if (empty($imagePaths)) {
-            return redirect()->back()
+            return redirect()->route('admin.dashboard', ['section' => 'rooms'])
                 ->withInput()
                 ->withErrors(['images' => 'Add at least one room image by uploading a file or pasting a valid image URL.']);
         }
@@ -298,9 +392,23 @@ class AdminController extends Controller
             'images' => $imagePaths,
         ]);
 
-        $this->syncPhysicalRooms($room, $validated['physical_rooms'] ?? null, (int) ($validated['physical_room_count'] ?? 1));
+        if (is_array($request->input('physical_rooms'))) {
+            foreach ($request->input('physical_rooms', []) as $physicalRoom) {
+                if (empty($physicalRoom['name']) || empty($physicalRoom['code'])) {
+                    continue;
+                }
 
-        return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
+                $room->physicalRooms()->create([
+                    'name' => $physicalRoom['name'],
+                    'code' => $physicalRoom['code'],
+                    'status' => ! empty($physicalRoom['is_available']) ? 'available' : 'maintenance',
+                ]);
+            }
+        } else {
+            $this->syncPhysicalRooms($room, $validated['physical_rooms'] ?? null, (int) ($validated['physical_room_count'] ?? 1));
+        }
+
+        return redirect()->route('admin.dashboard', ['section' => 'rooms'])->with('success', 'Room created successfully.');
     }
 
     public function guests(Request $request): View
@@ -1061,7 +1169,7 @@ class AdminController extends Controller
 
         $room->delete();
 
-        return redirect()->route('admin.rooms')->with('success', 'Room deleted successfully.');
+        return redirect()->route('admin.dashboard', ['section' => 'rooms'])->with('success', 'Room deleted successfully.');
     }
 
     protected function parseImageLinks(?string $links): array

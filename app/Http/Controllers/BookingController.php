@@ -6,7 +6,9 @@ use App\Events\BookingCreated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\Room;
+use App\Notifications\BookingCreatedNotification;
 use App\Support\ImageStorage;
+use App\Support\NotifyAdmins;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -84,15 +86,7 @@ class BookingController extends Controller
             'source' => $booking->source,
         ]);
 
-        // Trigger database notification for admin
-        try {
-            $adminUsers = \App\Models\User::where('is_admin', true)->get();
-            foreach ($adminUsers as $admin) {
-                $admin->notify(new \App\Notifications\BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
-            }
-        } catch (\Throwable $e) {
-            Log::error('Failed to notify admins on booking creation: ' . $e->getMessage());
-        }
+        NotifyAdmins::send(new BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
 
         try {
             event(new BookingCreated($booking->id));

@@ -27,4 +27,25 @@ class PhysicalRoom extends Model
     {
         return $query->where('status', 'available');
     }
+
+    public function isAvailableForDates(string $checkIn, string $checkOut, ?int $excludeBookingId = null): bool
+    {
+        if ($this->status !== 'available') {
+            return false;
+        }
+
+        $query = Booking::query()
+            ->overlappingPhysicalRoom($this->id, $checkIn, $checkOut);
+
+        if ($excludeBookingId) {
+            $query->where('id', '!=', $excludeBookingId);
+        }
+
+        return ! $query->exists();
+    }
+
+    public function getIsAvailableAttribute(): bool
+    {
+        return $this->status === 'available';
+    }
 }

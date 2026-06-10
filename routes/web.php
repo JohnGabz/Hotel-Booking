@@ -8,7 +8,9 @@ use App\Http\Controllers\PageController;
 use App\Http\Controllers\Webhook\PaymentController as WebhookPaymentController;
 use App\Http\Controllers\AvailabilityController;
 use App\Http\Controllers\ReviewController;
+use App\Http\Controllers\PhysicalRoomController;
 use App\Http\Controllers\RoomController;
+use App\Http\Controllers\StaffController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -63,6 +65,14 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [BookingController::class, 'dashboard'])->name('dashboard');
         Route::post('/bookings/{booking}/payment-proof', [BookingController::class, 'uploadPaymentProof'])->name('bookings.payment-proof');
         Route::post('/bookings/{booking}/pay', [App\Http\Controllers\PaymentController::class, 'create'])->name('bookings.pay');
+    });
+
+    Route::post('/rooms/{room}/physical-rooms', [PhysicalRoomController::class, 'store'])->name('physical-rooms.store');
+    Route::delete('/physical-rooms/{physicalRoom}', [PhysicalRoomController::class, 'destroy'])->name('physical-rooms.destroy');
+    Route::post('/bookings/{booking}/assign-room', [AdminController::class, 'assignPhysicalRoom'])->name('bookings.assign-room');
+
+    Route::prefix('staff')->name('staff.')->group(function () {
+        Route::get('/', [StaffController::class, 'dashboard'])->name('dashboard');
     });
 
     Route::prefix('admin')->name('admin.')->group(function () {

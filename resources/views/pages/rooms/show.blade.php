@@ -1,4 +1,4 @@
-﻿@extends('layouts.site')
+@extends('layouts.site')
 
 @section('content')
 @php
@@ -49,7 +49,7 @@
 
                         <div class="max-w-2xl space-y-5">
                             <p class="text-sm uppercase tracking-[0.35em] text-stone-200">Room experience</p>
-                            <h1 class="max-w-xl responsive-title text-white">{{ $room->name }}</h1>
+                            <h1 class="max-w-xl responsive-title text-white">{{ $room->type_label }}</h1>
                             <p class="max-w-2xl text-base leading-7 text-stone-200 sm:text-lg">{{ $room->description }}</p>
                         </div>
                     </div>

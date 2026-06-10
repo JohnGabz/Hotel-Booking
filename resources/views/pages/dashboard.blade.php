@@ -1,4 +1,4 @@
-﻿@extends('layouts.site')
+@extends('layouts.site')
 
 @section('content')
 <section class="section-shell pt-8 sm:pt-10">
@@ -100,7 +100,7 @@
                     <div class="mt-5 grid gap-3">
                         @foreach ($recentRooms as $room)
                             <a href="{{ route('rooms.show', $room) }}" class="rounded-[1.5rem] border border-stone-200 bg-white p-4 transition hover:border-amber-300 hover:shadow-sm">
-                                <p class="font-semibold text-stone-950">{{ $room->name }}</p>
+                                <p class="font-semibold text-stone-950">{{ $room->type_label }}</p>
                                 <p class="text-sm text-stone-500">See room details and share your experience.</p>
                             </a>
                         @endforeach

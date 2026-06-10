@@ -58,6 +58,7 @@
     </main>
 
     @include('components.footer')
+    @include('partials.image-input-toggle-script')
     @stack('scripts')
     @if ($errors->any())
         <script>
