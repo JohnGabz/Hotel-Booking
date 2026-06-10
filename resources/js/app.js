@@ -654,16 +654,36 @@ document.querySelectorAll('[data-dropdown-toggle]').forEach(btn => {
 });
 
 // Modal handling
+function resolveModalFromTrigger(el) {
+    if (!el) return null;
+
+    return el.closest('[role="dialog"]') || el.closest('.fixed.inset-0.z-50');
+}
+
 function openModalById(id) {
     const modal = document.getElementById(id);
     if (!modal) return;
+
+    modal.querySelectorAll('form').forEach((form) => {
+        form.hidden = false;
+        form.classList.remove('hidden');
+        form.style.display = '';
+    });
+
     openAccessibleModal(modal);
+
+    if (typeof window.initImageInputToggles === 'function') {
+        window.initImageInputToggles(modal);
+    }
+    if (typeof window.initRoomTypeModal === 'function') {
+        window.initRoomTypeModal(modal);
+    }
 }
 
 function closeModal(el) {
-    const modal = el.closest('[id]');
+    const modal = resolveModalFromTrigger(el);
     if (!modal) return;
-    closeAccessibleModal(modal);
+    requestCloseAccessibleModal(modal);
 }
 
 document.querySelectorAll('[data-modal-open]').forEach(btn => {
@@ -686,7 +706,7 @@ document.querySelectorAll('[data-modal-open]').forEach(btn => {
 document.querySelectorAll('[data-modal-close]').forEach(btn => {
     btn.addEventListener('click', (e) => {
         e.preventDefault();
-        const modal = btn.closest('[id]');
+        const modal = resolveModalFromTrigger(btn);
         if (modal) {
             requestCloseAccessibleModal(modal);
         }
@@ -1089,7 +1109,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
                 return;
             }
 
-            const modal = form.closest('[id]');
+            const modal = resolveModalFromTrigger(form);
             const card = document.querySelector(`[data-landing-section-card="${CSS.escape(form.dataset.sectionId || '')}"]`);
 
             form.dataset.saving = '1';

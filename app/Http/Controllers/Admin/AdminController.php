@@ -321,6 +321,15 @@ class AdminController extends Controller
     {
         $this->ensureAdmin();
 
+        $physicalRoomsInput = collect($request->input('physical_rooms', []))
+            ->filter(fn ($row) => is_array($row) && filled($row['name'] ?? null) && filled($row['code'] ?? null))
+            ->values()
+            ->all();
+
+        $request->merge([
+            'physical_rooms' => $physicalRoomsInput ?: null,
+        ]);
+
         $validated = $request->validate([
             'name' => 'required|string|max:150',
             'description' => 'required|string|max:3000',
@@ -328,7 +337,7 @@ class AdminController extends Controller
             'price' => 'required|numeric|min:0',
             'status' => 'required|in:available,occupied,maintenance',
             'physical_room_count' => 'nullable|integer|min:1|max:100',
-            'physical_rooms' => ['nullable'],
+            'physical_rooms' => ['nullable', 'array'],
             'amenities' => 'nullable|string|max:3000',
             'images' => 'nullable|array',
             'images.*' => 'image|max:10240',
@@ -336,8 +345,8 @@ class AdminController extends Controller
             'image_url' => 'nullable|url|max:2048',
             'image_links' => 'nullable|string|max:5000',
             'image_input_mode' => 'nullable|in:upload,url',
-            'physical_rooms.*.name' => ['required_with:physical_rooms', 'string', 'max:255'],
-            'physical_rooms.*.code' => ['required_with:physical_rooms', 'string', 'max:50', 'distinct', Rule::unique('physical_rooms', 'code')],
+            'physical_rooms.*.name' => ['nullable', 'string', 'max:255'],
+            'physical_rooms.*.code' => ['nullable', 'string', 'max:50', 'distinct', Rule::unique('physical_rooms', 'code')],
         ]);
 
         if ($this->hasInvalidImageLinks($validated['image_links'] ?? '')) {
@@ -396,9 +405,13 @@ class AdminController extends Controller
                     'status' => ! empty($physicalRoom['is_available']) ? 'available' : 'maintenance',
                 ]);
             }
-        } else {
-            $this->syncPhysicalRooms($room, $validated['physical_rooms'] ?? null, (int) ($validated['physical_room_count'] ?? 1));
+
+            if ($room->physicalRooms()->exists()) {
+                return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
+            }
         }
+
+        $this->syncPhysicalRooms($room, is_string($request->input('physical_rooms')) ? $request->input('physical_rooms') : null, (int) ($validated['physical_room_count'] ?? 1));
 
         return redirect()->route('admin.rooms')->with('success', 'Room created successfully.');
     }

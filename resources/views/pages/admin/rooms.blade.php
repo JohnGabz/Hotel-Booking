@@ -169,43 +169,53 @@
             </div>
             <div class="form-group">
                 <label class="form-label" for="add_room_status">Status</label>
-                <select id="add_room_status" name="status" class="form-input @error('status') error @enderror" required>
-                    <option value="available" @selected(old('status') === 'available')>Available</option>
+                <select id="add_room_status" name="status" class="form-input border border-gray-300 @error('status') error @enderror" required>
+                    <option value="available" @selected(old('status', 'available') === 'available')>Available</option>
                     <option value="occupied" @selected(old('status') === 'occupied')>Occupied</option>
                     <option value="maintenance" @selected(old('status') === 'maintenance')>Maintenance</option>
                 </select>
                 @error('status') <p class="form-error">{{ $message }}</p> @enderror
             </div>
-            <div class="form-group">
-                <label class="form-label" for="add_physical_room_count">Physical room count</label>
-                <input type="number" id="add_physical_room_count" name="physical_room_count" min="1" max="100" class="form-input @error('physical_room_count') error @enderror" value="{{ old('physical_room_count', 1) }}" required>
-                @error('physical_room_count') <p class="form-error">{{ $message }}</p> @enderror
-                <p class="mt-2 text-xs text-stone-500">Used when you do not list individual physical rooms below.</p>
-            </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label">Physical rooms inventory</label>
-                <div class="overflow-hidden rounded-xl border border-stone-200 bg-white">
-                    <table class="min-w-full divide-y divide-stone-100 text-sm">
-                        <thead class="bg-stone-50 text-xs font-semibold uppercase tracking-wider text-stone-600">
-                            <tr>
-                                <th class="px-4 py-3 text-left">Room Name/Number</th>
-                                <th class="px-4 py-3 text-left">Status</th>
-                                <th class="px-4 py-3 text-right">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody id="add-physical-rooms-table-body" class="divide-y divide-stone-100">
-                            <!-- JS will populate rows -->
-                        </tbody>
-                    </table>
-                    <div class="p-3 bg-stone-50 border-t border-stone-100 flex justify-between items-center">
-                        <span class="text-xs text-stone-500">Guests book general room type; staff assigns physical rooms.</span>
-                        <button type="button" id="add-physical-rooms-add-row" class="btn-secondary py-1.5 px-3 text-xs flex items-center gap-1 font-semibold">
-                            <span>+ Add Room</span>
-                        </button>
-                    </div>
+                <div class="flex items-center justify-between gap-3">
+                    <label class="form-label mb-0">Physical room inventory</label>
+                    <button type="button" id="add-physical-unit-row" class="btn-secondary py-1.5 px-3 text-xs font-semibold">+ Add Unit</button>
                 </div>
-                <textarea id="add_physical_rooms" name="physical_rooms" class="hidden">{{ old('physical_rooms') }}</textarea>
+                <p class="mt-1 text-xs text-stone-500">Optional. Add individual units with unique codes, or leave empty to auto-create from count below.</p>
+                <div id="add-physical-units-container" class="mt-3 space-y-3">
+                    @foreach (old('physical_rooms', []) as $index => $unit)
+                        @if (! empty($unit['name']) || ! empty($unit['code']))
+                            <div data-physical-unit-row class="grid gap-2 sm:grid-cols-4 items-end border border-stone-200 rounded-lg p-3">
+                                <div>
+                                    <label class="text-xs text-stone-600">Unit name</label>
+                                    <input type="text" name="physical_rooms[{{ $index }}][name]" value="{{ $unit['name'] ?? '' }}" placeholder="e.g. Room 101" class="form-input py-1.5 px-3 text-xs w-full border border-gray-300">
+                                </div>
+                                <div>
+                                    <label class="text-xs text-stone-600">Unit code</label>
+                                    <input type="text" name="physical_rooms[{{ $index }}][code]" value="{{ $unit['code'] ?? '' }}" placeholder="e.g. room-101" class="form-input py-1.5 px-3 text-xs w-full border border-gray-300">
+                                </div>
+                                <div class="flex items-center gap-2 pt-5">
+                                    <label class="flex items-center gap-1 text-sm text-stone-700">
+                                        <input type="checkbox" name="physical_rooms[{{ $index }}][is_available]" value="1" @checked(old("physical_rooms.{$index}.is_available", true)) class="rounded border-stone-300">
+                                        Available
+                                    </label>
+                                </div>
+                                <div class="pt-5 text-right">
+                                    <button type="button" class="remove-unit-row text-xs font-semibold text-red-600 hover:underline">Remove</button>
+                                </div>
+                            </div>
+                        @endif
+                    @endforeach
+                </div>
                 @error('physical_rooms') <p class="form-error">{{ $message }}</p> @enderror
+                @error('physical_rooms.*.name') <p class="form-error">{{ $message }}</p> @enderror
+                @error('physical_rooms.*.code') <p class="form-error">{{ $message }}</p> @enderror
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="add_physical_room_count">Auto-create count</label>
+                <input type="number" id="add_physical_room_count" name="physical_room_count" min="1" max="100" class="form-input border border-gray-300 @error('physical_room_count') error @enderror" value="{{ old('physical_room_count', 1) }}">
+                @error('physical_room_count') <p class="form-error">{{ $message }}</p> @enderror
+                <p class="mt-2 text-xs text-stone-500">Used only when no units are listed above.</p>
             </div>
             <div class="form-group md:col-span-2">
                 <label class="form-label" for="add_room_amenities">Amenities</label>
@@ -214,26 +224,16 @@
                 <p class="mt-2 text-xs text-stone-500">Separate amenities with commas.</p>
             </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label">Room images source</label>
-                <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
-                    <button type="button" id="add-room-toggle-upload" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload files</button>
-                    <button type="button" id="add-room-toggle-link" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URLs</button>
-                </div>
-            </div>
-
-            <div id="add-room-upload-section" class="form-group md:col-span-2">
-                <label class="form-label" for="add_room_images">Upload images</label>
-                <input type="file" id="add_room_images" name="images[]" class="form-input @error('images') error @enderror @error('images.*') error @enderror" accept="image/*" multiple>
+                @include('partials.image-input-toggle', [
+                    'prefix' => 'add_room_image',
+                    'fileId' => 'add_room_images',
+                    'urlId' => 'add_room_image_url',
+                    'fileName' => 'images[]',
+                    'multiple' => true,
+                    'label' => 'Room images',
+                ])
                 <div id="add-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                @error('images') <p class="form-error">{{ $message }}</p> @enderror
-                @error('images.*') <p class="form-error">{{ $message }}</p> @enderror
-            </div>
-
-            <div id="add-room-link-section" class="form-group md:col-span-2 hidden">
-                <label class="form-label" for="add_room_image_links">Image URLs</label>
-                <textarea id="add_room_image_links" name="image_links" rows="4" class="form-input @error('image_links') error @enderror" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg&#10;https://example.com/image2.jpg">{{ old('image_links') }}</textarea>
                 <div id="add-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                @error('image_links') <p class="form-error">{{ $message }}</p> @enderror
             </div>
         </div>
 
@@ -310,20 +310,15 @@
                 </div>
             </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label">Add more room images source</label>
-                <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
-                    <button type="button" id="edit-room-toggle-upload" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload files</button>
-                    <button type="button" id="edit-room-toggle-link" class="px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URLs</button>
-                </div>
-            </div>
-            <div id="edit-room-upload-section" class="form-group md:col-span-2">
-                <label class="form-label" for="edit_room_images">Upload new images</label>
-                <input type="file" id="edit_room_images" name="images[]" class="form-input" accept="image/*" multiple>
+                @include('partials.image-input-toggle', [
+                    'prefix' => 'edit_room_image',
+                    'fileId' => 'edit_room_images',
+                    'urlId' => 'edit_room_image_url',
+                    'fileName' => 'images[]',
+                    'multiple' => true,
+                    'label' => 'Add more room images',
+                ])
                 <div id="edit-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-            </div>
-            <div id="edit-room-link-section" class="form-group md:col-span-2 hidden">
-                <label class="form-label" for="edit_room_image_links">New image URLs</label>
-                <textarea id="edit_room_image_links" name="image_links" rows="3" class="form-input" placeholder="Enter image URLs, one per line&#10;https://example.com/image1.jpg"></textarea>
                 <div id="edit-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
             </div>
         </div>
@@ -532,9 +527,9 @@
             };
         };
 
-        // Setup image input toggle for a modal
+        // Setup image input toggle for edit modal (legacy helper)
         const setupImageToggle = (toggleUploadBtn, toggleLinkBtn, uploadSection, linkSection, fileInput, textareaInput) => {
-            let activeMode = 'upload'; // default
+            let activeMode = 'upload';
 
             const setMode = (mode) => {
                 activeMode = mode;
@@ -552,7 +547,7 @@
             };
 
             toggleUploadBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('upload'); });
-            toggleLinkBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('link'); });
+            toggleLinkBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('url'); });
 
             return {
                 getMode: () => activeMode,
@@ -566,16 +561,15 @@
             };
         };
 
-        // --- Add Room Form Setup ---
+        // Remove pre-rendered physical unit rows in add modal
+        document.getElementById('add-physical-units-container')?.addEventListener('click', (e) => {
+            if (e.target.classList.contains('remove-unit-row')) {
+                e.preventDefault();
+                e.target.closest('[data-physical-unit-row]')?.remove();
+            }
+        });
+
         const addForm = document.getElementById('add-room-form');
-        const addPhysicalTableBody = document.getElementById('add-physical-rooms-table-body');
-        const addPhysicalAddRowBtn = document.getElementById('add-physical-rooms-add-row');
-        const addPhysicalTextarea = document.getElementById('add_physical_rooms');
-
-        if (addForm && addPhysicalTableBody && addPhysicalAddRowBtn && addPhysicalTextarea) {
-            setupPhysicalRoomsTable(addPhysicalTableBody, addPhysicalAddRowBtn, addPhysicalTextarea, []);
-        }
-
         const addImagesInput = document.getElementById('add_room_images');
         const addPreview = document.getElementById('add-room-upload-preview');
         if (addImagesInput && addPreview) {
@@ -589,7 +583,7 @@
             });
         }
 
-        const addImageLinksInput = document.getElementById('add_room_image_links');
+        const addImageLinksInput = addForm?.querySelector('textarea[name="image_links"]');
         const addImageLinkPreview = document.getElementById('add-room-link-preview');
         if (addImageLinksInput && addImageLinkPreview) {
             addImageLinksInput.addEventListener('input', () => {
@@ -601,25 +595,20 @@
             });
         }
 
-        const addRoomToggleUpload = document.getElementById('add-room-toggle-upload');
-        const addRoomToggleLink = document.getElementById('add-room-toggle-link');
-        const addRoomUploadSection = document.getElementById('add-room-upload-section');
-        const addRoomLinkSection = document.getElementById('add-room-link-section');
-
-        let addRoomImageToggle = null;
-        if (addRoomToggleUpload && addRoomToggleLink && addRoomUploadSection && addRoomLinkSection && addImagesInput && addImageLinksInput) {
-            addRoomImageToggle = setupImageToggle(addRoomToggleUpload, addRoomToggleLink, addRoomUploadSection, addRoomLinkSection, addImagesInput, addImageLinksInput);
-        }
-
         if (addForm) {
             addForm.addEventListener('submit', (e) => {
-                if (addRoomImageToggle) {
-                    addRoomImageToggle.sanitize();
+                const mode = addForm.querySelector('.image-input-mode')?.value || 'upload';
+                const fileInput = addForm.querySelector('input[type="file"][name="images[]"]');
+                const linksInput = addForm.querySelector('textarea[name="image_links"]');
+
+                if (mode === 'upload' && linksInput) {
+                    linksInput.value = '';
+                } else if (mode === 'url' && fileInput) {
+                    fileInput.value = '';
                 }
-                if (addImagesInput && addImagesInput.files.length > 0) {
-                    if (!validateFiles(addImagesInput.files)) {
-                        e.preventDefault();
-                    }
+
+                if (fileInput?.files?.length > 0 && !validateFiles(fileInput.files)) {
+                    e.preventDefault();
                 }
             });
         }
@@ -633,17 +622,7 @@
         const uploadPreviewContainer = document.getElementById('edit-room-upload-preview');
         const linkPreviewContainer = document.getElementById('edit-room-link-preview');
         const editImagesInput = document.getElementById('edit_room_images');
-        const editImageLinksInput = document.getElementById('edit_room_image_links');
-
-        const editRoomToggleUpload = document.getElementById('edit-room-toggle-upload');
-        const editRoomToggleLink = document.getElementById('edit-room-toggle-link');
-        const editRoomUploadSection = document.getElementById('edit-room-upload-section');
-        const editRoomLinkSection = document.getElementById('edit-room-link-section');
-
-        let editRoomImageToggle = null;
-        if (editRoomToggleUpload && editRoomToggleLink && editRoomUploadSection && editRoomLinkSection && editImagesInput && editImageLinksInput) {
-            editRoomImageToggle = setupImageToggle(editRoomToggleUpload, editRoomToggleLink, editRoomUploadSection, editRoomLinkSection, editImagesInput, editImageLinksInput);
-        }
+        const editImageLinksInput = editForm?.querySelector('textarea[name="image_links"]');
 
         const fields = {
             name: document.getElementById('edit_room_name'),
@@ -664,7 +643,6 @@
                 fields.price.value = button.dataset.roomPrice || '';
                 fields.status.value = button.dataset.roomStatus || 'available';
 
-                // Populate physical rooms inventory table builder
                 try {
                     const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
                     setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, physicalRooms);
@@ -702,6 +680,11 @@
                 if (linkPreviewContainer) {
                     linkPreviewContainer.innerHTML = '';
                 }
+
+                const editModal = document.getElementById('edit-room-modal');
+                if (typeof window.initImageInputToggles === 'function') {
+                    window.initImageInputToggles(editModal);
+                }
             });
         });
 
@@ -728,16 +711,22 @@
 
         if (editForm) {
             editForm.addEventListener('submit', (e) => {
-                if (editRoomImageToggle) {
-                    editRoomImageToggle.sanitize();
+                const mode = editForm.querySelector('.image-input-mode')?.value || 'upload';
+                const fileInput = editForm.querySelector('input[type="file"][name="images[]"]');
+                const linksInput = editForm.querySelector('textarea[name="image_links"]');
+
+                if (mode === 'upload' && linksInput) {
+                    linksInput.value = '';
+                } else if (mode === 'url' && fileInput) {
+                    fileInput.value = '';
                 }
-                if (editImagesInput && editImagesInput.files.length > 0) {
-                    if (!validateFiles(editImagesInput.files)) {
-                        e.preventDefault();
-                    }
+
+                if (fileInput?.files?.length > 0 && !validateFiles(fileInput.files)) {
+                    e.preventDefault();
                 }
             });
         }
     })();
 </script>
+@include('partials.room-type-modal-script')
 @endsection

@@ -23,9 +23,9 @@
                 container.querySelectorAll('.image-mode-btn').forEach((btn) => {
                     const active = btn.getAttribute('data-mode') === mode;
                     btn.classList.toggle('bg-white', active);
-                    btn.classList.toggle('text-gray-900', active);
+                    btn.classList.toggle('text-stone-900', active);
                     btn.classList.toggle('shadow-sm', active);
-                    btn.classList.toggle('text-gray-500', !active);
+                    btn.classList.toggle('text-stone-500', !active);
                 });
 
                 uploadPanel?.classList.toggle('hidden', mode !== 'upload');
@@ -45,6 +45,20 @@
             if (form && !form.getAttribute('data-image-validated')) {
                 form.setAttribute('data-image-validated', '1');
                 form.addEventListener('submit', (e) => {
+                    form.querySelectorAll('[data-image-input]').forEach((toggle) => {
+                        const mode = toggle.querySelector('.image-input-mode')?.value || 'upload';
+                        const fileInput = toggle.querySelector('input[type="file"]');
+                        const urlInput = toggle.querySelector('input[type="url"]');
+                        const linksInput = toggle.querySelector('textarea[name="image_links"]');
+
+                        if (mode === 'upload') {
+                            if (urlInput) urlInput.value = '';
+                            if (linksInput) linksInput.value = '';
+                        } else if (fileInput) {
+                            fileInput.value = '';
+                        }
+                    });
+
                     const toggles = form.querySelectorAll('[data-image-input]');
                     toggles.forEach((toggle) => {
                         const mode = toggle.querySelector('.image-input-mode')?.value || 'upload';
