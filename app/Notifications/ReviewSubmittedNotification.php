@@ -23,7 +23,7 @@ class ReviewSubmittedNotification extends Notification
         return [
             'review_id' => $this->reviewId,
             'message' => "New {$this->rating}-star review submitted by {$this->guestName} for {$this->roomName} is pending approval.",
-            'action_url' => route('admin.dashboard'),
+            'action_url' => route('admin.feedbacks'),
         ];
     }
 }

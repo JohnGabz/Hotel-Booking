@@ -82,7 +82,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/guests', [AdminController::class, 'guests'])->name('guests');
         Route::get('/reports/export', ReportExportController::class)->name('reports.export');
         Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
-        Route::get('/messages', [AdminController::class, 'messages'])->name('messages');
+        Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('feedbacks');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::post('/bookings/walkin', [AdminController::class, 'adminStoreWalkin'])->name('bookings.walkin');
         Route::post('/rooms', [AdminController::class, 'storeRoom'])->name('rooms.store');

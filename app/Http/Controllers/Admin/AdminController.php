@@ -578,12 +578,26 @@ class AdminController extends Controller
         return $query;
     }
 
-    public function messages(): View
+    public function feedbacks(): View
     {
-        return $this->renderAdminPage('messages', [
+        $reviews = Review::with(['user', 'room'])->latest()->get();
+        $pendingFeedbacks = $reviews->where('approved', false);
+        $approvedFeedbacks = $reviews->where('approved', true);
+
+        $totalReviews = $reviews->count();
+        $pendingCount = $pendingFeedbacks->count();
+        $averageRating = $reviews->avg('rating') ?? 0;
+
+        return $this->renderAdminPage('feedbacks', [
+            'reviews' => $reviews,
+            'pendingFeedbacks' => $pendingFeedbacks,
+            'approvedFeedbacks' => $approvedFeedbacks,
+            'totalReviews' => $totalReviews,
+            'pendingCount' => $pendingCount,
+            'averageRating' => round($averageRating, 1),
             'seo' => [
-                'title' => 'Messages — ' . config('app.name'),
-                'description' => 'Manage inquiries with a split conversation and reply layout.',
+                'title' => 'Feedbacks — ' . config('app.name'),
+                'description' => 'Review and manage guest feedback.',
             ],
         ]);
     }
@@ -1215,7 +1229,7 @@ class AdminController extends Controller
 
         $review->update(['approved' => true]);
 
-        return redirect()->route('admin.dashboard')->with('success', 'Review approved successfully.');
+        return redirect()->route('admin.feedbacks')->with('success', 'Review approved successfully.');
     }
 
     public function updatePaymentStatus(Request $request, Booking $booking): RedirectResponse

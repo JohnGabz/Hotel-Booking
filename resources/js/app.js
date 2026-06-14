@@ -819,60 +819,7 @@ document.querySelectorAll('[data-amenity-toggle]').forEach((button) => {
     });
 });
 
-(() => {
-    const title = document.querySelector('[data-conversation-title]');
-    const thread = document.querySelector('[data-conversation-thread]');
-    const replyInput = document.querySelector('[data-quick-reply-input]');
-    const replySend = document.querySelector('[data-quick-reply-send]');
 
-    if (!title || !thread) return;
-
-    const renderMessage = (message) => {
-        const wrapper = document.createElement('div');
-        wrapper.className = `flex ${message.from === 'staff' ? 'justify-end' : 'justify-start'}`;
-
-        const bubble = document.createElement('div');
-        bubble.className = `max-w-xl rounded-[1.5rem] px-4 py-3 text-sm leading-7 ${message.from === 'staff' ? 'bg-brand-primary text-white' : 'bg-stone-100 text-stone-700'}`;
-        bubble.textContent = message.text;
-
-        wrapper.appendChild(bubble);
-        return wrapper;
-    };
-
-    const setThread = (name, messages) => {
-        title.textContent = name;
-        thread.innerHTML = '';
-        messages.forEach((message) => thread.appendChild(renderMessage(message)));
-    };
-
-    document.querySelectorAll('[data-conversation]').forEach((button) => {
-        button.addEventListener('click', () => {
-            let messages = [];
-
-            try {
-                messages = JSON.parse(button.dataset.conversationThread || '[]');
-            } catch {
-                messages = [];
-            }
-
-            document.querySelectorAll('[data-conversation]').forEach((item) => {
-                item.classList.remove('border-brand-primary', 'bg-brand-primary/5');
-            });
-
-            button.classList.add('border-brand-primary', 'bg-brand-primary/5');
-            setThread(button.dataset.conversationName || 'Guest', messages);
-        });
-    });
-
-    replySend?.addEventListener('click', () => {
-        const text = replyInput?.value.trim();
-
-        if (!text) return;
-
-        thread.appendChild(renderMessage({ from: 'staff', text }));
-        replyInput.value = '';
-    });
-})();
 
 const heroBackgroundUpload = document.getElementById('hero_background_upload');
 const heroBackgroundPreview = document.getElementById('hero-background-preview');
