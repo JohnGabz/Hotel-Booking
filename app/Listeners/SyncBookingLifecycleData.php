@@ -20,6 +20,10 @@ class SyncBookingLifecycleData implements ShouldQueue
             return;
         }
 
+        if ($event instanceof BookingConfirmed && $booking->review_token === null) {
+            $booking->generateReviewToken();
+        }
+
         Cache::forget('rooms.available');
         Cache::forget('room.' . $booking->room_id . '.availability');
 

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source'])]
+#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at'])]
 class Booking extends Model
 {
     use HasFactory;
@@ -22,6 +22,7 @@ class Booking extends Model
         'paid_at' => 'datetime',
         'total' => 'decimal:2',
         'source' => 'string',
+        'review_token_used_at' => 'datetime',
     ];
 
     public function getSourceLabelAttribute(): string
@@ -87,12 +88,15 @@ class Booking extends Model
 
     public function confirmPayment(?string $reference = null, ?string $method = null, ?string $provider = null, ?array $payload = null): void
     {
+        $token = $this->review_token ?: \Illuminate\Support\Str::random(48);
+
         $this->forceFill([
             'status' => 'confirmed',
             'payment_status' => 'paid',
             'payment_reference' => $reference ?: $this->payment_reference,
             'payment_method' => $method ?: $this->payment_method,
             'paid_at' => $this->paid_at ?: now(),
+            'review_token' => $token,
         ])->save();
 
         PaymentTransaction::updateOrCreate(
@@ -128,5 +132,21 @@ class Booking extends Model
     public function getTransactionDateAttribute()
     {
         return $this->paid_at ?: $this->updated_at ?: $this->created_at;
+    }
+
+    public function generateReviewToken(): string
+    {
+        $token = \Illuminate\Support\Str::random(48);
+        $this->review_token = $token;
+        $this->save();
+        return $token;
+    }
+
+    public function reviewTokenIsValid(): bool
+    {
+        return !empty($this->review_token)
+            && $this->review_token_used_at === null
+            && $this->status === 'confirmed'
+            && $this->check_out->isPast();
     }
 }

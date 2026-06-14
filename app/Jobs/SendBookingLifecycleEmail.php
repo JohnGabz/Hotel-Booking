@@ -23,13 +23,17 @@ class SendBookingLifecycleEmail implements ShouldQueue
             return;
         }
 
-        $subject = $this->eventName === 'BookingConfirmed'
-            ? 'Your Villa Estella booking is confirmed'
-            : 'Villa Estella reservation received';
-
-        $body = $this->eventName === 'BookingConfirmed'
-            ? "Hi {$booking->contact_name},\n\nYour booking #{$booking->id} for {$booking->room?->name} is confirmed. We look forward to welcoming you."
-            : "Hi {$booking->contact_name},\n\nReservation #{$booking->id} has been received and is pending payment verification.";
+        if ($this->eventName === 'BookingConfirmed') {
+            if (!$booking->review_token) {
+                $booking->generateReviewToken();
+                $booking->refresh();
+            }
+            $subject = 'Your Villa Estella booking is confirmed';
+            $body = "Hi {$booking->contact_name},\n\nYour booking #{$booking->id} for {$booking->room?->name} is confirmed. We look forward to welcoming you.\n\nOnce your stay is complete, you can leave a review here: " . route('reviews.submit-via-token', $booking->review_token);
+        } else {
+            $subject = 'Villa Estella reservation received';
+            $body = "Hi {$booking->contact_name},\n\nReservation #{$booking->id} has been received and is pending payment verification.";
+        }
 
         Mail::raw($body, function ($message) use ($booking, $subject) {
             $message->to($booking->contact_email, $booking->contact_name)

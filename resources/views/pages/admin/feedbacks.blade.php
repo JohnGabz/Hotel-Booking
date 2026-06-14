@@ -71,15 +71,13 @@
     </section>
 
     <!-- Tabs Header -->
-    <div class="border-b border-stone-200">
-        <nav class="flex space-x-8" aria-label="Tabs">
-            <button type="button" id="tab-pending-btn" class="border-b-2 border-brand-primary px-1 pb-4 text-sm font-semibold text-brand-primary" onclick="switchTab('pending')">
-                Pending Approval ({{ $pendingFeedbacks->count() }})
-            </button>
-            <button type="button" id="tab-approved-btn" class="border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700" onclick="switchTab('approved')">
-                Approved ({{ $approvedFeedbacks->count() }})
-            </button>
-        </nav>
+    <div class="flex flex-wrap gap-3" role="tablist" aria-label="Feedback moderation tabs">
+        <button type="button" id="tab-pending-btn" class="btn-primary" onclick="switchTab('pending')">
+            Pending Approval ({{ $pendingFeedbacks->count() }})
+        </button>
+        <button type="button" id="tab-approved-btn" class="btn-secondary" onclick="switchTab('approved')">
+            Approved ({{ $approvedFeedbacks->count() }})
+        </button>
     </div>
 
     <!-- Tab Contents -->
@@ -203,16 +201,16 @@
 
         if (tab === 'pending') {
             // Update buttons
-            pendingBtn.className = 'border-b-2 border-brand-primary px-1 pb-4 text-sm font-semibold text-brand-primary';
-            approvedBtn.className = 'border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700';
+            pendingBtn.className = 'btn-primary';
+            approvedBtn.className = 'btn-secondary';
             
             // Show/Hide content
             pendingContent.classList.remove('hidden');
             approvedContent.classList.add('hidden');
         } else if (tab === 'approved') {
             // Update buttons
-            pendingBtn.className = 'border-b-2 border-transparent px-1 pb-4 text-sm font-medium text-stone-500 hover:border-stone-300 hover:text-stone-700';
-            approvedBtn.className = 'border-b-2 border-brand-primary px-1 pb-4 text-sm font-semibold text-brand-primary';
+            pendingBtn.className = 'btn-secondary';
+            approvedBtn.className = 'btn-primary';
             
             // Show/Hide content
             pendingContent.classList.add('hidden');
