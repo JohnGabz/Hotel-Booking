@@ -22,7 +22,7 @@ class ImageStorage
 
         Storage::disk($disk)->makeDirectory($directory);
 
-        $path = $image->storePublicly($directory, $disk);
+        $path = $image->store($directory, $disk);
 
         if (! is_string($path) || ! Storage::disk($disk)->exists($path)) {
             Log::error('Image upload failed after storage write', [
