@@ -354,8 +354,8 @@
 </section>
 
 <!-- Booking Modal -->
-<div id="booking-modal" class="hidden fixed inset-0 z-50 items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" tabindex="-1">
-    <div class="modal-panel max-w-2xl safe-scroll">
+<div id="booking-modal" class="hidden fixed inset-0 z-50 overflow-y-auto items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" tabindex="-1">
+    <div class="modal-panel max-w-2xl safe-scroll relative z-10 mt-auto sm:my-auto">
         <div class="sticky top-0 flex items-center justify-between border-b border-stone-200 bg-white px-6 py-5 sm:px-8">
             <h2 id="booking-modal-title" class="text-2xl font-semibold text-stone-950">Confirm your booking</h2>
             <button type="button" id="close-booking-modal" class="btn-icon text-stone-500" aria-label="Close booking form">

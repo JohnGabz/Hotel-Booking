@@ -709,7 +709,7 @@
     .scroll-animate-stagger > :nth-child(6) { animation-delay: 0.6s; }
 
     .modal-panel {
-        @apply fixed inset-x-0 bottom-0 max-h-[92dvh] w-full overflow-y-auto rounded-t-lg bg-white shadow-2xl sm:relative sm:inset-auto sm:max-h-[90vh] sm:rounded-lg;
+        @apply relative w-full rounded-t-lg bg-white shadow-2xl sm:rounded-lg;
     }
 
     .mobile-card-table {
@@ -746,8 +746,8 @@
         overscroll-behavior: contain;
         /* Make modal panels scrollable within the viewport so content can be accessed
            when body scroll is locked (e.g. while a modal is open). */
-        max-height: calc(100vh - 96px);
-        overflow-y: auto;
+        max-height: none;
+        overflow-y: visible;
         touch-action: pan-y;
     }
 }
