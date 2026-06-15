@@ -79,10 +79,11 @@
                 <a href="#top" class="btn-secondary">Back to top</a>
             </div>
 
-            @foreach ($landingSections as $section)
-                <x-admin.landing-edit-modal :section="$section" />
-            @endforeach
         </section>
+
+        @foreach ($landingSections as $section)
+            <x-admin.landing-edit-modal :section="$section" />
+        @endforeach
     @else
         <section class="surface p-6 sm:p-8">
             <h2 class="text-3xl font-semibold text-stone-950">Preferences</h2>
