@@ -1,30 +1,45 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
-use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('bookings', function (Blueprint $table) {
-            $table->smallInteger('with_breakfast')->default(0)->change();
-        });
+        DB::statement('
+            ALTER TABLE bookings
+            ALTER COLUMN with_breakfast TYPE smallint
+            USING (CASE WHEN with_breakfast THEN 1 ELSE 0 END)
+        ');
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET DEFAULT 0');
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET NOT NULL');
 
-        Schema::table('reviews', function (Blueprint $table) {
-            $table->smallInteger('approved')->default(0)->change();
-        });
+        DB::statement('
+            ALTER TABLE reviews
+            ALTER COLUMN approved TYPE smallint
+            USING (CASE WHEN approved THEN 1 ELSE 0 END)
+        ');
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved SET DEFAULT 0');
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved SET NOT NULL');
     }
 
     public function down(): void
     {
-        Schema::table('bookings', function (Blueprint $table) {
-            $table->boolean('with_breakfast')->default(false)->change();
-        });
+        DB::statement('
+            ALTER TABLE bookings
+            ALTER COLUMN with_breakfast TYPE boolean
+            USING (with_breakfast::int::boolean)
+        ');
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET DEFAULT false');
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET NOT NULL');
 
-        Schema::table('reviews', function (Blueprint $table) {
-            $table->boolean('approved')->default(false)->change();
-        });
+        DB::statement('
+            ALTER TABLE reviews
+            ALTER COLUMN approved TYPE boolean
+            USING (approved::int::boolean)
+        ');
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved SET DEFAULT false');
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved SET NOT NULL');
     }
 };
