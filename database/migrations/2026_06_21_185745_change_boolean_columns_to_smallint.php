@@ -7,6 +7,9 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // Drop the boolean default first -- Postgres can't auto-cast
+        // an existing `false`/`true` default to smallint.
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast DROP DEFAULT');
         DB::statement('
             ALTER TABLE bookings
             ALTER COLUMN with_breakfast TYPE smallint
@@ -15,6 +18,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET DEFAULT 0');
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET NOT NULL');
 
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved DROP DEFAULT');
         DB::statement('
             ALTER TABLE reviews
             ALTER COLUMN approved TYPE smallint
@@ -26,6 +30,7 @@ return new class extends Migration
 
     public function down(): void
     {
+        DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast DROP DEFAULT');
         DB::statement('
             ALTER TABLE bookings
             ALTER COLUMN with_breakfast TYPE boolean
@@ -34,6 +39,7 @@ return new class extends Migration
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET DEFAULT false');
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast SET NOT NULL');
 
+        DB::statement('ALTER TABLE reviews ALTER COLUMN approved DROP DEFAULT');
         DB::statement('
             ALTER TABLE reviews
             ALTER COLUMN approved TYPE boolean
