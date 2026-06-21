@@ -863,7 +863,7 @@ class AdminController extends Controller
                 ->latest()
                 ->take(12)
                 ->get(),
-            'reviews' => Review::whereRaw('"approved" = false')->with(['user', 'room'])->latest()->get(),
+            'reviews' => Review::where('"approved" = false')->with(['user', 'room'])->latest()->get(),
             'users' => User::with(['bookings.room'])->latest()->take(10)->get(),
             'siteContent' => $siteContent,
             'bookingsCount' => Booking::count(),
