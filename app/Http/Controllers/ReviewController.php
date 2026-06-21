@@ -26,7 +26,7 @@ class ReviewController extends Controller
 
         $hasBooking = Booking::where('user_id', Auth::id())
             ->where('room_id', $room->id)
-            ->where('status', 'confirmed')
+            ->whereIn('status', ['confirmed', 'Confirmed'])
             ->whereDate('check_out', '<', now())
             ->exists();
 
@@ -39,7 +39,7 @@ class ReviewController extends Controller
             'room_id' => $room->id,
             'booking_id' => Booking::where('user_id', Auth::id())
                 ->where('room_id', $room->id)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['confirmed', 'Confirmed'])
                 ->latest('check_out')
                 ->value('id'),
             'rating' => $request->rating,

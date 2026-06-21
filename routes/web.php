@@ -28,7 +28,8 @@ Route::get('/rooms/{room:slug}', [RoomController::class, 'show'])->name('rooms.s
 Route::get('/rooms/{room:slug}/availability', [RoomController::class, 'availability'])->name('rooms.availability');
 Route::get('/bookings/search', [BookingController::class, 'search'])->name('bookings.search');
 Route::post('/rooms/{room:slug}/book', [BookingController::class, 'store'])->name('bookings.store');
- 
+Route::get('/bookings/{booking}/success', [BookingController::class, 'success'])->name('bookings.success')->middleware('signed');
+Route::get('/bookings/{booking}/status', [BookingController::class, 'statusApi'])->name('bookings.status-api');
 
 Route::middleware('guest')->group(function () {
     Route::get('/login', [AuthController::class, 'showLoginForm'])->name('login');

@@ -70,7 +70,7 @@ class PaymentController extends Controller
                 || str_contains(Str::lower($eventType), 'paid');
 
             if ($isPaid) {
-                $alreadyConfirmed = $booking->payment_status === 'paid' && $booking->status === 'confirmed';
+                $alreadyConfirmed = $booking->payment_status === 'paid' && in_array($booking->status, ['confirmed', 'Confirmed'], true);
                 $booking->confirmPayment($paymentReference, $paymentMethod, $provider, $payload);
                 $webhookEvent->update(['processed_at' => now()]);
 
@@ -80,7 +80,11 @@ class PaymentController extends Controller
             $paymentEvent = null;
 
             if (in_array($status, ['failed', 'expired', 'voided'], true)) {
-                $booking->update(['payment_status' => 'failed']);
+                $bookingStatus = $status === 'expired' ? 'Payment Expired' : 'Payment Failed';
+                $booking->update([
+                    'status' => $bookingStatus,
+                    'payment_status' => 'failed',
+                ]);
                 $paymentEvent = $status === 'expired' ? 'expired' : 'failed';
             }
 

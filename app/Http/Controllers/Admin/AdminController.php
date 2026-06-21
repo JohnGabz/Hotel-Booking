@@ -107,7 +107,7 @@ class AdminController extends Controller
         $base = [
             'rooms' => Room::with(['physicalRooms' => fn ($query) => $query->orderBy('id')])->withCount('physicalRooms')->latest()->get(),
             'bookingsCount' => Booking::count(),
-            'confirmedCount' => Booking::where('status', 'confirmed')->count(),
+            'confirmedCount' => Booking::whereIn('status', ['confirmed', 'Confirmed'])->count(),
             'availableRooms' => Room::available()->count(),
             'totalRevenue' => Booking::sum('total'),
             'physicalRoomCount' => PhysicalRoom::count(),
@@ -139,7 +139,9 @@ class AdminController extends Controller
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
         $filteredBookings = Booking::with(['room', 'physicalRoom', 'user'])
-            ->when(in_array($status, ['confirmed', 'pending', 'cancelled'], true), fn ($query) => $query->where('status', $status))
+            ->when($status === 'confirmed', fn ($query) => $query->whereIn('status', ['confirmed', 'Confirmed']))
+            ->when($status === 'pending', fn ($query) => $query->whereIn('status', ['pending', 'Pending Payment']))
+            ->when($status === 'cancelled', fn ($query) => $query->whereIn('status', ['cancelled', 'Payment Failed', 'Payment Expired']))
             ->when($roomFilter !== 'all' && $roomFilter !== null, fn ($query) => $query->where('room_id', $roomFilter))
             ->when($dateFrom, fn ($query) => $query->whereDate('check_in', '>=', $dateFrom))
             ->when($dateTo, fn ($query) => $query->whereDate('check_out', '<=', $dateTo))
@@ -176,8 +178,6 @@ class AdminController extends Controller
             'contact_phone' => 'required|string|max:80',
             'guests' => 'required|integer|min:1|max:20',
             'payment_method' => 'required|in:gcash,landbank,cash,bank_transfer',
-            'payment_proof' => 'nullable|image|max:5120',
-            'payment_proof_link' => 'nullable|string|max:2048',
             'status' => 'nullable|in:pending,confirmed,for_verification',
             'notes' => 'nullable|string|max:2000',
             'with_breakfast' => 'nullable|boolean',
@@ -203,15 +203,13 @@ class AdminController extends Controller
                 ]);
             }
 
-            $proofPath = null;
-            if ($request->hasFile('payment_proof')) {
-                $proofPath = $this->storePublicImage($request->file('payment_proof'), 'payment-proofs');
-            } elseif ($request->filled('payment_proof_link')) {
-                $proofPath = $request->input('payment_proof_link');
-            }
-
-            $status = $validated['status'] ?? 'pending';
-            $paymentStatus = $status === 'confirmed' ? 'paid' : 'for_verification';
+            $inputStatus = $validated['status'] ?? 'pending';
+            $status = match ($inputStatus) {
+                'confirmed' => 'Confirmed',
+                'pending' => 'Pending Payment',
+                default => $inputStatus,
+            };
+            $paymentStatus = $status === 'Confirmed' ? 'paid' : ($status === 'for_verification' ? 'for_verification' : 'pending');
             $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
             $nights = max(1, $nights);
 
@@ -232,7 +230,7 @@ class AdminController extends Controller
                 'contact_phone' => $validated['contact_phone'],
                 'status' => $status,
                 'payment_method' => $validated['payment_method'],
-                'payment_proof_path' => $proofPath,
+                'payment_proof_path' => null,
                 'payment_status' => $paymentStatus,
                 'paid_at' => $paymentStatus === 'paid' ? now() : null,
                 'total' => $total,
@@ -249,24 +247,9 @@ class AdminController extends Controller
 
             if ($paymentStatus === 'paid') {
                 $booking->confirmPayment('walkin-'.$booking->id, $booking->payment_method, 'manual', [
-                    'proof_path' => $proofPath,
+                    'proof_path' => null,
                     'source' => 'admin_walkin',
                 ]);
-            } elseif ($proofPath) {
-                PaymentTransaction::updateOrCreate(
-                    [
-                        'booking_id' => $booking->id,
-                        'transaction_id' => 'walkin-'.$booking->id,
-                    ],
-                    [
-                        'provider' => 'manual',
-                        'amount' => $booking->total,
-                        'status' => 'pending',
-                        'payment_method' => $booking->payment_method,
-                        'payload' => ['proof_path' => $proofPath, 'source' => 'admin_walkin'],
-                        'processed_at' => null,
-                    ]
-                );
             }
 
             return $booking;
@@ -880,15 +863,15 @@ class AdminController extends Controller
                 ->latest()
                 ->take(12)
                 ->get(),
-            'reviews' => Review::where('approved', false)->with(['user', 'room'])->latest()->get(),
+            'reviews' => Review::whereRaw('"approved" = false')->with(['user', 'room'])->latest()->get(),
             'users' => User::with(['bookings.room'])->latest()->take(10)->get(),
             'siteContent' => $siteContent,
             'bookingsCount' => Booking::count(),
-            'confirmedCount' => Booking::where('status', 'confirmed')->count(),
+            'confirmedCount' => Booking::whereIn('status', ['confirmed', 'Confirmed'])->count(),
             'reviewsCount' => Review::count(),
             'availableRooms' => Room::available()->count(),
             'totalRevenue' => Booking::sum('total'),
-            'occupancyRate' => Booking::count() > 0 ? round((Booking::where('status', 'confirmed')->count() / Booking::count()) * 100) : 0,
+            'occupancyRate' => Booking::count() > 0 ? round((Booking::whereIn('status', ['confirmed', 'Confirmed'])->count() / Booking::count()) * 100) : 0,
             'seo' => [
                 'title' => 'Admin — '.config('app.name'),
                 'description' => 'Staff management and reporting for Villa Estella.',

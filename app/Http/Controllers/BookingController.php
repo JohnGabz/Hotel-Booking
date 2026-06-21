@@ -69,7 +69,7 @@ class BookingController extends Controller
                 'contact_name' => $validated['contact_name'],
                 'contact_email' => $validated['contact_email'],
                 'contact_phone' => $validated['contact_phone'],
-                'status' => 'pending',
+                'status' => 'Pending Payment',
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'total' => $total,
@@ -111,8 +111,27 @@ class BookingController extends Controller
             ]);
         }
 
-        return redirect('/rooms/'.$room->slug)
-            ->with('success', 'Reservation received - pending payment verification.');
+        try {
+            $paymentController = new \App\Http\Controllers\PaymentController();
+            $checkoutUrl = $paymentController->getOrCreateCheckoutUrl($booking);
+        } catch (Throwable $e) {
+            Log::error('Public booking Xendit session creation failed, deleting booking', [
+                'booking_id' => $booking->id,
+                'error' => $e->getMessage(),
+            ]);
+            $booking->delete();
+
+            if ($request->expectsJson()) {
+                return response()->json(['errors' => ['payment' => [$e->getMessage()]]], 422);
+            }
+            return back()->with('error', $e->getMessage());
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(['success' => true, 'checkout_url' => $checkoutUrl]);
+        }
+
+        return redirect()->away($checkoutUrl);
     }
 
     public function uploadPaymentProof(Request $request, Booking $booking): RedirectResponse
@@ -227,6 +246,26 @@ class BookingController extends Controller
                 'title' => 'Search Results — '.config('app.name'),
                 'description' => 'Available rooms for your selected dates.',
             ],
+        ]);
+    }
+
+    public function success(Request $request, Booking $booking): View
+    {
+        $booking->loadMissing('room');
+
+        return view('pages.bookings.success', compact('booking'), [
+            'seo' => [
+                'title' => 'Booking Confirmed — '.config('app.name'),
+                'description' => 'Your booking details and confirmation status.',
+            ],
+        ]);
+    }
+
+    public function statusApi(Booking $booking): JsonResponse
+    {
+        return response()->json([
+            'status' => $booking->status,
+            'payment_status' => $booking->payment_status,
         ]);
     }
 }

@@ -41,7 +41,7 @@ class RoomController extends Controller
         if (Auth::check()) {
             $canReview = Booking::where('user_id', Auth::id())
                 ->where('room_id', $room->id)
-                ->where('status', 'confirmed')
+                ->whereIn('status', ['confirmed', 'Confirmed'])
                 ->whereDate('check_out', '<', now())
                 ->exists();
         }

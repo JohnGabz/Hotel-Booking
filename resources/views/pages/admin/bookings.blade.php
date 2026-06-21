@@ -310,24 +310,6 @@
             </label>
         </div>
 
-        <div class="form-group md:col-span-2">
-            <label class="form-label">Payment proof source</label>
-            <div class="mt-2 inline-flex rounded-lg p-1 bg-stone-100">
-                <button type="button" id="walkin-toggle-upload" class="walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm">Upload file</button>
-                <button type="button" id="walkin-toggle-link" class="walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900">Paste URL</button>
-            </div>
-            <input type="hidden" id="walkin_payment_proof_mode" name="payment_proof_mode" value="upload">
-        </div>
-
-        <div id="walkin-upload-section" class="form-group">
-            <label class="form-label" for="walkin_payment_proof">Payment proof image file</label>
-            <input id="walkin_payment_proof" name="payment_proof" type="file" accept="image/*" class="form-input">
-        </div>
-
-        <div id="walkin-link-section" class="form-group hidden">
-            <label class="form-label" for="walkin_payment_proof_link">Payment proof image URL</label>
-            <input id="walkin_payment_proof_link" name="payment_proof_link" type="url" class="form-input" placeholder="https://example.com/proof.jpg">
-        </div>
 
         <div class="form-group">
             <label class="form-label" for="walkin_notes">Notes</label>
@@ -351,30 +333,7 @@
         const roomSelect = document.getElementById('walkin_room_id');
         const openButtons = document.querySelectorAll('[data-modal-open="walkin-booking-modal"]');
 
-        // Walk-in Image Toggle Logic
-        const toggleUploadBtn = document.getElementById('walkin-toggle-upload');
-        const toggleLinkBtn = document.getElementById('walkin-toggle-link');
-        const uploadSection = document.getElementById('walkin-upload-section');
-        const linkSection = document.getElementById('walkin-link-section');
-        const proofModeInput = document.getElementById('walkin_payment_proof_mode');
 
-        if (toggleUploadBtn && toggleLinkBtn && uploadSection && linkSection && proofModeInput) {
-            toggleUploadBtn.addEventListener('click', () => {
-                toggleUploadBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
-                toggleLinkBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
-                uploadSection.classList.remove('hidden');
-                linkSection.classList.add('hidden');
-                proofModeInput.value = 'upload';
-            });
-
-            toggleLinkBtn.addEventListener('click', () => {
-                toggleUploadBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
-                toggleLinkBtn.className = 'walkin-toggle-btn px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
-                uploadSection.classList.add('hidden');
-                linkSection.classList.remove('hidden');
-                proofModeInput.value = 'link';
-            });
-        }
 
         if (!form || !errors || !checkIn || !checkOut) return;
 
@@ -436,14 +395,6 @@
                 return;
             }
 
-            // Clear values of hidden input modes before submission
-            if (proofModeInput && proofModeInput.value === 'upload') {
-                const linkInput = document.getElementById('walkin_payment_proof_link');
-                if (linkInput) linkInput.value = '';
-            } else if (proofModeInput) {
-                const fileInput = document.getElementById('walkin_payment_proof');
-                if (fileInput) fileInput.value = '';
-            }
 
             submit?.setAttribute('disabled', 'disabled');
             submit?.classList.add('opacity-70');

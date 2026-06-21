@@ -14,7 +14,7 @@ class Booking extends Model
 {
     use HasFactory;
 
-    public const BLOCKING_STATUSES = ['pending', 'for_verification', 'confirmed'];
+    public const BLOCKING_STATUSES = ['pending', 'Pending Payment', 'for_verification', 'confirmed', 'Confirmed'];
 
     public const SOURCE_ONLINE = 'online';
 
@@ -104,7 +104,7 @@ class Booking extends Model
         $token = $this->review_token ?: Str::random(48);
 
         $this->forceFill([
-            'status' => 'confirmed',
+            'status' => 'Confirmed',
             'payment_status' => 'paid',
             'payment_reference' => $reference ?: $this->payment_reference,
             'payment_method' => $method ?: $this->payment_method,
@@ -160,7 +160,7 @@ class Booking extends Model
     {
         return ! empty($this->review_token)
             && $this->review_token_used_at === null
-            && $this->status === 'confirmed'
+            && in_array($this->status, ['confirmed', 'Confirmed'], true)
             && $this->check_out->isPast();
     }
 }

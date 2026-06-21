@@ -357,6 +357,12 @@
 <!-- Booking Modal -->
 <div id="booking-modal" class="hidden fixed inset-0 z-50 overflow-y-auto items-end justify-center bg-black/40 p-0 sm:items-center sm:p-4" hidden aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="booking-modal-title" tabindex="-1">
     <div class="modal-panel max-w-2xl safe-scroll relative z-10 mt-auto sm:my-auto">
+        <!-- Processing Overlay -->
+        <div id="booking-loading-overlay" class="hidden absolute inset-0 z-50 flex flex-col items-center justify-center bg-white/95 p-6 text-center">
+            <div class="h-12 w-12 animate-spin rounded-full border-4 border-stone-200 border-t-[#B6424F]"></div>
+            <h3 id="loading-overlay-title" class="mt-6 text-lg font-semibold text-stone-900">Processing your booking...</h3>
+            <p id="loading-overlay-desc" class="mt-2 text-sm text-stone-500 max-w-sm">We are creating your reservation and redirecting you to Xendit's secure payment checkout. Please do not close or refresh this page.</p>
+        </div>
         <div class="sticky top-0 flex items-center justify-between border-b border-stone-200 bg-white px-6 py-5 sm:px-8">
             <h2 id="booking-modal-title" class="text-2xl font-semibold text-stone-950">Confirm your booking</h2>
             <button type="button" id="close-booking-modal" class="btn-icon text-stone-500" aria-label="Close booking form">
@@ -589,6 +595,60 @@
                 calculateBreakdown();
             }
         };
+
+        // AJAX form submit with loading overlay
+        const bookingForm = document.getElementById('booking-form');
+        const loadingOverlay = document.getElementById('booking-loading-overlay');
+        const loadingTitle = document.getElementById('loading-overlay-title');
+        const loadingDesc = document.getElementById('loading-overlay-desc');
+
+        if (bookingForm && loadingOverlay) {
+            bookingForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+
+                // Clear previous errors
+                banner.classList.add('hidden');
+
+                // Show loading overlay
+                loadingOverlay.classList.remove('hidden');
+                if (loadingTitle) loadingTitle.textContent = "Processing your booking...";
+                if (loadingDesc) loadingDesc.textContent = "We are creating your reservation and setting up your secure checkout session. Please do not close this window.";
+
+                const formData = new FormData(bookingForm);
+
+                try {
+                    const response = await fetch(bookingForm.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                        }
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        loadingOverlay.classList.add('hidden');
+                        const errors = data.errors ? Object.values(data.errors).flat() : [data.message || 'An error occurred. Please try again.'];
+                        renderBanner(false, errors.join(' '));
+                        return;
+                    }
+
+                    if (data.checkout_url) {
+                        if (loadingTitle) loadingTitle.textContent = "Redirecting to payment...";
+                        if (loadingDesc) loadingDesc.textContent = "We are transferring you to Xendit's secure payment gateway. Please wait...";
+                        window.location.href = data.checkout_url;
+                    } else {
+                        window.location.reload();
+                    }
+                } catch (err) {
+                    loadingOverlay.classList.add('hidden');
+                    renderBanner(false, 'Unable to connect. Please check your internet connection and try again.');
+                }
+            });
+        }
 
         // Run initially
         calculateBreakdown();
