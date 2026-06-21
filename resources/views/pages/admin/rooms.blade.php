@@ -232,8 +232,8 @@
                     'multiple' => true,
                     'label' => 'Room images',
                 ])
-                <div id="add-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <div id="add-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                <input type="hidden" name="image_order" id="add_room_image_order" value="[]">
+                <div id="add-room-images-preview" class="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 select-none"></div>
             </div>
         </div>
 
@@ -304,22 +304,16 @@
                 <p class="mt-2 text-xs text-stone-500">Separate amenities with commas.</p>
             </div>
             <div class="form-group md:col-span-2">
-                <label class="form-label">Current room images</label>
-                <div id="edit-room-current-images" class="mt-2 grid gap-3 sm:grid-cols-3">
-                    <!-- JS will populate current images -->
-                </div>
-            </div>
-            <div class="form-group md:col-span-2">
                 @include('partials.image-input-toggle', [
                     'prefix' => 'edit_room_image',
                     'fileId' => 'edit_room_images',
                     'urlId' => 'edit_room_image_url',
                     'fileName' => 'images[]',
                     'multiple' => true,
-                    'label' => 'Add more room images',
+                    'label' => 'Room images',
                 ])
-                <div id="edit-room-upload-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
-                <div id="edit-room-link-preview" class="mt-3 grid gap-3 sm:grid-cols-3"></div>
+                <input type="hidden" name="image_order" id="edit_room_image_order" value="[]">
+                <div id="edit-room-images-preview" class="mt-4 grid gap-3 grid-cols-2 sm:grid-cols-3 select-none"></div>
             </div>
         </div>
 
@@ -336,81 +330,10 @@
             if (!path) return '';
             if (path.startsWith('http') || path.startsWith('data:')) return path;
 
-            const normalized = path.replace(/^\\/+/, '').replace(/^storage\\//, '');
+            const normalized = path.replace(/^\/+/, '').replace(/^storage\//, '');
             const uploadBaseUrl = @json($uploadUrlBase);
 
             return `${uploadBaseUrl}/${normalized}`;
-        };
-
-        const createImageFigure = (src, alt = 'Room image') => {
-            const figure = document.createElement('figure');
-            figure.className = 'overflow-hidden rounded-2xl border border-stone-200 bg-stone-50';
-
-            const img = document.createElement('img');
-            img.src = src;
-            img.alt = alt;
-            img.className = 'h-28 w-full object-cover';
-
-            figure.appendChild(img);
-
-            return figure;
-        };
-
-        const renderFilePreviews = (files, container) => {
-            if (!container) return;
-            container.innerHTML = '';
-
-            if (!files || !files.length) return;
-
-            Array.from(files).forEach((file) => {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    container.appendChild(createImageFigure(event.target.result, 'Preview'));
-                };
-                reader.readAsDataURL(file);
-            });
-        };
-
-        const renderStoredImages = (images, container) => {
-            if (!container) return;
-            container.innerHTML = '';
-
-            if (!images || !images.length) {
-                container.innerHTML = '<p class="text-sm text-stone-500">No images uploaded yet.</p>';
-                return;
-            }
-
-            images.forEach((image) => {
-                const figure = createImageFigure(resolveImageUrl(image));
-                const label = document.createElement('label');
-                label.className = 'flex items-center gap-2 px-3 py-2 text-xs text-stone-600';
-
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.name = 'retained_images[]';
-                checkbox.value = image;
-                checkbox.checked = true;
-                checkbox.className = 'rounded border-stone-300';
-
-                const text = document.createElement('span');
-                text.textContent = 'Keep this image';
-
-                label.appendChild(checkbox);
-                label.appendChild(text);
-                figure.appendChild(label);
-                container.appendChild(figure);
-            });
-        };
-
-        const renderImageUrlPreviews = (urls, container) => {
-            if (!container) return;
-            container.innerHTML = '';
-
-            if (!urls || !urls.length) return;
-
-            urls.forEach((url) => {
-                container.appendChild(createImageFigure(url, 'Preview'));
-            });
         };
 
         // File size and count validation helper
@@ -527,36 +450,206 @@
             };
         };
 
-        // Setup image input toggle for edit modal (legacy helper)
-        const setupImageToggle = (toggleUploadBtn, toggleLinkBtn, uploadSection, linkSection, fileInput, textareaInput) => {
-            let activeMode = 'upload';
+        // Unified Preview & Drag-and-Drop Image Manager Setup
+        const setupRoomImagesPreviewManager = (formId, fileInputId, urlTextareaSelector, previewContainerId, orderInputId) => {
+            const form = document.getElementById(formId);
+            const fileInput = document.getElementById(fileInputId);
+            const previewContainer = document.getElementById(previewContainerId);
+            const orderInput = document.getElementById(orderInputId);
+            if (!form || !fileInput || !previewContainer || !orderInput) return null;
 
-            const setMode = (mode) => {
-                activeMode = mode;
-                if (mode === 'upload') {
-                    toggleUploadBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
-                    toggleLinkBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
-                    uploadSection.classList.remove('hidden');
-                    linkSection.classList.add('hidden');
-                } else {
-                    toggleUploadBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all text-stone-500 hover:text-stone-900';
-                    toggleLinkBtn.className = 'px-4 py-1.5 text-xs font-semibold rounded-md transition-all bg-white text-stone-900 shadow-sm';
-                    uploadSection.classList.add('hidden');
-                    linkSection.classList.remove('hidden');
-                }
+            const urlTextarea = form.querySelector(urlTextareaSelector);
+
+            let activeFiles = []; // Array of File objects currently active
+
+            const updateOrder = () => {
+                const items = Array.from(previewContainer.children).map(child => {
+                    return {
+                        type: child.dataset.type,
+                        value: child.dataset.value
+                    };
+                });
+                
+                orderInput.value = JSON.stringify(items);
+
+                // Update UI badges
+                const children = Array.from(previewContainer.children);
+                children.forEach((child, index) => {
+                    const badge = child.querySelector('.order-badge');
+                    if (badge) {
+                        badge.textContent = index === 0 ? 'Featured' : (index + 1);
+                        if (index === 0) {
+                            badge.className = 'absolute top-2 left-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-brand-primary text-white tracking-wide select-none order-badge shadow-sm';
+                        } else {
+                            badge.className = 'absolute top-2 left-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-stone-900/80 text-white tracking-wide select-none order-badge';
+                        }
+                    }
+                });
             };
 
-            toggleUploadBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('upload'); });
-            toggleLinkBtn.addEventListener('click', (e) => { e.preventDefault(); setMode('url'); });
+            const createPreviewCard = (type, value, src, name) => {
+                const card = document.createElement('div');
+                card.className = 'relative overflow-hidden rounded-2xl border border-stone-200 bg-stone-50 p-2 flex flex-col group cursor-move select-none transition hover:border-brand-primary/50';
+                card.draggable = true;
+                card.dataset.type = type;
+                card.dataset.value = value;
+
+                card.innerHTML = `
+                    <div class="relative h-28 w-full overflow-hidden rounded-xl bg-stone-100">
+                        <img src="${src}" class="h-full w-full object-cover pointer-events-none" loading="lazy">
+                        <!-- Order badge -->
+                        <span class="absolute top-2 left-2 px-2 py-0.5 text-[10px] font-bold uppercase rounded-md bg-stone-900/80 text-white tracking-wide select-none order-badge"></span>
+                        <!-- Remove button -->
+                        <button type="button" class="absolute top-2 right-2 p-1.5 rounded-full bg-red-600/90 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 hover:bg-red-700 remove-btn" title="Remove image">
+                            <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="mt-2 px-1 text-[11px] text-stone-500 truncate w-full" title="${name}">${name}</div>
+                `;
+
+                card.querySelector('.remove-btn').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    card.remove();
+                    
+                    if (type === 'file') {
+                        activeFiles = activeFiles.filter(f => (f.name !== value));
+                        syncFileInput();
+                    } else if (type === 'url' && urlTextarea) {
+                        const urls = urlTextarea.value.split('\n')
+                            .map(line => line.trim())
+                            .filter(line => line && line !== value);
+                        urlTextarea.value = urls.join('\n');
+                    }
+                    updateOrder();
+                });
+
+                // Drag events
+                card.addEventListener('dragstart', () => {
+                    card.classList.add('dragging', 'opacity-50');
+                });
+
+                card.addEventListener('dragend', () => {
+                    card.classList.remove('dragging', 'opacity-50');
+                    updateOrder();
+                });
+
+                return card;
+            };
+
+            const syncFileInput = () => {
+                const dt = new DataTransfer();
+                activeFiles.forEach(file => dt.items.add(file));
+                fileInput.files = dt.files;
+            };
+
+            // Add newly selected files
+            fileInput.addEventListener('change', () => {
+                if (fileInput.files.length === 0) return;
+                
+                if (!validateFiles(fileInput.files)) {
+                    fileInput.value = '';
+                    return;
+                }
+
+                Array.from(fileInput.files).forEach(file => {
+                    if (activeFiles.some(f => f.name === file.name)) return;
+
+                    activeFiles.push(file);
+                    const src = URL.createObjectURL(file);
+                    const card = createPreviewCard('file', file.name, src, file.name);
+                    previewContainer.appendChild(card);
+                });
+
+                syncFileInput();
+                updateOrder();
+            });
+
+            // Sync URL paste inputs
+            if (urlTextarea) {
+                urlTextarea.addEventListener('input', () => {
+                    const lines = urlTextarea.value.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line && (line.startsWith('http://') || line.startsWith('https://')));
+                    
+                    // Remove url cards that are no longer in the textarea
+                    Array.from(previewContainer.children).forEach(child => {
+                        if (child.dataset.type === 'url' && !lines.includes(child.dataset.value)) {
+                            child.remove();
+                        }
+                    });
+
+                    // Add new url cards
+                    lines.forEach(url => {
+                        const exists = Array.from(previewContainer.children).some(child => child.dataset.type === 'url' && child.dataset.value === url);
+                        if (!exists) {
+                            const name = url.substring(url.lastIndexOf('/') + 1) || 'Image Link';
+                            const card = createPreviewCard('url', url, url, name);
+                            previewContainer.appendChild(card);
+                        }
+                    });
+                    
+                    updateOrder();
+                });
+            }
+
+            // Drag over container handler for reordering
+            previewContainer.addEventListener('dragover', e => {
+                e.preventDefault();
+                const draggingEl = previewContainer.querySelector('.dragging');
+                if (!draggingEl) return;
+                
+                const target = e.target.closest('[draggable="true"]:not(.dragging)');
+                if (!target) return;
+                
+                const rect = target.getBoundingClientRect();
+                const next = (e.clientY - rect.top) / (rect.bottom - rect.top) > 0.5 || 
+                             (e.clientX - rect.left) / (rect.right - rect.left) > 0.5;
+                             
+                previewContainer.insertBefore(draggingEl, next ? target.nextSibling : target);
+            });
+
+            const populateExistingImages = (images) => {
+                previewContainer.innerHTML = '';
+                activeFiles = [];
+                syncFileInput();
+
+                if (urlTextarea) urlTextarea.value = '';
+
+                const urls = [];
+
+                images.forEach(image => {
+                    const src = resolveImageUrl(image);
+                    const isUrl = image.startsWith('http://') || image.startsWith('https://');
+                    const name = image.substring(image.lastIndexOf('/') + 1) || 'Room Image';
+
+                    if (isUrl) {
+                        urls.push(image);
+                        const card = createPreviewCard('url', image, src, name);
+                        previewContainer.appendChild(card);
+                    } else {
+                        const card = createPreviewCard('existing', image, src, name);
+                        previewContainer.appendChild(card);
+                    }
+                });
+
+                if (urlTextarea && urls.length > 0) {
+                    urlTextarea.value = urls.join('\n');
+                }
+
+                updateOrder();
+            };
 
             return {
-                getMode: () => activeMode,
-                sanitize: () => {
-                    if (activeMode === 'upload') {
-                        textareaInput.value = '';
-                    } else {
-                        fileInput.value = '';
-                    }
+                populate: populateExistingImages,
+                clear: () => {
+                    previewContainer.innerHTML = '';
+                    activeFiles = [];
+                    syncFileInput();
+                    if (urlTextarea) urlTextarea.value = '';
+                    updateOrder();
                 }
             };
         };
@@ -569,71 +662,48 @@
             }
         });
 
+        // Initialize Image Preview Managers
+        const addImageManager = setupRoomImagesPreviewManager(
+            'add-room-form',
+            'add_room_images',
+            'textarea[name="image_links"]',
+            'add-room-images-preview',
+            'add_room_image_order'
+        );
+
+        const editImageManager = setupRoomImagesPreviewManager(
+            'edit-room-form',
+            'edit_room_images',
+            'textarea[name="image_links"]',
+            'edit-room-images-preview',
+            'edit_room_image_order'
+        );
+
         const addForm = document.getElementById('add-room-form');
-        const addImagesInput = document.getElementById('add_room_images');
-        const addPreview = document.getElementById('add-room-upload-preview');
-        if (addImagesInput && addPreview) {
-            addImagesInput.addEventListener('change', () => {
-                if (validateFiles(addImagesInput.files)) {
-                    renderFilePreviews(addImagesInput.files, addPreview);
-                } else {
-                    addImagesInput.value = '';
-                    addPreview.innerHTML = '';
-                }
-            });
-        }
-
-        const addImageLinksInput = addForm?.querySelector('textarea[name="image_links"]');
-        const addImageLinkPreview = document.getElementById('add-room-link-preview');
-        if (addImageLinksInput && addImageLinkPreview) {
-            addImageLinksInput.addEventListener('input', () => {
-                const urls = addImageLinksInput.value
-                    .split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line && line.startsWith('http'));
-                renderImageUrlPreviews(urls, addImageLinkPreview);
-            });
-        }
-
         if (addForm) {
             addForm.addEventListener('submit', (e) => {
-                const mode = addForm.querySelector('.image-input-mode')?.value || 'upload';
-                const fileInput = addForm.querySelector('input[type="file"][name="images[]"]');
-                const linksInput = addForm.querySelector('textarea[name="image_links"]');
-
-                if (mode === 'upload' && linksInput) {
-                    linksInput.value = '';
-                } else if (mode === 'url' && fileInput) {
-                    fileInput.value = '';
-                }
-
+                const fileInput = document.getElementById('add_room_images');
                 if (fileInput?.files?.length > 0 && !validateFiles(fileInput.files)) {
                     e.preventDefault();
+                    return;
+                }
+
+                const orderInput = document.getElementById('add_room_image_order');
+                let hasImages = false;
+                if (orderInput && orderInput.value) {
+                    try {
+                        const items = JSON.parse(orderInput.value);
+                        hasImages = items.length > 0;
+                    } catch(err) {}
+                }
+                if (!hasImages) {
+                    e.preventDefault();
+                    alert('Add at least one room image by uploading a file or pasting a valid image URL.');
                 }
             });
         }
 
         // --- Edit Room Form Setup ---
-        const editForm = document.getElementById('edit-room-form');
-        const editPhysicalTableBody = document.getElementById('edit-physical-rooms-table-body');
-        const editPhysicalAddRowBtn = document.getElementById('edit-physical-rooms-add-row');
-        const editPhysicalTextarea = document.getElementById('edit_physical_rooms');
-        const currentImagesContainer = document.getElementById('edit-room-current-images');
-        const uploadPreviewContainer = document.getElementById('edit-room-upload-preview');
-        const linkPreviewContainer = document.getElementById('edit-room-link-preview');
-        const editImagesInput = document.getElementById('edit_room_images');
-        const editImageLinksInput = editForm?.querySelector('textarea[name="image_links"]');
-
-        const fields = {
-            name: document.getElementById('edit_room_name'),
-            description: document.getElementById('edit_room_description'),
-            capacity: document.getElementById('edit_room_capacity'),
-            price: document.getElementById('edit_room_price'),
-            status: document.getElementById('edit_room_status'),
-            physicalRooms: editPhysicalTextarea,
-            amenities: document.getElementById('edit_room_amenities'),
-        };
-
         const populateEditRoomModal = (button) => {
             const activeForm = document.getElementById('edit-room-form');
             if (!activeForm || !button) return;
@@ -641,11 +711,6 @@
             const activePhysicalTableBody = document.getElementById('edit-physical-rooms-table-body');
             const activePhysicalAddRowBtn = document.getElementById('edit-physical-rooms-add-row');
             const activePhysicalTextarea = document.getElementById('edit_physical_rooms');
-            const activeCurrentImagesContainer = document.getElementById('edit-room-current-images');
-            const activeUploadPreviewContainer = document.getElementById('edit-room-upload-preview');
-            const activeLinkPreviewContainer = document.getElementById('edit-room-link-preview');
-            const activeImagesInput = document.getElementById('edit_room_images');
-            const activeImageLinksInput = activeForm.querySelector('textarea[name="image_links"]');
 
             const activeFields = {
                 name: document.getElementById('edit_room_name'),
@@ -680,28 +745,16 @@
                 if (activeFields.amenities) activeFields.amenities.value = '';
             }
 
-            if (activeImagesInput) {
-                activeImagesInput.value = '';
-            }
-
-            if (activeImageLinksInput) {
-                activeImageLinksInput.value = '';
-            }
-
             try {
                 const images = JSON.parse(button.dataset.roomImages || '[]');
                 const imageArray = Array.isArray(images) ? images : [];
-                renderStoredImages(imageArray, activeCurrentImagesContainer);
+                if (editImageManager) {
+                    editImageManager.populate(imageArray);
+                }
             } catch {
-                renderStoredImages([], activeCurrentImagesContainer);
-            }
-
-            if (activeUploadPreviewContainer) {
-                activeUploadPreviewContainer.innerHTML = '';
-            }
-
-            if (activeLinkPreviewContainer) {
-                activeLinkPreviewContainer.innerHTML = '';
+                if (editImageManager) {
+                    editImageManager.clear();
+                }
             }
 
             const editModal = document.getElementById('edit-room-modal');
@@ -720,41 +773,26 @@
             window.editRoomModalListenerBound = true;
         }
 
-        if (editImagesInput && uploadPreviewContainer) {
-            editImagesInput.addEventListener('change', () => {
-                if (validateFiles(editImagesInput.files)) {
-                    renderFilePreviews(editImagesInput.files, uploadPreviewContainer);
-                } else {
-                    editImagesInput.value = '';
-                    uploadPreviewContainer.innerHTML = '';
-                }
-            });
-        }
-
-        if (editImageLinksInput && linkPreviewContainer) {
-            editImageLinksInput.addEventListener('input', () => {
-                const urls = editImageLinksInput.value
-                    .split('\n')
-                    .map(line => line.trim())
-                    .filter(line => line && line.startsWith('http'));
-                renderImageUrlPreviews(urls, linkPreviewContainer);
-            });
-        }
-
+        const editForm = document.getElementById('edit-room-form');
         if (editForm) {
             editForm.addEventListener('submit', (e) => {
-                const mode = editForm.querySelector('.image-input-mode')?.value || 'upload';
-                const fileInput = editForm.querySelector('input[type="file"][name="images[]"]');
-                const linksInput = editForm.querySelector('textarea[name="image_links"]');
-
-                if (mode === 'upload' && linksInput) {
-                    linksInput.value = '';
-                } else if (mode === 'url' && fileInput) {
-                    fileInput.value = '';
-                }
-
+                const fileInput = document.getElementById('edit_room_images');
                 if (fileInput?.files?.length > 0 && !validateFiles(fileInput.files)) {
                     e.preventDefault();
+                    return;
+                }
+
+                const orderInput = document.getElementById('edit_room_image_order');
+                let hasImages = false;
+                if (orderInput && orderInput.value) {
+                    try {
+                        const items = JSON.parse(orderInput.value);
+                        hasImages = items.length > 0;
+                    } catch(err) {}
+                }
+                if (!hasImages) {
+                    e.preventDefault();
+                    alert('Keep at least one existing image, upload a new file, or paste a valid image URL.');
                 }
             });
         }

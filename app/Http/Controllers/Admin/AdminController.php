@@ -366,6 +366,7 @@ class AdminController extends Controller
             'image_url' => 'nullable|url|max:2048',
             'image_links' => 'nullable|string|max:5000',
             'image_input_mode' => 'nullable|in:upload,url',
+            'image_order' => 'nullable|string|max:10000',
             'physical_rooms.*.name' => ['nullable', 'string', 'max:255'],
             'physical_rooms.*.code' => ['nullable', 'string', 'max:50', 'distinct', Rule::unique('physical_rooms', 'code')],
         ]);
@@ -376,19 +377,68 @@ class AdminController extends Controller
                 ->withErrors(['image_links' => 'Enter valid HTTP or HTTPS image URLs, one per line.']);
         }
 
-        $imagePaths = ImageInput::resolveMany($request);
+        $imagePaths = [];
 
-        if ($request->hasFile('images') && $request->file('images')) {
-            $uploadedImages = collect($request->file('images', []))
-                ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
-                ->values()
-                ->all();
+        if ($request->filled('image_order')) {
+            try {
+                $imageOrder = json_decode($request->input('image_order'), true);
+            } catch (\Exception $e) {
+                $imageOrder = [];
+            }
 
-            $imagePaths = array_merge($imagePaths, $uploadedImages);
-        }
+            if (is_array($imageOrder)) {
+                $uploadedMap = [];
+                if ($request->hasFile('images')) {
+                    foreach ($request->file('images') as $file) {
+                        $path = $this->storePublicImage($file, 'rooms');
+                        $uploadedMap[$file->name ?? $file->getClientOriginalName()] = $path;
+                    }
+                }
 
-        if ($request->filled('image_links')) {
-            $imagePaths = array_merge($imagePaths, $this->parseImageLinks($validated['image_links'] ?? ''));
+                $submittedUrls = $this->parseImageLinks($request->input('image_links') ?? '');
+
+                foreach ($imageOrder as $item) {
+                    $type = $item['type'] ?? '';
+                    $val = $item['value'] ?? '';
+
+                    if ($type === 'url') {
+                        if (filter_var($val, FILTER_VALIDATE_URL)) {
+                            $imagePaths[] = $val;
+                        }
+                    } elseif ($type === 'file') {
+                        if (isset($uploadedMap[$val])) {
+                            $imagePaths[] = $uploadedMap[$val];
+                        }
+                    }
+                }
+
+                // Fallback for any uploaded files or links not explicitly in the order array
+                foreach ($uploadedMap as $path) {
+                    if (!in_array($path, $imagePaths, true)) {
+                        $imagePaths[] = $path;
+                    }
+                }
+                foreach ($submittedUrls as $url) {
+                    if (!in_array($url, $imagePaths, true)) {
+                        $imagePaths[] = $url;
+                    }
+                }
+            }
+        } else {
+            $imagePaths = ImageInput::resolveMany($request);
+
+            if ($request->hasFile('images') && $request->file('images')) {
+                $uploadedImages = collect($request->file('images', []))
+                    ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
+                    ->values()
+                    ->all();
+
+                $imagePaths = array_merge($imagePaths, $uploadedImages);
+            }
+
+            if ($request->filled('image_links')) {
+                $imagePaths = array_merge($imagePaths, $this->parseImageLinks($validated['image_links'] ?? ''));
+            }
         }
 
         $imagePaths = array_values(array_unique($imagePaths));
@@ -1152,6 +1202,7 @@ class AdminController extends Controller
             'image_links' => 'nullable|string|max:5000',
             'retained_images' => 'nullable|array',
             'retained_images.*' => 'string|max:2048',
+            'image_order' => 'nullable|string|max:10000',
         ]);
 
         if ($this->hasInvalidImageLinks($validated['image_links'] ?? '')) {
@@ -1161,29 +1212,82 @@ class AdminController extends Controller
         }
 
         $existingImages = collect($room->images ?? [])->filter()->values();
-        $imageControlsSubmitted = $request->hasFile('images')
-            || $request->filled('image_links')
-            || $request->has('retained_images');
-        $retainedImages = $imageControlsSubmitted
-            ? collect($validated['retained_images'] ?? [])
-                ->filter(fn ($image) => $existingImages->contains($image))
-                ->values()
-                ->all()
-            : $existingImages->all();
+        $images = [];
 
-        $images = $retainedImages;
+        if ($request->filled('image_order')) {
+            try {
+                $imageOrder = json_decode($request->input('image_order'), true);
+            } catch (\Exception $e) {
+                $imageOrder = [];
+            }
 
-        if ($request->hasFile('images') && $request->file('images')) {
-            $uploadedImages = collect($request->file('images', []))
-                ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
-                ->values()
-                ->all();
+            if (is_array($imageOrder)) {
+                $uploadedMap = [];
+                if ($request->hasFile('images')) {
+                    foreach ($request->file('images') as $file) {
+                        $path = $this->storePublicImage($file, 'rooms');
+                        $uploadedMap[$file->name ?? $file->getClientOriginalName()] = $path;
+                    }
+                }
 
-            $images = array_merge($images, $uploadedImages);
-        }
+                $submittedUrls = $this->parseImageLinks($request->input('image_links') ?? '');
 
-        if ($request->filled('image_links')) {
-            $images = array_merge($images, $this->parseImageLinks($validated['image_links'] ?? ''));
+                foreach ($imageOrder as $item) {
+                    $type = $item['type'] ?? '';
+                    $val = $item['value'] ?? '';
+
+                    if ($type === 'existing') {
+                        if ($existingImages->contains($val)) {
+                            $images[] = $val;
+                        }
+                    } elseif ($type === 'url') {
+                        if (filter_var($val, FILTER_VALIDATE_URL)) {
+                            $images[] = $val;
+                        }
+                    } elseif ($type === 'file') {
+                        if (isset($uploadedMap[$val])) {
+                            $images[] = $uploadedMap[$val];
+                        }
+                    }
+                }
+
+                // Fallback for any uploaded files or links not explicitly in the order array
+                foreach ($uploadedMap as $path) {
+                    if (!in_array($path, $images, true)) {
+                        $images[] = $path;
+                    }
+                }
+                foreach ($submittedUrls as $url) {
+                    if (!in_array($url, $images, true)) {
+                        $images[] = $url;
+                    }
+                }
+            }
+        } else {
+            $imageControlsSubmitted = $request->hasFile('images')
+                || $request->filled('image_links')
+                || $request->has('retained_images');
+            $retainedImages = $imageControlsSubmitted
+                ? collect($validated['retained_images'] ?? [])
+                    ->filter(fn ($image) => $existingImages->contains($image))
+                    ->values()
+                    ->all()
+                : $existingImages->all();
+
+            $images = $retainedImages;
+
+            if ($request->hasFile('images') && $request->file('images')) {
+                $uploadedImages = collect($request->file('images', []))
+                    ->map(fn ($image) => $this->storePublicImage($image, 'rooms'))
+                    ->values()
+                    ->all();
+
+                $images = array_merge($images, $uploadedImages);
+            }
+
+            if ($request->filled('image_links')) {
+                $images = array_merge($images, $this->parseImageLinks($validated['image_links'] ?? ''));
+            }
         }
 
         $images = collect($images)->unique()->values()->all();
