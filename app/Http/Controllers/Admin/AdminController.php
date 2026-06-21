@@ -180,6 +180,7 @@ class AdminController extends Controller
             'payment_proof_link' => 'nullable|string|max:2048',
             'status' => 'nullable|in:pending,confirmed,for_verification',
             'notes' => 'nullable|string|max:2000',
+            'with_breakfast' => 'nullable|boolean',
         ]);
 
         $walkinRoomName = null;
@@ -212,7 +213,12 @@ class AdminController extends Controller
             $status = $validated['status'] ?? 'pending';
             $paymentStatus = $status === 'confirmed' ? 'paid' : 'for_verification';
             $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
-            $total = $lockedRoom->price * max(1, $nights);
+            $nights = max(1, $nights);
+
+            $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
+            $guestsCount = (int) $validated['guests'];
+            $breakfastCharge = $withBreakfast ? (50 * $guestsCount * $nights) : 0;
+            $total = ($lockedRoom->price * $nights) + $breakfastCharge;
 
             $payload = [
                 'user_id' => null,
@@ -220,7 +226,7 @@ class AdminController extends Controller
                 'physical_room_id' => $assignedPhysicalRoom->id,
                 'check_in' => $validated['check_in'],
                 'check_out' => $validated['check_out'],
-                'guests' => $validated['guests'],
+                'guests' => $guestsCount,
                 'contact_name' => $validated['contact_name'],
                 'contact_email' => $validated['contact_email'] ?? null,
                 'contact_phone' => $validated['contact_phone'],
@@ -230,6 +236,8 @@ class AdminController extends Controller
                 'payment_status' => $paymentStatus,
                 'paid_at' => $paymentStatus === 'paid' ? now() : null,
                 'total' => $total,
+                'with_breakfast' => $withBreakfast,
+                'breakfast_charge' => $breakfastCharge,
                 'notes' => $validated['notes'] ?? null,
             ];
 
@@ -431,12 +439,115 @@ class AdminController extends Controller
 
     public function guests(Request $request): View
     {
-        $users = User::with(['bookings.room'])->latest()->take(10)->get();
-        $selectedGuest = $users->firstWhere('id', (int) $request->query('guest')) ?? $users->first();
+        $this->ensureAdmin();
+
+        $type = $request->query('type', 'registered');
+        $search = $request->query('search');
+
+        if ($type === 'registered') {
+            $query = User::with(['bookings.room'])->latest();
+
+            if ($search) {
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%")
+                      ->orWhere('contact_number', 'like', "%{$search}%");
+                });
+            }
+
+            $users = $query->paginate(10)->withQueryString();
+
+            $selectedGuestId = $request->query('guest');
+            $selectedGuest = null;
+            if ($selectedGuestId) {
+                $selectedGuest = User::with(['bookings.room'])->find($selectedGuestId);
+            }
+            if (! $selectedGuest) {
+                $selectedGuest = $users->first();
+            }
+        } else {
+            $bookingsQuery = Booking::query()
+                ->select('contact_name', 'contact_email', 'contact_phone', DB::raw('MIN(id) as id'))
+                ->whereNull('user_id');
+
+            if ($search) {
+                $bookingsQuery->where(function ($q) use ($search) {
+                    $q->where('contact_name', 'like', "%{$search}%")
+                      ->orWhere('contact_email', 'like', "%{$search}%")
+                      ->orWhere('contact_phone', 'like', "%{$search}%");
+                });
+            }
+
+            $groupedBookings = $bookingsQuery
+                ->groupBy('contact_name', 'contact_email', 'contact_phone')
+                ->orderBy('id', 'desc')
+                ->paginate(10)
+                ->withQueryString();
+
+            $mappedItems = collect($groupedBookings->items())->map(function ($b) {
+                $guest = new \stdClass;
+                $guest->id = $b->id;
+                $guest->name = $b->contact_name;
+                $guest->email = $b->contact_email;
+                $guest->contact_number = $b->contact_phone;
+                $guest->email_verified_at = null;
+
+                $q = Booking::with('room')
+                    ->whereNull('user_id')
+                    ->where('contact_name', $b->contact_name)
+                    ->where('contact_phone', $b->contact_phone);
+                if ($b->contact_email) {
+                    $q->where('contact_email', $b->contact_email);
+                } else {
+                    $q->whereNull('contact_email');
+                }
+                $guest->bookings = $q->latest('id')->get();
+
+                return $guest;
+            });
+
+            $users = new \Illuminate\Pagination\LengthAwarePaginator(
+                $mappedItems,
+                $groupedBookings->total(),
+                $groupedBookings->perPage(),
+                $groupedBookings->currentPage(),
+                ['path' => $request->url(), 'query' => $request->query()]
+            );
+
+            $selectedGuestId = $request->query('guest');
+            $selectedGuest = null;
+            if ($selectedGuestId) {
+                $selectedGuestBooking = Booking::whereNull('user_id')->find($selectedGuestId);
+                if ($selectedGuestBooking) {
+                    $selectedGuest = new \stdClass;
+                    $selectedGuest->id = $selectedGuestBooking->id;
+                    $selectedGuest->name = $selectedGuestBooking->contact_name;
+                    $selectedGuest->email = $selectedGuestBooking->contact_email;
+                    $selectedGuest->contact_number = $selectedGuestBooking->contact_phone;
+                    $selectedGuest->email_verified_at = null;
+
+                    $q = Booking::with('room')
+                        ->whereNull('user_id')
+                        ->where('contact_name', $selectedGuestBooking->contact_name)
+                        ->where('contact_phone', $selectedGuestBooking->contact_phone);
+                    if ($selectedGuestBooking->contact_email) {
+                        $q->where('contact_email', $selectedGuestBooking->contact_email);
+                    } else {
+                        $q->whereNull('contact_email');
+                    }
+                    $selectedGuest->bookings = $q->latest('id')->get();
+                }
+            }
+            if (! $selectedGuest) {
+                $selectedGuest = $users->first();
+            }
+        }
 
         return $this->renderAdminPage('guests', [
             'users' => $users,
             'selectedGuest' => $selectedGuest,
+            'type' => $type,
+            'search' => $search,
             'seo' => [
                 'title' => 'Guests — '.config('app.name'),
                 'description' => 'Profile-based guest management with recent activity and stay history.',

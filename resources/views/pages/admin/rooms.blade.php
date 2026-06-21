@@ -635,51 +635,73 @@
         };
 
         const populateEditRoomModal = (button) => {
-            if (!editForm || !button) return;
+            const activeForm = document.getElementById('edit-room-form');
+            if (!activeForm || !button) return;
 
-            editForm.action = button.dataset.roomUpdateUrl || '#';
-            fields.name.value = button.dataset.roomName || '';
-            fields.description.value = button.dataset.roomDescription || '';
-            fields.capacity.value = button.dataset.roomCapacity || '';
-            fields.price.value = button.dataset.roomPrice || '';
-            fields.status.value = button.dataset.roomStatus || 'available';
+            const activePhysicalTableBody = document.getElementById('edit-physical-rooms-table-body');
+            const activePhysicalAddRowBtn = document.getElementById('edit-physical-rooms-add-row');
+            const activePhysicalTextarea = document.getElementById('edit_physical_rooms');
+            const activeCurrentImagesContainer = document.getElementById('edit-room-current-images');
+            const activeUploadPreviewContainer = document.getElementById('edit-room-upload-preview');
+            const activeLinkPreviewContainer = document.getElementById('edit-room-link-preview');
+            const activeImagesInput = document.getElementById('edit_room_images');
+            const activeImageLinksInput = activeForm.querySelector('textarea[name="image_links"]');
+
+            const activeFields = {
+                name: document.getElementById('edit_room_name'),
+                description: document.getElementById('edit_room_description'),
+                capacity: document.getElementById('edit_room_capacity'),
+                price: document.getElementById('edit_room_price'),
+                status: document.getElementById('edit_room_status'),
+                physicalRooms: activePhysicalTextarea,
+                amenities: document.getElementById('edit_room_amenities'),
+            };
+
+            activeForm.action = button.dataset.roomUpdateUrl || '#';
+            if (activeFields.name) activeFields.name.value = button.dataset.roomName || '';
+            if (activeFields.description) activeFields.description.value = button.dataset.roomDescription || '';
+            if (activeFields.capacity) activeFields.capacity.value = button.dataset.roomCapacity || '';
+            if (activeFields.price) activeFields.price.value = button.dataset.roomPrice || '';
+            if (activeFields.status) activeFields.status.value = button.dataset.roomStatus || 'available';
 
             try {
                 const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
-                setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, physicalRooms);
+                setupPhysicalRoomsTable(activePhysicalTableBody, activePhysicalAddRowBtn, activePhysicalTextarea, physicalRooms);
             } catch {
-                setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, []);
+                setupPhysicalRoomsTable(activePhysicalTableBody, activePhysicalAddRowBtn, activePhysicalTextarea, []);
             }
 
             try {
                 const amenities = JSON.parse(button.dataset.roomAmenities || '[]');
-                fields.amenities.value = Array.isArray(amenities) ? amenities.join(', ') : '';
+                if (activeFields.amenities) {
+                    activeFields.amenities.value = Array.isArray(amenities) ? amenities.join(', ') : '';
+                }
             } catch {
-                fields.amenities.value = '';
+                if (activeFields.amenities) activeFields.amenities.value = '';
             }
 
-            if (editImagesInput) {
-                editImagesInput.value = '';
+            if (activeImagesInput) {
+                activeImagesInput.value = '';
             }
 
-            if (editImageLinksInput) {
-                editImageLinksInput.value = '';
+            if (activeImageLinksInput) {
+                activeImageLinksInput.value = '';
             }
 
             try {
                 const images = JSON.parse(button.dataset.roomImages || '[]');
                 const imageArray = Array.isArray(images) ? images : [];
-                renderStoredImages(imageArray, currentImagesContainer);
+                renderStoredImages(imageArray, activeCurrentImagesContainer);
             } catch {
-                renderStoredImages([], currentImagesContainer);
+                renderStoredImages([], activeCurrentImagesContainer);
             }
 
-            if (uploadPreviewContainer) {
-                uploadPreviewContainer.innerHTML = '';
+            if (activeUploadPreviewContainer) {
+                activeUploadPreviewContainer.innerHTML = '';
             }
 
-            if (linkPreviewContainer) {
-                linkPreviewContainer.innerHTML = '';
+            if (activeLinkPreviewContainer) {
+                activeLinkPreviewContainer.innerHTML = '';
             }
 
             const editModal = document.getElementById('edit-room-modal');
@@ -688,12 +710,15 @@
             }
         };
 
-        document.addEventListener('click', (event) => {
-            const button = event.target.closest('[data-modal-open="edit-room-modal"]');
-            if (!button) return;
+        if (!window.editRoomModalListenerBound) {
+            document.addEventListener('click', (event) => {
+                const button = event.target.closest('[data-modal-open="edit-room-modal"]');
+                if (!button) return;
 
-            populateEditRoomModal(button);
-        }, true);
+                populateEditRoomModal(button);
+            }, true);
+            window.editRoomModalListenerBound = true;
+        }
 
         if (editImagesInput && uploadPreviewContainer) {
             editImagesInput.addEventListener('change', () => {

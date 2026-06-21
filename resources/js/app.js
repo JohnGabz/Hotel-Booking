@@ -1366,7 +1366,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         }
 
         if (notifFooter) {
-            notifFooter.textContent = count === 0 ? 'You\u2019re all caught up' : `${count} unread notification(s)`;
+            notifFooter.textContent = count === 0 ? 'You’re all caught up' : `${count} unread notification(s)`;
         }
 
         if (notifMarkAll) {
@@ -1384,25 +1384,36 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         data.notifications.forEach(n => {
             const isRead = n.read_at !== null;
             const div = document.createElement('div');
-            div.className = `flex items-start justify-between gap-3 px-4 py-3 text-sm hover:bg-stone-50 transition ${isRead ? 'opacity-70' : 'bg-brand-primary/5 font-semibold'}`;
+            div.className = `flex items-start gap-3 px-4 py-3.5 text-sm hover:bg-stone-50 transition border-b border-stone-100 last:border-0 relative ${isRead ? 'text-stone-500' : 'bg-brand-primary/[0.02] text-stone-900 font-medium'}`;
             div.setAttribute('data-notif-id', n.id);
 
+            // Unread dot
+            if (!isRead) {
+                const dot = document.createElement('span');
+                dot.className = 'h-2 w-2 rounded-full bg-brand-primary shrink-0 mt-1.5 notif-unread-dot';
+                div.appendChild(dot);
+            } else {
+                const spacer = document.createElement('span');
+                spacer.className = 'h-2 w-2 shrink-0 mt-1.5';
+                div.appendChild(spacer);
+            }
+
             const infoDiv = document.createElement('div');
-            infoDiv.className = 'flex-1 min-w-0';
+            infoDiv.className = 'flex-1 min-w-0 pr-6';
 
             const p = document.createElement('p');
-            p.className = 'text-stone-900 leading-snug';
+            p.className = 'leading-snug';
 
             const link = document.createElement('a');
             link.href = n.data?.action_url || '#';
             link.textContent = n.data?.message || '';
-            link.className = 'hover:underline block';
+            link.className = 'hover:underline block text-stone-800 font-medium';
             p.appendChild(link);
             infoDiv.appendChild(p);
 
             const timeP = document.createElement('p');
-            timeP.className = 'text-[10px] text-stone-400 mt-1 uppercase tracking-wider font-semibold';
-            timeP.textContent = n.created_at_human;
+            timeP.className = 'text-[11px] text-stone-400 mt-1.5 flex items-center gap-1 font-semibold uppercase tracking-wider';
+            timeP.innerHTML = `<svg class="h-3 w-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${n.created_at_human}</span>`;
             infoDiv.appendChild(timeP);
 
             div.appendChild(infoDiv);
@@ -1410,9 +1421,9 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             if (!isRead) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'notif-read-btn text-xs text-stone-400 hover:text-brand-primary font-bold px-1';
+                btn.className = 'notif-read-btn absolute right-3 top-3.5 text-stone-400 hover:text-brand-primary transition p-1 hover:bg-stone-100 rounded-full';
                 btn.title = 'Mark as read';
-                btn.textContent = '\u2713';
+                btn.innerHTML = `<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
                 btn.setAttribute('data-id', n.id);
                 div.appendChild(btn);
             }
@@ -1563,30 +1574,81 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
     if (notifList) {
         notifList.addEventListener('click', async (e) => {
             const btn = e.target.closest('.notif-read-btn');
-            if (!btn) return;
-            e.stopPropagation();
+            const link = e.target.closest('a');
+            const row = e.target.closest('[data-notif-id]');
+            
+            if (!row) return;
+            const id = row.getAttribute('data-notif-id');
+            const isRead = !row.querySelector('.notif-unread-dot');
 
-            const id = btn.getAttribute('data-id');
-            btn.setAttribute('disabled', 'disabled');
-            btn.textContent = '...';
+            // If it's already read, let normal link behavior handle navigation
+            if (isRead) return;
 
-            try {
-                const res = await transport(`/notifications/${id}/read`, {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRF-TOKEN': csrfToken,
-                        Accept: 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
-                    },
-                });
-
-                if (res.ok) {
-                    await pollNotifications();
+            // Mark as read in UI immediately (optimistic UI update)
+            let count = parseInt(notifBadge?.textContent || '0', 10);
+            if (count > 0) {
+                count--;
+                if (notifBadge) {
+                    notifBadge.textContent = count;
+                    notifBadge.classList.toggle('hidden', count <= 0);
                 }
-            } catch (err) {
-                console.error('Failed to mark notification as read:', err);
-                btn.removeAttribute('disabled');
-                btn.textContent = '\u2713';
+                if (notifFooter) {
+                    notifFooter.textContent = count === 0 ? 'You’re all caught up' : `${count} unread notification(s)`;
+                }
+                if (notifMarkAll) {
+                    notifMarkAll.classList.toggle('hidden', count <= 0);
+                }
+            }
+
+            // Remove unread styling
+            row.classList.remove('bg-brand-primary/[0.02]', 'text-stone-900', 'font-medium');
+            row.classList.add('text-stone-505'); // Dummy class or opacity
+            row.style.opacity = '0.7';
+            const dot = row.querySelector('.notif-unread-dot');
+            if (dot) {
+                // Keep layout by replacing with a spacer
+                dot.className = 'h-2 w-2 shrink-0 mt-1.5';
+            }
+            const readBtn = row.querySelector('.notif-read-btn');
+            if (readBtn) {
+                readBtn.remove();
+            }
+
+            // If they clicked the link, prevent default and navigate after API call resolves
+            if (link && link.getAttribute('href') !== '#') {
+                e.preventDefault();
+                const url = link.href;
+                try {
+                    await transport(`/notifications/${id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                } catch (err) {
+                    console.error('Failed to mark notification as read:', err);
+                }
+                window.location.href = url;
+            } else {
+                // If they clicked the checkmark or elsewhere on the unread row (but not a link)
+                e.stopPropagation();
+                if (btn) {
+                    btn.setAttribute('disabled', 'disabled');
+                }
+                try {
+                    await transport(`/notifications/${id}/read`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRF-TOKEN': csrfToken,
+                            Accept: 'application/json',
+                            'X-Requested-With': 'XMLHttpRequest',
+                        },
+                    });
+                } catch (err) {
+                    console.error('Failed to mark notification as read:', err);
+                }
             }
         });
     }

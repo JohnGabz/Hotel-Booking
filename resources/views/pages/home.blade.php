@@ -140,18 +140,18 @@
                 <div>
                     <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-3">Guests</label>
                     <select name="guests" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition appearance-none cursor-pointer">
-                        <option>1 Guest</option>
-                        <option>2 Guests</option>
-                        <option>3 Guests</option>
-                        <option>4+ Guests</option>
+                        <option value="1">1 Guest</option>
+                        <option value="2">2 Guests</option>
+                        <option value="3">3 Guests</option>
+                        <option value="4">4+ Guests</option>
                     </select>
                 </div>
                 <div>
                     <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-3">Rooms</label>
                     <select name="rooms" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition appearance-none cursor-pointer">
-                        <option>1 Room</option>
-                        <option>2 Rooms</option>
-                        <option>3+ Rooms</option>
+                        <option value="1">1 Room</option>
+                        <option value="2">2 Rooms</option>
+                        <option value="3">3+ Rooms</option>
                     </select>
                 </div>
                 <button type="submit" class="w-full bg-brand-primary hover:bg-brand-secondary text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
@@ -217,7 +217,7 @@
                         <img src="{{ $featuredRoomImage }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition-transform duration-500 group-hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                         <div class="absolute inset-0 bg-gradient-to-t from-stone-950/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                         <div class="absolute top-4 right-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-lg text-sm font-semibold text-brand-primary shadow-lg">
-                            ₱{{ number_format($room->price_per_night, 0) }}/night
+                            ₱{{ number_format($room->price, 0) }}/night
                         </div>
                     </div>
                     <div class="p-6 sm:p-7">
@@ -233,10 +233,6 @@
                             <span class="flex items-center">
                                 <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20a3 3 0 00-3-3H10a3 3 0 00-3 3M12 12a4 4 0 100-8 4 4 0 000 8z"/></svg>
                                 {{ $room->capacity }} Guest{{ $room->capacity > 1 ? 's' : '' }}
-                            </span>
-                            <span class="flex items-center">
-                                <svg class="w-4 h-4 mr-1.5 text-brand-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke-width="2"/></svg>
-                                {{ $room->size_sqm }}m²
                             </span>
                         </div>
                         

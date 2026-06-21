@@ -27,6 +27,7 @@
             id="room-availability-meta"
             data-availability-url="{{ route('rooms.availability', $room) }}"
             data-form-enabled="{{ $room->status === 'available' ? '1' : '0' }}"
+            data-room-price="{{ $room->price }}"
         >
         </div>
 
@@ -393,13 +394,43 @@
                 </div>
             </div>
 
-            <div class="grid gap-4 sm:grid-cols-1">
-                <div class="form-group">
-                    <label class="form-label" for="payment_method">Payment method</label>
-                    <select id="payment_method" name="payment_method" class="form-input" required>
-                        <option value="gcash" {{ old('payment_method') === 'gcash' ? 'selected' : '' }}>GCash</option>
-                        <option value="landbank" {{ old('payment_method') === 'landbank' ? 'selected' : '' }}>Landbank</option>
-                    </select>
+            <input type="hidden" id="payment_method" name="payment_method" value="xendit">
+
+            <div class="form-group pt-2">
+                <label class="flex items-center gap-3 cursor-pointer select-none">
+                    <input type="checkbox" id="with_breakfast" name="with_breakfast" value="1" {{ old('with_breakfast') ? 'checked' : '' }} class="h-5 w-5 rounded border-stone-300 text-brand-primary focus:ring-brand-primary">
+                    <span class="text-sm font-medium text-stone-905 text-stone-900">
+                        Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 per guest per night)</span>
+                    </span>
+                </label>
+            </div>
+
+            <!-- Payment & Amount Breakdown -->
+            <div class="rounded-xl border border-stone-200 bg-stone-50 p-4 space-y-3.5">
+                <h4 class="text-xs uppercase tracking-[0.18em] text-stone-500 font-bold">Billing Summary</h4>
+                <div class="space-y-1.5 text-sm text-stone-600">
+                    <div class="flex justify-between">
+                        <span>Room rate (<span id="summary-nights-label">1 night</span>)</span>
+                        <span>₱<span id="summary-room-rate">0</span></span>
+                    </div>
+                    <div id="summary-breakfast-row" class="flex justify-between hidden">
+                        <span>Breakfast charge</span>
+                        <span>₱<span id="summary-breakfast-charge">0</span></span>
+                    </div>
+                    <div class="flex justify-between border-t border-stone-200 pt-2 font-bold text-stone-900">
+                        <span>Total amount</span>
+                        <span>₱<span id="summary-total-price">0</span></span>
+                    </div>
+                </div>
+
+                <div class="border-t border-stone-200 pt-3 mt-1 space-y-2">
+                    <div class="flex items-center gap-2 text-xs font-semibold text-stone-700">
+                        <svg class="h-4 w-4 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
+                        <span>Secure Checkout via Xendit</span>
+                    </div>
+                    <p class="text-[11px] leading-relaxed text-stone-500">
+                        Confirming your booking will redirect you to Xendit's secure payment portal. You can pay via GCash, credit/debit card, or bank transfer. The reservation will be confirmed automatically once payment is verified.
+                    </p>
                 </div>
             </div>
 
@@ -492,8 +523,60 @@
             }
         };
 
-        checkInInput.addEventListener('change', checkAvailability);
-        checkOutInput.addEventListener('change', checkAvailability);
+        const withBreakfastInput = document.getElementById('with_breakfast');
+        const summaryNightsLabel = document.getElementById('summary-nights-label');
+        const summaryRoomRate = document.getElementById('summary-room-rate');
+        const summaryBreakfastRow = document.getElementById('summary-breakfast-row');
+        const summaryBreakfastCharge = document.getElementById('summary-breakfast-charge');
+        const summaryTotalPrice = document.getElementById('summary-total-price');
+
+        const roomPrice = parseFloat(meta.dataset.roomPrice || '0');
+
+        const calculateBreakdown = () => {
+            const checkIn = checkInInput.value;
+            const checkOut = checkOutInput.value;
+
+            if (!checkIn || !checkOut) {
+                if (summaryRoomRate) summaryRoomRate.textContent = '0';
+                if (summaryTotalPrice) summaryTotalPrice.textContent = '0';
+                return;
+            }
+
+            const inDate = new Date(checkIn);
+            const outDate = new Date(checkOut);
+            const timeDiff = outDate.getTime() - inDate.getTime();
+            const nights = Math.max(1, Math.ceil(timeDiff / (1000 * 3600 * 24)));
+
+            if (summaryNightsLabel) {
+                summaryNightsLabel.textContent = `${nights} night${nights > 1 ? 's' : ''}`;
+            }
+
+            const roomTotal = roomPrice * nights;
+            if (summaryRoomRate) {
+                summaryRoomRate.textContent = roomTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+
+            const withBreakfast = withBreakfastInput && withBreakfastInput.checked;
+            const breakfastTotal = withBreakfast ? (50 * 1 * nights) : 0; // 1 guest for online flow
+
+            if (summaryBreakfastRow) {
+                summaryBreakfastRow.classList.toggle('hidden', !withBreakfast);
+            }
+            if (summaryBreakfastCharge) {
+                summaryBreakfastCharge.textContent = breakfastTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+
+            const overallTotal = roomTotal + breakfastTotal;
+            if (summaryTotalPrice) {
+                summaryTotalPrice.textContent = overallTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
+        };
+
+        checkInInput.addEventListener('change', () => { checkAvailability(); calculateBreakdown(); });
+        checkOutInput.addEventListener('change', () => { checkAvailability(); calculateBreakdown(); });
+        if (withBreakfastInput) {
+            withBreakfastInput.addEventListener('change', calculateBreakdown);
+        }
         setInterval(checkAvailability, 30000);
 
         // Expose modal open/populate for calendar
@@ -503,8 +586,12 @@
                 checkInInput.value = checkIn;
                 checkOutInput.value = checkOut;
                 checkAvailability();
+                calculateBreakdown();
             }
         };
+
+        // Run initially
+        calculateBreakdown();
     })();
 </script>
 @endpush

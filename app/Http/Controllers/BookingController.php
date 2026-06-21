@@ -33,7 +33,8 @@ class BookingController extends Controller
             'contact_name' => 'required|string|max:150',
             'contact_email' => 'required|email|max:150',
             'contact_phone' => 'required|string|max:80',
-            'payment_method' => 'required|in:gcash,landbank',
+            'payment_method' => 'required|in:gcash,landbank,xendit',
+            'with_breakfast' => 'nullable|boolean',
         ]);
 
         $booking = DB::transaction(function () use ($room, $validated) {
@@ -50,7 +51,13 @@ class BookingController extends Controller
             }
 
             $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
-            $total = $lockedRoom->price * max(1, $nights);
+            $nights = max(1, $nights);
+
+            $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
+            $guestsCount = 1; // Default for public flow
+
+            $breakfastCharge = $withBreakfast ? (50 * $guestsCount * $nights) : 0;
+            $total = ($lockedRoom->price * $nights) + $breakfastCharge;
 
             $payload = [
                 'user_id' => Auth::id(),
@@ -58,7 +65,7 @@ class BookingController extends Controller
                 'physical_room_id' => $assignedPhysicalRoom->id,
                 'check_in' => $validated['check_in'],
                 'check_out' => $validated['check_out'],
-                'guests' => 1,
+                'guests' => $guestsCount,
                 'contact_name' => $validated['contact_name'],
                 'contact_email' => $validated['contact_email'],
                 'contact_phone' => $validated['contact_phone'],
@@ -66,6 +73,8 @@ class BookingController extends Controller
                 'payment_method' => $validated['payment_method'],
                 'payment_status' => 'pending',
                 'total' => $total,
+                'with_breakfast' => $withBreakfast,
+                'breakfast_charge' => $breakfastCharge,
             ];
 
             if ($this->bookingSupportsSource()) {

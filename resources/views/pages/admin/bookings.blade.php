@@ -299,7 +299,15 @@
                     <option value="for_verification">For verification</option>
                     <option value="confirmed">Confirmed</option>
                 </select>
-            </div>
+        </div>
+
+        <div class="form-group pt-2">
+            <label class="flex items-center gap-3 cursor-pointer select-none">
+                <input type="checkbox" id="walkin_with_breakfast" name="with_breakfast" value="1" class="h-5 w-5 rounded border-stone-300 text-brand-primary focus:ring-brand-primary">
+                <span class="text-sm font-medium text-stone-900">
+                    Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 per guest per night)</span>
+                </span>
+            </label>
         </div>
 
         <div class="form-group md:col-span-2">

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at'])]
+#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at', 'with_breakfast', 'breakfast_charge'])]
 class Booking extends Model
 {
     use HasFactory;
@@ -27,6 +27,8 @@ class Booking extends Model
         'total' => 'decimal:2',
         'source' => 'string',
         'review_token_used_at' => 'datetime',
+        'with_breakfast' => 'boolean',
+        'breakfast_charge' => 'decimal:2',
     ];
 
     public function getSourceLabelAttribute(): string

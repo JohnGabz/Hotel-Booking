@@ -7,14 +7,16 @@
         </svg>
     </button>
 
-    <div id="notif-menu" class="hidden absolute right-0 mt-2 w-[min(20rem,calc(100vw-2rem))] rounded-xl bg-white border border-stone-200 shadow-lg py-2 z-50">
-        <div class="px-4 py-3 border-b text-sm font-semibold flex justify-between items-center">
-            <span>Notifications</span>
-            <button type="button" id="notif-mark-all" class="text-xs text-brand-primary hover:underline font-semibold hidden">Mark all as read</button>
+    <div id="notif-menu" class="hidden absolute right-0 mt-2 w-[min(24rem,calc(100vw-2rem))] rounded-xl bg-white border border-stone-200 shadow-xl py-2 z-50 overflow-hidden transform origin-top-right transition-all">
+        <div class="px-4 py-3 border-b border-stone-100 text-sm font-bold text-stone-900 flex justify-between items-center bg-stone-50/50">
+            <span class="flex items-center gap-1.5">
+                Notifications
+            </span>
+            <button type="button" id="notif-mark-all" class="text-xs text-brand-primary hover:text-brand-secondary hover:underline font-semibold hidden">Mark all as read</button>
         </div>
-        <div id="notif-list" class="max-h-56 overflow-auto">
+        <div id="notif-list" class="max-h-80 overflow-y-auto divide-y divide-stone-100">
             <div class="px-4 py-6 text-sm text-stone-500 text-center">No new notifications</div>
         </div>
-        <div id="notif-footer" class="px-4 py-2 border-t text-center text-xs text-stone-500">You're all caught up</div>
+        <div id="notif-footer" class="px-4 py-2.5 border-t border-stone-100 text-center text-xs text-stone-500 font-medium bg-stone-50/30">You're all caught up</div>
     </div>
 </div>
