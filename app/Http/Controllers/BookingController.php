@@ -14,6 +14,7 @@ use App\Notifications\PaymentProofUploadedNotification;
 use App\Support\ImageStorage;
 use App\Support\NotifyAdmins;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -25,7 +26,7 @@ use Throwable;
 
 class BookingController extends Controller
 {
-    public function store(Request $request, Room $room): RedirectResponse
+    public function store(Request $request, Room $room): RedirectResponse|JsonResponse
     {
         $validated = $request->validate([
             'check_in' => 'required|date|after_or_equal:today',

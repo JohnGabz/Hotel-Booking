@@ -14,7 +14,7 @@ class NotifyAdmins
     {
         try {
             User::query()
-                ->where('is_admin', true)
+                ->whereRaw('is_admin = TRUE')
                 ->get()
                 ->each(fn (User $admin) => $admin->notify($notification));
 
