@@ -2,10 +2,13 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\PaymentPending;
+use App\Events\PaymentStatusUpdated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
-use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -35,9 +38,9 @@ class PaymentController extends Controller
         }
 
         $amount = round((float) $booking->total, 2);
-        $externalId = 'villa-estela-booking-' . $booking->id;
+        $externalId = 'villa-estela-booking-'.$booking->id;
         $payload = $this->buildInvoicePayload($booking, $amount, $externalId);
-        $invoiceUrl = rtrim((string) config('services.xendit.invoice_base_url', 'https://api.xendit.co'), '/') . '/v2/invoices';
+        $invoiceUrl = rtrim((string) config('services.xendit.invoice_base_url', 'https://api.xendit.co'), '/').'/v2/invoices';
 
         try {
             $response = Http::withBasicAuth($secretKey, '')
@@ -47,6 +50,7 @@ class PaymentController extends Controller
 
             if (! $response->successful()) {
                 Log::error('Xendit create invoice failed', ['resp' => $response->body()]);
+
                 return back()->with('error', 'Could not create a payment session right now. You can upload payment proof instead.');
             }
 
@@ -56,6 +60,7 @@ class PaymentController extends Controller
 
             if (! $checkoutUrl || ! $invoiceId) {
                 Log::error('Xendit missing invoice_url', ['resp' => $response->body()]);
+
                 return back()->with('error', 'Payment gateway did not return a usable checkout link. Please try again.');
             }
 
@@ -83,6 +88,9 @@ class PaymentController extends Controller
                 );
             });
 
+            event(new PaymentPending($booking->id));
+            event(new PaymentStatusUpdated($booking->id));
+
             return redirect()->away($checkoutUrl);
         } catch (Throwable $e) {
             Log::error('Xendit invoice creation exception', [
@@ -100,7 +108,7 @@ class PaymentController extends Controller
             'external_id' => $externalId,
             'amount' => $amount,
             'currency' => 'PHP',
-            'description' => 'Booking #' . $booking->id . ' - ' . $booking->room->name,
+            'description' => 'Booking #'.$booking->id.' - '.$booking->room->name,
             'invoice_duration' => 86400,
             'success_redirect_url' => route('dashboard'),
             'failure_redirect_url' => route('dashboard'),
@@ -130,7 +138,7 @@ class PaymentController extends Controller
         return $checkoutUrl ? (string) $checkoutUrl : null;
     }
 
-    public function webhook(Request $request): \Illuminate\Http\JsonResponse
+    public function webhook(Request $request): JsonResponse
     {
         $expectedToken = config('services.xendit.webhook_token');
         if ($expectedToken && $request->header('X-Callback-Token') !== $expectedToken) {

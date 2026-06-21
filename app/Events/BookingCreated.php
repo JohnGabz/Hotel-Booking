@@ -2,14 +2,14 @@
 
 namespace App\Events;
 
-use Illuminate\Foundation\Events\Dispatchable;
-use Illuminate\Queue\SerializesModels;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class BookingCreated
+class BookingCreated implements ShouldBroadcastNow
 {
-    use Dispatchable, SerializesModels;
+    use BroadcastsBookingSummary;
 
-    public function __construct(public int $bookingId)
+    public function broadcastAs(): string
     {
+        return 'booking.created';
     }
 }

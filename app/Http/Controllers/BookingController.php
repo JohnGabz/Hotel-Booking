@@ -2,11 +2,15 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\AdminNotificationCreated;
 use App\Events\BookingCreated;
+use App\Events\PaymentStatusUpdated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\Room;
+use App\Models\User;
 use App\Notifications\BookingCreatedNotification;
+use App\Notifications\PaymentProofUploadedNotification;
 use App\Support\ImageStorage;
 use App\Support\NotifyAdmins;
 use Carbon\Carbon;
@@ -98,7 +102,7 @@ class BookingController extends Controller
             ]);
         }
 
-        return redirect('/rooms/' . $room->slug)
+        return redirect('/rooms/'.$room->slug)
             ->with('success', 'Reservation received - pending payment verification.');
     }
 
@@ -148,13 +152,16 @@ class BookingController extends Controller
 
         // Trigger database notification for admin
         try {
-            $adminUsers = \App\Models\User::where('is_admin', true)->get();
+            $adminUsers = User::where('is_admin', true)->get();
             foreach ($adminUsers as $admin) {
-                $admin->notify(new \App\Notifications\PaymentProofUploadedNotification($booking->id, $booking->contact_name ?? $booking->user?->name ?? 'Guest', $request->payment_reference));
+                $admin->notify(new PaymentProofUploadedNotification($booking->id, $booking->contact_name ?? $booking->user?->name ?? 'Guest', $request->payment_reference));
             }
-        } catch (\Throwable $e) {
-            Log::error('Failed to notify admins on payment proof upload: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Failed to notify admins on payment proof upload: '.$e->getMessage());
         }
+
+        event(new AdminNotificationCreated);
+        event(new PaymentStatusUpdated($booking->id));
 
         return redirect()->route('dashboard')->with('success', 'Payment proof uploaded. Our staff will verify your payment shortly.');
     }
@@ -182,7 +189,7 @@ class BookingController extends Controller
 
         return view('pages.dashboard', compact('bookings', 'recentRooms'), [
             'seo' => [
-                'title' => 'Dashboard — ' . config('app.name'),
+                'title' => 'Dashboard — '.config('app.name'),
                 'description' => 'Manage your reservations and reviews at Villa Estella.',
             ],
         ]);
@@ -208,7 +215,7 @@ class BookingController extends Controller
 
         return view('pages.rooms.index', compact('rooms'), [
             'seo' => [
-                'title' => 'Search Results — ' . config('app.name'),
+                'title' => 'Search Results — '.config('app.name'),
                 'description' => 'Available rooms for your selected dates.',
             ],
         ]);

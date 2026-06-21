@@ -1,3 +1,6 @@
+import Echo from 'laravel-echo';
+import Pusher from 'pusher-js';
+
 const html = document.documentElement;
 const globalLoader = document.getElementById('global-loader');
 
@@ -1340,118 +1343,223 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
     showPanel('map');
 })();
 
-// Dynamic Notifications Polling and Actions
+// Dynamic notifications and realtime updates with polling fallback.
 (() => {
     const notifBtn = document.getElementById('notif-btn');
     const notifBadge = document.getElementById('notif-badge');
     const notifList = document.getElementById('notif-list');
     const notifFooter = document.getElementById('notif-footer');
     const notifMarkAll = document.getElementById('notif-mark-all');
-
-    if (!notifBtn) return;
-
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+    const realtime = window.VillaRealtime || {};
+    const transport = window.fetchWithoutLoader || originalFetch;
+
+    let notificationPollTimer = null;
+    let echoConnected = false;
 
     const updateNotificationsUI = (data) => {
         const count = data.unread_count || 0;
-        
-        // Update badge
+
         if (notifBadge) {
             notifBadge.textContent = count;
-            if (count > 0) {
-                notifBadge.classList.remove('hidden');
-            } else {
-                notifBadge.classList.add('hidden');
-            }
+            notifBadge.classList.toggle('hidden', count <= 0);
         }
 
-        // Update footer
         if (notifFooter) {
-            notifFooter.textContent = count === 0 ? 'You’re all caught up' : `${count} unread notification(s)`;
+            notifFooter.textContent = count === 0 ? 'You\u2019re all caught up' : `${count} unread notification(s)`;
         }
 
-        // Update mark all as read button visibility
         if (notifMarkAll) {
-            if (count > 0) {
-                notifMarkAll.classList.remove('hidden');
-            } else {
-                notifMarkAll.classList.add('hidden');
-            }
+            notifMarkAll.classList.toggle('hidden', count <= 0);
         }
 
-        // Update list
-        if (notifList) {
-            if (!data.notifications || data.notifications.length === 0) {
-                notifList.innerHTML = '<div class="px-4 py-6 text-sm text-stone-500 text-center">No new notifications</div>';
-                return;
+        if (!notifList) return;
+
+        if (!data.notifications || data.notifications.length === 0) {
+            notifList.innerHTML = '<div class="px-4 py-6 text-sm text-stone-500 text-center">No new notifications</div>';
+            return;
+        }
+
+        notifList.innerHTML = '';
+        data.notifications.forEach(n => {
+            const isRead = n.read_at !== null;
+            const div = document.createElement('div');
+            div.className = `flex items-start justify-between gap-3 px-4 py-3 text-sm hover:bg-stone-50 transition ${isRead ? 'opacity-70' : 'bg-brand-primary/5 font-semibold'}`;
+            div.setAttribute('data-notif-id', n.id);
+
+            const infoDiv = document.createElement('div');
+            infoDiv.className = 'flex-1 min-w-0';
+
+            const p = document.createElement('p');
+            p.className = 'text-stone-900 leading-snug';
+
+            const link = document.createElement('a');
+            link.href = n.data?.action_url || '#';
+            link.textContent = n.data?.message || '';
+            link.className = 'hover:underline block';
+            p.appendChild(link);
+            infoDiv.appendChild(p);
+
+            const timeP = document.createElement('p');
+            timeP.className = 'text-[10px] text-stone-400 mt-1 uppercase tracking-wider font-semibold';
+            timeP.textContent = n.created_at_human;
+            infoDiv.appendChild(timeP);
+
+            div.appendChild(infoDiv);
+
+            if (!isRead) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'notif-read-btn text-xs text-stone-400 hover:text-brand-primary font-bold px-1';
+                btn.title = 'Mark as read';
+                btn.textContent = '\u2713';
+                btn.setAttribute('data-id', n.id);
+                div.appendChild(btn);
             }
 
-            notifList.innerHTML = '';
-            data.notifications.forEach(n => {
-                const isRead = n.read_at !== null;
-                const div = document.createElement('div');
-                div.className = `flex items-start justify-between gap-3 px-4 py-3 text-sm hover:bg-stone-50 transition ${isRead ? 'opacity-70' : 'bg-brand-primary/5 font-semibold'}`;
-                div.setAttribute('data-notif-id', n.id);
-
-                const infoDiv = document.createElement('div');
-                infoDiv.className = 'flex-1 min-w-0';
-
-                const messageText = n.data?.message || '';
-                const actionUrl = n.data?.action_url || '#';
-                
-                const p = document.createElement('p');
-                p.className = 'text-stone-900 leading-snug';
-                
-                const link = document.createElement('a');
-                link.href = actionUrl;
-                link.textContent = messageText;
-                link.className = 'hover:underline block';
-                p.appendChild(link);
-                infoDiv.appendChild(p);
-
-                const timeP = document.createElement('p');
-                timeP.className = 'text-[10px] text-stone-400 mt-1 uppercase tracking-wider font-semibold';
-                timeP.textContent = n.created_at_human;
-                infoDiv.appendChild(timeP);
-
-                div.appendChild(infoDiv);
-
-                if (!isRead) {
-                    const btn = document.createElement('button');
-                    btn.type = 'button';
-                    btn.className = 'notif-read-btn text-xs text-stone-400 hover:text-brand-primary font-bold px-1';
-                    btn.title = 'Mark as read';
-                    btn.textContent = '✓';
-                    btn.setAttribute('data-id', n.id);
-                    div.appendChild(btn);
-                }
-
-                notifList.appendChild(div);
-            });
-        }
+            notifList.appendChild(div);
+        });
     };
 
     const pollNotifications = async () => {
+        if (!notifBtn) return;
+
         try {
-            const res = await (window.fetchWithoutLoader || fetch)('/notifications/unread', {
+            const res = await transport('/notifications/unread', {
                 headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
             });
+
             if (res.ok) {
-                const data = await res.json();
-                updateNotificationsUI(data);
+                updateNotificationsUI(await res.json());
             }
         } catch (e) {
             console.error('Failed to poll notifications:', e);
         }
     };
 
-    // Poll every 15 seconds
-    setInterval(pollNotifications, 15000);
+    const scheduleNotificationPolling = () => {
+        if (!notifBtn) return;
 
-    // Dynamic click handler for individual mark-as-read
+        window.clearInterval(notificationPollTimer);
+        notificationPollTimer = window.setInterval(pollNotifications, echoConnected ? 90000 : 15000);
+    };
+
+    const refreshRealtimeFragment = async (name) => {
+        const current = document.querySelector(`[data-realtime-fragment="${name}"]`);
+        if (!current) return;
+
+        try {
+            const response = await transport(window.location.href, {
+                headers: {
+                    Accept: 'text/html',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+            });
+
+            if (!response.ok) return;
+
+            const html = await response.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const fresh = doc.querySelector(`[data-realtime-fragment="${name}"]`);
+
+            if (fresh) {
+                current.replaceWith(fresh);
+            }
+        } catch (error) {
+            console.error(`Failed to refresh realtime fragment: ${name}`, error);
+        }
+    };
+
+    const handleRealtimeChange = () => {
+        pollNotifications();
+        refreshRealtimeFragment('guest-dashboard');
+        refreshRealtimeFragment('admin-dashboard');
+        refreshRealtimeFragment('admin-bookings');
+    };
+
+    const bindRealtime = () => {
+        if (!realtime.userId || !import.meta.env.VITE_PUSHER_APP_KEY) {
+            scheduleNotificationPolling();
+            pollNotifications();
+            return;
+        }
+
+        try {
+            window.Pusher = Pusher;
+            window.Echo = new Echo({
+                broadcaster: 'pusher',
+                key: import.meta.env.VITE_PUSHER_APP_KEY,
+                cluster: import.meta.env.VITE_PUSHER_APP_CLUSTER || 'mt1',
+                forceTLS: true,
+                authEndpoint: '/broadcasting/auth',
+                auth: {
+                    headers: {
+                        'X-CSRF-TOKEN': csrfToken,
+                    },
+                },
+            });
+
+            const connection = window.Echo.connector?.pusher?.connection;
+            connection?.bind('connected', () => {
+                echoConnected = true;
+                scheduleNotificationPolling();
+                pollNotifications();
+            });
+            connection?.bind('disconnected', () => {
+                echoConnected = false;
+                scheduleNotificationPolling();
+            });
+            connection?.bind('error', () => {
+                echoConnected = false;
+                scheduleNotificationPolling();
+            });
+
+            const userChannel = window.Echo.private(`users.${realtime.userId}`);
+            [
+                '.notification.created',
+                '.booking.created',
+                '.booking.updated',
+                '.booking.cancelled',
+                '.booking.status.changed',
+                '.booking.confirmed',
+                '.payment.pending',
+                '.payment.verified',
+                '.payment.failed',
+                '.payment.expired',
+                '.payment.status.updated',
+            ].forEach(eventName => userChannel.listen(eventName, handleRealtimeChange));
+
+            if (realtime.isAdmin) {
+                const adminChannel = window.Echo.private('admins');
+                [
+                    '.notification.created',
+                    '.booking.created',
+                    '.booking.updated',
+                    '.booking.cancelled',
+                    '.booking.status.changed',
+                    '.booking.confirmed',
+                    '.payment.pending',
+                    '.payment.verified',
+                    '.payment.failed',
+                    '.payment.expired',
+                    '.payment.status.updated',
+                ].forEach(eventName => adminChannel.listen(eventName, handleRealtimeChange));
+            }
+        } catch (error) {
+            console.error('Realtime setup failed; polling fallback remains active.', error);
+        }
+
+        scheduleNotificationPolling();
+        pollNotifications();
+    };
+
+    window.VillaNotifications = {
+        refresh: pollNotifications,
+    };
+
     if (notifList) {
         notifList.addEventListener('click', async (e) => {
             const btn = e.target.closest('.notif-read-btn');
@@ -1463,26 +1571,26 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             btn.textContent = '...';
 
             try {
-                const res = await (window.fetchWithoutLoader || fetch)(`/notifications/${id}/read`, {
+                const res = await transport(`/notifications/${id}/read`, {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
                 });
+
                 if (res.ok) {
                     await pollNotifications();
                 }
             } catch (err) {
                 console.error('Failed to mark notification as read:', err);
                 btn.removeAttribute('disabled');
-                btn.textContent = '✓';
+                btn.textContent = '\u2713';
             }
         });
     }
 
-    // Dynamic click handler for mark-all-read
     if (notifMarkAll) {
         notifMarkAll.addEventListener('click', async (e) => {
             e.stopPropagation();
@@ -1490,23 +1598,26 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             notifMarkAll.textContent = 'Marking...';
 
             try {
-                const res = await (window.fetchWithoutLoader || fetch)('/notifications/read-all', {
+                const res = await transport('/notifications/read-all', {
                     method: 'POST',
                     headers: {
                         'X-CSRF-TOKEN': csrfToken,
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                        Accept: 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
                 });
+
                 if (res.ok) {
                     await pollNotifications();
                 }
             } catch (err) {
-                console.error('Failed to mark all as read:', err);
+                console.error('Failed to mark all notifications as read:', err);
             } finally {
                 notifMarkAll.removeAttribute('disabled');
                 notifMarkAll.textContent = 'Mark all as read';
             }
         });
     }
+
+    bindRealtime();
 })();

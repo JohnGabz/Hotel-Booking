@@ -10,6 +10,7 @@
         "laravel/framework": "^13.0",
         "laravel/tinker": "^3.0",
         "league/flysystem-aws-s3-v3": "^3.0",
+        "pusher/pusher-php-server": "^7.2",
         "resend/resend-php": "^1.0",
         "xendit/xendit-php": "^3.0"
     },
@@ -86,3 +87,4 @@
     "minimum-stability": "stable",
     "prefer-stable": true
 }
+

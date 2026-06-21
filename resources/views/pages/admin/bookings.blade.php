@@ -5,7 +5,7 @@
     $statusOptions = ['all', 'confirmed', 'pending', 'cancelled'];
 @endphp
 
-<div class="space-y-8">
+<div class="space-y-8" data-realtime-fragment="admin-bookings">
     <section class="surface p-6 sm:p-8 lg:p-10">
         <div class="flex flex-col gap-6 lg:flex-row lg:items-end lg:justify-between">
             <div>
@@ -501,3 +501,5 @@
     })();
 </script>
 @endsection
+
+

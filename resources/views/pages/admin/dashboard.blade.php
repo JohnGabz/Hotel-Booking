@@ -11,7 +11,7 @@
     $maxValue = max($chartValues);
 @endphp
 
-<div class="space-y-8">
+<div class="space-y-8" data-realtime-fragment="admin-dashboard">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <span class="eyebrow">Dashboard</span>
@@ -218,3 +218,5 @@
 
 </div>
 @endsection
+
+

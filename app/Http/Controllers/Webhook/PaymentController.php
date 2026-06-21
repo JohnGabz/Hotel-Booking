@@ -3,6 +3,9 @@
 namespace App\Http\Controllers\Webhook;
 
 use App\Events\BookingConfirmed;
+use App\Events\PaymentExpired;
+use App\Events\PaymentFailed;
+use App\Events\PaymentStatusUpdated;
 use App\Events\PaymentVerified;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
@@ -74,18 +77,31 @@ class PaymentController extends Controller
                 return ['status' => 'ok', 'booking_id' => $booking->id, 'confirmed' => ! $alreadyConfirmed];
             }
 
+            $paymentEvent = null;
+
             if (in_array($status, ['failed', 'expired', 'voided'], true)) {
                 $booking->update(['payment_status' => 'failed']);
+                $paymentEvent = $status === 'expired' ? 'expired' : 'failed';
             }
 
             $webhookEvent->update(['processed_at' => now()]);
 
-            return ['status' => 'ignored', 'booking_id' => $booking->id, 'confirmed' => false];
+            return ['status' => 'ignored', 'booking_id' => $booking->id, 'confirmed' => false, 'payment_event' => $paymentEvent];
         });
 
         if ($result['confirmed'] && $result['booking_id']) {
             event(new PaymentVerified($result['booking_id']));
             event(new BookingConfirmed($result['booking_id']));
+        }
+
+        if (($result['payment_event'] ?? null) === 'failed' && $result['booking_id']) {
+            event(new PaymentFailed($result['booking_id']));
+            event(new PaymentStatusUpdated($result['booking_id']));
+        }
+
+        if (($result['payment_event'] ?? null) === 'expired' && $result['booking_id']) {
+            event(new PaymentExpired($result['booking_id']));
+            event(new PaymentStatusUpdated($result['booking_id']));
         }
 
         Log::info('Payment webhook handled', $result + ['event_id' => $eventId, 'provider' => $provider]);

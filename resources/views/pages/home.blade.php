@@ -325,12 +325,12 @@
             <p class="text-base leading-relaxed text-stone-600 mb-8">{{ $galleryIntro }}</p>
             <div class="grid gap-4 sm:grid-cols-2">
                 <div class="rounded-xl bg-brand-primary/5 border border-brand-primary/20 p-6">
-                    <p class="text-xs uppercase tracking-[0.25em] text-brand-primary font-semibold mb-2">Atmosphere</p>
-                    <p class="text-base font-semibold text-stone-900">Calm, warm, and unforgettable.</p>
+                    <p class="text-xs uppercase tracking-[0.25em] text-brand-primary font-semibold mb-2">{{ $landingContent['gallery_card_1_title'] ?? 'Atmosphere' }}</p>
+                    <p class="text-base font-semibold text-stone-900">{{ $landingContent['gallery_card_1_text'] ?? 'Calm, warm, and unforgettable.' }}</p>
                 </div>
                 <div class="rounded-xl bg-brand-primary/5 border border-brand-primary/20 p-6">
-                    <p class="text-xs uppercase tracking-[0.25em] text-brand-primary font-semibold mb-2">Photography</p>
-                    <p class="text-base font-semibold text-stone-900">Resort views and elegant interiors.</p>
+                    <p class="text-xs uppercase tracking-[0.25em] text-brand-primary font-semibold mb-2">{{ $landingContent['gallery_card_2_title'] ?? 'Photography' }}</p>
+                    <p class="text-base font-semibold text-stone-900">{{ $landingContent['gallery_card_2_text'] ?? 'Resort views and elegant interiors.' }}</p>
                 </div>
             </div>
         </div>
@@ -346,7 +346,7 @@
                 <img src="{{ $gallery[2] }}" alt="Hotel lounge" class="h-full w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 640px) 50vw, 100vw">
             </div>
             <div class="overflow-hidden rounded-2xl sm:col-span-2 border border-stone-200 shadow-lg hover:shadow-2xl transition-shadow duration-300">
-                <img src="{{ $gallery[5] }}" alt="Sunset by the water" class="h-64 w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 55vw, 100vw">
+                <img src="{{ $gallery[3] }}" alt="Sunset by the water" class="h-64 w-full object-cover transition-transform duration-500 hover:scale-110" loading="lazy" decoding="async" sizes="(min-width: 1024px) 55vw, 100vw">
             </div>
         </div>
     </div>

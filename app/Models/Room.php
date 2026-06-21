@@ -2,12 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Collection;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['name', 'slug', 'description', 'capacity', 'price', 'status', 'amenities', 'images'])]
+#[Fillable(['name', 'slug', 'description', 'capacity', 'price', 'status', 'amenities', 'images'])]
 class Room extends Model
 {
     use HasFactory;
@@ -48,6 +49,10 @@ class Room extends Model
     public function availablePhysicalRoomFor(string $checkIn, string $checkOut, bool $lock = false): ?PhysicalRoom
     {
         if ($this->status !== 'available') {
+            return null;
+        }
+
+        if (Booking::query()->overlapping($this->id, $checkIn, $checkOut)->whereNull('physical_room_id')->exists()) {
             return null;
         }
 
@@ -114,6 +119,16 @@ class Room extends Model
             return 0;
         }
 
+        if (Booking::query()
+            ->where('room_id', $this->id)
+            ->whereIn('status', Booking::BLOCKING_STATUSES)
+            ->whereNull('physical_room_id')
+            ->whereDate('check_in', '<=', $date)
+            ->whereDate('check_out', '>', $date)
+            ->exists()) {
+            return 0;
+        }
+
         $occupiedIds = $this->occupiedPhysicalRoomIdsForDate($date);
 
         return $this->availablePhysicalRooms()
@@ -124,6 +139,10 @@ class Room extends Model
     public function availablePhysicalRoomCountForRange(string $checkIn, string $checkOut): int
     {
         if ($this->status !== 'available') {
+            return 0;
+        }
+
+        if (Booking::query()->overlapping($this->id, $checkIn, $checkOut)->whereNull('physical_room_id')->exists()) {
             return 0;
         }
 

@@ -4,12 +4,12 @@ namespace App\Events;
 
 use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class BookingConfirmed implements ShouldBroadcastNow
+class BookingCancelled implements ShouldBroadcastNow
 {
     use BroadcastsBookingSummary;
 
     public function broadcastAs(): string
     {
-        return 'booking.confirmed';
+        return 'booking.cancelled';
     }
 }

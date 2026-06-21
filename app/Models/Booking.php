@@ -2,18 +2,22 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Str;
 
-#[\Illuminate\Database\Eloquent\Attributes\Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at'])]
+#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at'])]
 class Booking extends Model
 {
     use HasFactory;
 
     public const BLOCKING_STATUSES = ['pending', 'for_verification', 'confirmed'];
+
     public const SOURCE_ONLINE = 'online';
+
     public const SOURCE_WALK_IN = 'walk_in';
 
     protected $casts = [
@@ -86,9 +90,16 @@ class Booking extends Model
         return static::query()->overlappingPhysicalRoom($physicalRoomId, $checkIn, $checkOut, $statuses)->exists();
     }
 
+    public static function isAvailableFor(int $roomId, string $checkIn, string $checkOut): bool
+    {
+        $room = Room::find($roomId);
+
+        return $room?->isAvailableFor($checkIn, $checkOut) ?? false;
+    }
+
     public function confirmPayment(?string $reference = null, ?string $method = null, ?string $provider = null, ?array $payload = null): void
     {
-        $token = $this->review_token ?: \Illuminate\Support\Str::random(48);
+        $token = $this->review_token ?: Str::random(48);
 
         $this->forceFill([
             'status' => 'confirmed',
@@ -102,7 +113,7 @@ class Booking extends Model
         PaymentTransaction::updateOrCreate(
             [
                 'booking_id' => $this->id,
-                'transaction_id' => $reference ?: $this->payment_reference ?: 'booking-' . $this->id,
+                'transaction_id' => $reference ?: $this->payment_reference ?: 'booking-'.$this->id,
             ],
             [
                 'provider' => $provider ?: 'manual',
@@ -117,7 +128,7 @@ class Booking extends Model
 
     public function getTransactionIdAttribute(): string
     {
-        return $this->payment_reference ?: 'BOOK-' . str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
+        return $this->payment_reference ?: 'BOOK-'.str_pad((string) $this->id, 6, '0', STR_PAD_LEFT);
     }
 
     public function getReportPaymentStatusAttribute(): string
@@ -136,15 +147,16 @@ class Booking extends Model
 
     public function generateReviewToken(): string
     {
-        $token = \Illuminate\Support\Str::random(48);
+        $token = Str::random(48);
         $this->review_token = $token;
         $this->save();
+
         return $token;
     }
 
     public function reviewTokenIsValid(): bool
     {
-        return !empty($this->review_token)
+        return ! empty($this->review_token)
             && $this->review_token_used_at === null
             && $this->status === 'confirmed'
             && $this->check_out->isPast();

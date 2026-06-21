@@ -12,6 +12,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Satoshi:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script>document.documentElement.classList.add('is-loading');</script>
+    <script>
+        window.VillaRealtime = {
+            userId: @json(auth()->id()),
+            isAdmin: @json((bool) auth()->user()?->is_admin),
+        };
+    </script>
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body class="min-h-screen bg-gray-50 font-sans text-gray-900">
@@ -188,3 +194,4 @@
     @endif
 </body>
 </html>
+

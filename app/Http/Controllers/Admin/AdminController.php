@@ -2,9 +2,15 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\AdminNotificationCreated;
+use App\Events\BookingCancelled;
 use App\Events\BookingConfirmed;
 use App\Events\BookingCreated;
+use App\Events\BookingStatusChanged;
+use App\Events\PaymentFailed;
+use App\Events\PaymentStatusUpdated;
 use App\Events\PaymentVerified;
+use App\Events\UserNotificationCreated;
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
@@ -13,9 +19,10 @@ use App\Models\Review;
 use App\Models\Room;
 use App\Models\SiteContent;
 use App\Models\User;
+use App\Notifications\BookingCreatedNotification;
+use App\Notifications\PaymentStatusUpdatedNotification;
 use App\Support\ImageInput;
 use App\Support\ImageStorage;
-use Illuminate\Validation\Rule;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +33,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
@@ -43,7 +51,7 @@ class AdminController extends Controller
     {
         return $this->renderAdminPage('dashboard', [
             'seo' => [
-                'title' => 'Admin Dashboard — ' . config('app.name'),
+                'title' => 'Admin Dashboard — '.config('app.name'),
                 'description' => 'Overview of bookings, revenue, and room operations for Villa Estella.',
             ],
         ]);
@@ -54,11 +62,11 @@ class AdminController extends Controller
         $this->ensureAdmin();
         $section = $request->query('section', 'dashboard');
 
-        if (! view()->exists('admin.sections.' . $section)) {
+        if (! view()->exists('admin.sections.'.$section)) {
             abort(404);
         }
 
-        return view('admin.sections.' . $section, $this->sectionData($section));
+        return view('admin.sections.'.$section, $this->sectionData($section));
     }
 
     public function assignPhysicalRoom(Request $request, Booking $booking): RedirectResponse
@@ -149,7 +157,7 @@ class AdminController extends Controller
                 'date_to' => $dateTo,
             ],
             'seo' => [
-                'title' => 'Bookings — ' . config('app.name'),
+                'title' => 'Bookings — '.config('app.name'),
                 'description' => 'Filter, review, and manage bookings in a table-first workflow.',
             ],
         ]);
@@ -174,8 +182,11 @@ class AdminController extends Controller
             'notes' => 'nullable|string|max:2000',
         ]);
 
-        $booking = DB::transaction(function () use ($request, $validated) {
+        $walkinRoomName = null;
+
+        $booking = DB::transaction(function () use ($request, $validated, &$walkinRoomName) {
             $lockedRoom = Room::query()->whereKey($validated['room_id'])->lockForUpdate()->firstOrFail();
+            $walkinRoomName = $lockedRoom->name;
 
             if ($lockedRoom->status !== 'available') {
                 throw ValidationException::withMessages([
@@ -229,7 +240,7 @@ class AdminController extends Controller
             $booking = Booking::create($payload);
 
             if ($paymentStatus === 'paid') {
-                $booking->confirmPayment('walkin-' . $booking->id, $booking->payment_method, 'manual', [
+                $booking->confirmPayment('walkin-'.$booking->id, $booking->payment_method, 'manual', [
                     'proof_path' => $proofPath,
                     'source' => 'admin_walkin',
                 ]);
@@ -237,7 +248,7 @@ class AdminController extends Controller
                 PaymentTransaction::updateOrCreate(
                     [
                         'booking_id' => $booking->id,
-                        'transaction_id' => 'walkin-' . $booking->id,
+                        'transaction_id' => 'walkin-'.$booking->id,
                     ],
                     [
                         'provider' => 'manual',
@@ -264,11 +275,13 @@ class AdminController extends Controller
         try {
             $adminUsers = User::where('is_admin', true)->get();
             foreach ($adminUsers as $admin) {
-                $admin->notify(new \App\Notifications\BookingCreatedNotification($booking->id, $lockedRoom->name, $booking->contact_name, true));
+                $admin->notify(new BookingCreatedNotification($booking->id, $walkinRoomName ?? 'Room', $booking->contact_name, true));
             }
-        } catch (\Throwable $e) {
-            Log::error('Failed to notify admins on walk-in booking creation: ' . $e->getMessage());
+        } catch (Throwable $e) {
+            Log::error('Failed to notify admins on walk-in booking creation: '.$e->getMessage());
         }
+
+        event(new AdminNotificationCreated);
 
         try {
             event(new BookingCreated($booking->id));
@@ -300,7 +313,7 @@ class AdminController extends Controller
         return $this->renderAdminPage('rooms', [
             'viewMode' => $request->query('view', 'grid'),
             'seo' => [
-                'title' => 'Rooms — ' . config('app.name'),
+                'title' => 'Rooms — '.config('app.name'),
                 'description' => 'View room cards, availability, pricing, and quick room actions.',
             ],
         ]);
@@ -425,7 +438,7 @@ class AdminController extends Controller
             'users' => $users,
             'selectedGuest' => $selectedGuest,
             'seo' => [
-                'title' => 'Guests — ' . config('app.name'),
+                'title' => 'Guests — '.config('app.name'),
                 'description' => 'Profile-based guest management with recent activity and stay history.',
             ],
         ]);
@@ -441,7 +454,7 @@ class AdminController extends Controller
         match ($sort) {
             'amount' => $transactionsQuery->orderBy('total', $direction),
             'status' => $transactionsQuery->orderBy('payment_status', $direction),
-            default => $transactionsQuery->orderByRaw('COALESCE(paid_at, updated_at, created_at) ' . $direction),
+            default => $transactionsQuery->orderByRaw('COALESCE(paid_at, updated_at, created_at) '.$direction),
         };
 
         $transactions = $transactionsQuery
@@ -485,7 +498,7 @@ class AdminController extends Controller
             'chartLabels' => $monthlyRevenue->keys()->all(),
             'chartValues' => $monthlyRevenue->values()->map(fn ($value) => (float) $value)->all(),
             'seo' => [
-                'title' => 'Payment Reports — ' . config('app.name'),
+                'title' => 'Payment Reports — '.config('app.name'),
                 'description' => 'Search, filter, and export payment transactions for Villa Estella.',
             ],
         ]);
@@ -596,7 +609,7 @@ class AdminController extends Controller
             'pendingCount' => $pendingCount,
             'averageRating' => round($averageRating, 1),
             'seo' => [
-                'title' => 'Feedbacks — ' . config('app.name'),
+                'title' => 'Feedbacks — '.config('app.name'),
                 'description' => 'Review and manage guest feedback.',
             ],
         ]);
@@ -610,7 +623,7 @@ class AdminController extends Controller
             'activeSettingsTab' => $request->query('tab', 'general'),
             'landingSections' => $this->landingPageSections($siteContent),
             'seo' => [
-                'title' => 'Settings — ' . config('app.name'),
+                'title' => 'Settings — '.config('app.name'),
                 'description' => 'General, account, and preferences settings for the admin panel.',
             ],
         ]);
@@ -630,7 +643,7 @@ class AdminController extends Controller
         return $this->renderAdminPage('landing-edit', [
             'section' => $section,
             'seo' => [
-                'title' => 'Edit ' . $section['title'] . ' — ' . config('app.name'),
+                'title' => 'Edit '.$section['title'].' — '.config('app.name'),
             ],
         ]);
     }
@@ -716,12 +729,12 @@ class AdminController extends Controller
             'totalRevenue' => Booking::sum('total'),
             'occupancyRate' => Booking::count() > 0 ? round((Booking::where('status', 'confirmed')->count() / Booking::count()) * 100) : 0,
             'seo' => [
-                'title' => 'Admin — ' . config('app.name'),
+                'title' => 'Admin — '.config('app.name'),
                 'description' => 'Staff management and reporting for Villa Estella.',
             ],
         ];
 
-        return view('pages.admin.' . $page, array_merge($baseData, $extra));
+        return view('pages.admin.'.$page, array_merge($baseData, $extra));
     }
 
     protected function landingPageSections(array $siteContent): array
@@ -742,43 +755,6 @@ class AdminController extends Controller
                     ['key' => 'hero_subtitle', 'label' => 'Subtitle', 'type' => 'textarea', 'rows' => 4, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
                     ['key' => 'hero_button_text', 'label' => 'Button text', 'maxlength' => 80],
                     ['key' => 'hero_background_image', 'label' => 'Background image', 'type' => 'image', 'span' => 'xl:col-span-2'],
-                ],
-            ],
-            [
-                'id' => 'booking',
-                'title' => 'Booking',
-                'description' => 'Section title and supporting copy for the booking quick form.',
-                'fields' => [
-                    ['key' => 'booking_heading', 'label' => 'Heading', 'maxlength' => 200],
-                    ['key' => 'booking_subheading', 'label' => 'Subheading', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                ],
-            ],
-            [
-                'id' => 'services',
-                'title' => 'Services',
-                'description' => 'Intro copy and the four service cards shown on the landing page.',
-                'fields' => [
-                    ['key' => 'services_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
-                    ['key' => 'services_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
-                    ['key' => 'services_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'service_1_title', 'label' => 'Card 1 title', 'maxlength' => 200],
-                    ['key' => 'service_1_description', 'label' => 'Card 1 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'service_2_title', 'label' => 'Card 2 title', 'maxlength' => 200],
-                    ['key' => 'service_2_description', 'label' => 'Card 2 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'service_3_title', 'label' => 'Card 3 title', 'maxlength' => 200],
-                    ['key' => 'service_3_description', 'label' => 'Card 3 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'service_4_title', 'label' => 'Card 4 title', 'maxlength' => 200],
-                    ['key' => 'service_4_description', 'label' => 'Card 4 description', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                ],
-            ],
-            [
-                'id' => 'featured-rooms',
-                'title' => 'Featured Rooms',
-                'description' => 'Section heading and intro above the featured room cards.',
-                'fields' => [
-                    ['key' => 'featured_rooms_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
-                    ['key' => 'featured_rooms_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
-                    ['key' => 'featured_rooms_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
                 ],
             ],
             [
@@ -810,33 +786,19 @@ class AdminController extends Controller
             [
                 'id' => 'gallery',
                 'title' => 'Gallery',
-                'description' => 'The gallery heading and six images used in the masonry grid.',
+                'description' => 'The gallery heading and four images used in the masonry grid.',
                 'fields' => [
                     ['key' => 'gallery_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
                     ['key' => 'gallery_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
                     ['key' => 'gallery_intro', 'label' => 'Intro text', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_card_1_title', 'label' => 'Card 1 Title (e.g. Atmosphere)', 'maxlength' => 100],
+                    ['key' => 'gallery_card_1_text', 'label' => 'Card 1 Text', 'maxlength' => 250, 'span' => 'xl:col-span-2'],
+                    ['key' => 'gallery_card_2_title', 'label' => 'Card 2 Title (e.g. Photography)', 'maxlength' => 100],
+                    ['key' => 'gallery_card_2_text', 'label' => 'Card 2 Text', 'maxlength' => 250, 'span' => 'xl:col-span-2'],
                     ['key' => 'gallery_image_1', 'label' => 'Image 1', 'type' => 'image', 'span' => 'xl:col-span-2'],
                     ['key' => 'gallery_image_2', 'label' => 'Image 2', 'type' => 'image', 'span' => 'xl:col-span-2'],
                     ['key' => 'gallery_image_3', 'label' => 'Image 3', 'type' => 'image', 'span' => 'xl:col-span-2'],
                     ['key' => 'gallery_image_4', 'label' => 'Image 4', 'type' => 'image', 'span' => 'xl:col-span-2'],
-                    ['key' => 'gallery_image_5', 'label' => 'Image 5', 'type' => 'image', 'span' => 'xl:col-span-2'],
-                    ['key' => 'gallery_image_6', 'label' => 'Image 6', 'type' => 'image', 'span' => 'xl:col-span-2'],
-                ],
-            ],
-            [
-                'id' => 'testimonials',
-                'title' => 'Testimonials',
-                'description' => 'Guest quotes and names shown in the testimonial cards.',
-                'fields' => [
-                    ['key' => 'testimonial_1_name', 'label' => 'Testimonial 1 name', 'maxlength' => 150],
-                    ['key' => 'testimonial_1_role', 'label' => 'Testimonial 1 role', 'maxlength' => 150],
-                    ['key' => 'testimonial_1_quote', 'label' => 'Testimonial 1 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'testimonial_2_name', 'label' => 'Testimonial 2 name', 'maxlength' => 150],
-                    ['key' => 'testimonial_2_role', 'label' => 'Testimonial 2 role', 'maxlength' => 150],
-                    ['key' => 'testimonial_2_quote', 'label' => 'Testimonial 2 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'testimonial_3_name', 'label' => 'Testimonial 3 name', 'maxlength' => 150],
-                    ['key' => 'testimonial_3_role', 'label' => 'Testimonial 3 role', 'maxlength' => 150],
-                    ['key' => 'testimonial_3_quote', 'label' => 'Testimonial 3 quote', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
                 ],
             ],
             [
@@ -858,17 +820,6 @@ class AdminController extends Controller
                 ],
             ],
             [
-                'id' => 'contact-cta',
-                'title' => 'Contact CTA',
-                'description' => 'Final booking prompt shown at the bottom of the homepage.',
-                'fields' => [
-                    ['key' => 'cta_eyebrow', 'label' => 'Eyebrow', 'maxlength' => 120],
-                    ['key' => 'cta_title', 'label' => 'Title', 'maxlength' => 200, 'span' => 'xl:col-span-2'],
-                    ['key' => 'cta_body', 'label' => 'Body', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
-                    ['key' => 'cta_button_text', 'label' => 'Button text', 'maxlength' => 80],
-                ],
-            ],
-            [
                 'id' => 'footer-content',
                 'title' => 'Footer content',
                 'description' => 'Contact details reused in footer-adjacent public page content.',
@@ -876,14 +827,6 @@ class AdminController extends Controller
                     ['key' => 'contact_email', 'label' => 'Contact email', 'type' => 'email', 'maxlength' => 150],
                     ['key' => 'contact_phone', 'label' => 'Contact phone', 'type' => 'tel', 'maxlength' => 80],
                     ['key' => 'contact_address', 'label' => 'Public contact address', 'maxlength' => 250, 'span' => 'xl:col-span-2'],
-                ],
-            ],
-            [
-                'id' => 'shared-copy',
-                'title' => 'Shared copy',
-                'description' => 'Support copy used on the about, services, FAQs, and contact pages.',
-                'fields' => [
-                    ['key' => 'faqs_intro', 'label' => 'FAQs intro', 'type' => 'textarea', 'rows' => 3, 'maxlength' => 3000, 'span' => 'xl:col-span-2'],
                 ],
             ],
         ];
@@ -907,7 +850,7 @@ class AdminController extends Controller
                 ->sortDesc()
                 ->first();
             $section['updated_label'] = $section['updated_at']
-                ? 'Updated ' . $section['updated_at']->diffForHumans()
+                ? 'Updated '.$section['updated_at']->diffForHumans()
                 : 'Using default content';
 
             return $section;
@@ -918,13 +861,10 @@ class AdminController extends Controller
     {
         return match ($sectionId) {
             'hero' => ['hero_title', 'hero_subtitle', 'hero_button_text', 'hero_background_image'],
-            'services' => ['services_title', 'services_intro'],
             'about' => ['about_heading', 'about_body', 'about_image'],
             'amenities' => ['facilities_title', 'facilities_intro', 'facility_1_label', 'facility_2_label', 'facility_3_label', 'facility_4_label'],
-            'gallery' => ['gallery_title', 'gallery_intro', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3'],
-            'testimonials' => ['testimonial_1_name', 'testimonial_1_quote', 'testimonial_2_name', 'testimonial_2_quote', 'testimonial_3_name', 'testimonial_3_quote'],
+            'gallery' => ['gallery_title', 'gallery_intro', 'gallery_card_1_title', 'gallery_card_1_text', 'gallery_card_2_title', 'gallery_card_2_text', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4'],
             'location' => ['location_title', 'location_intro', 'location_address_line1', 'location_phone', 'location_email'],
-            'contact-cta' => ['cta_title', 'cta_body', 'cta_button_text'],
             default => collect($this->landingPageSectionsFieldKeys($sectionId))->take(4)->all(),
         };
     }
@@ -932,10 +872,7 @@ class AdminController extends Controller
     protected function landingPageSectionsFieldKeys(string $sectionId): array
     {
         return match ($sectionId) {
-            'booking' => ['booking_heading', 'booking_subheading'],
-            'featured-rooms' => ['featured_rooms_title', 'featured_rooms_intro'],
             'footer-content' => ['contact_email', 'contact_phone', 'contact_address'],
-            'shared-copy' => ['faqs_intro'],
             default => [],
         };
     }
@@ -988,7 +925,7 @@ class AdminController extends Controller
             $monthStart = $monthInput
                 ? Carbon::createFromFormat('Y-m', $monthInput)->startOfMonth()
                 : now()->startOfMonth();
-        } catch (\Throwable) {
+        } catch (Throwable) {
             $monthStart = now()->startOfMonth();
         }
 
@@ -1279,17 +1216,28 @@ class AdminController extends Controller
             }
         });
 
+        $booking->refresh()->loadMissing(['room', 'user']);
+
         if ($confirmed) {
             event(new PaymentVerified($booking->id));
             event(new BookingConfirmed($booking->id));
         }
 
+        event(new PaymentStatusUpdated($booking->id));
+        event(new BookingStatusChanged($booking->id));
+
+        if (in_array($booking->payment_status, ['failed', 'refunded'], true)) {
+            event(new PaymentFailed($booking->id));
+            event(new BookingCancelled($booking->id));
+        }
+
         // Notify guest user
         if ($booking->user_id) {
             try {
-                $booking->user->notify(new \App\Notifications\PaymentStatusUpdatedNotification($booking->id, $booking->room?->name ?? 'Room', $booking->status, $booking->payment_status));
-            } catch (\Throwable $e) {
-                Log::error('Failed to notify guest on payment status update: ' . $e->getMessage());
+                $booking->user->notify(new PaymentStatusUpdatedNotification($booking->id, $booking->room?->name ?? 'Room', $booking->status, $booking->payment_status));
+                event(new UserNotificationCreated($booking->user_id));
+            } catch (Throwable $e) {
+                Log::error('Failed to notify guest on payment status update: '.$e->getMessage());
             }
         }
 
@@ -1326,7 +1274,7 @@ class AdminController extends Controller
         // Add validation rules for *_upload fields
         foreach (array_keys(SiteContent::landingPageDefaults()) as $key) {
             if (str_contains($key, 'image')) {
-                $rules[$key . '_upload'] = 'nullable|image|max:5120';
+                $rules[$key.'_upload'] = 'nullable|image|max:5120';
             }
         }
 
@@ -1344,7 +1292,7 @@ class AdminController extends Controller
                 continue;
             }
 
-            $uploadField = $key . '_upload';
+            $uploadField = $key.'_upload';
             if ($request->hasFile($uploadField)) {
                 $path = $this->storePublicImage($request->file($uploadField), 'site-content');
                 // override the logical image value to the stored path
@@ -1379,9 +1327,9 @@ class AdminController extends Controller
             $key = $field['key'];
 
             if (($field['type'] ?? 'text') === 'image') {
-                $uploadField = $key . '_upload';
-                $removeField = $key . '_remove';
-                $linkField = $key . '_link';
+                $uploadField = $key.'_upload';
+                $removeField = $key.'_remove';
+                $linkField = $key.'_link';
 
                 if ($request->boolean($removeField)) {
                     ImageStorage::delete($sectionConfig['values'][$key] ?? '');
@@ -1426,9 +1374,10 @@ class AdminController extends Controller
             $type = $field['type'] ?? 'text';
 
             if ($type === 'image') {
-                $rules[$key . '_upload'] = 'nullable|image|max:5120';
-                $rules[$key . '_remove'] = 'nullable|boolean';
-                $rules[$key . '_link'] = 'nullable|url|max:2048';
+                $rules[$key.'_upload'] = 'nullable|image|max:5120';
+                $rules[$key.'_remove'] = 'nullable|boolean';
+                $rules[$key.'_link'] = 'nullable|url|max:2048';
+
                 continue;
             }
 
@@ -1464,8 +1413,8 @@ class AdminController extends Controller
 
             for ($index = 1; $index <= max(1, $defaultCount); $index++) {
                 $room->physicalRooms()->create([
-                    'name' => $room->name . ' ' . $index,
-                    'code' => Str::slug($room->name) . '-' . $index,
+                    'name' => $room->name.' '.$index,
+                    'code' => Str::slug($room->name).'-'.$index,
                     'status' => $room->status === 'maintenance' ? 'maintenance' : 'available',
                 ]);
             }
@@ -1488,7 +1437,7 @@ class AdminController extends Controller
             $status = in_array($status, ['available', 'maintenance'], true) ? $status : 'available';
 
             if ($name === '') {
-                $name = $room->name . ' ' . ($index + 1);
+                $name = $room->name.' '.($index + 1);
             }
 
             if ($id && $existing->has($id)) {
@@ -1517,6 +1466,7 @@ class AdminController extends Controller
             ->each(function (PhysicalRoom $physicalRoom): void {
                 if ($physicalRoom->bookings_count > 0) {
                     $physicalRoom->update(['status' => 'maintenance']);
+
                     return;
                 }
 
@@ -1534,7 +1484,7 @@ class AdminController extends Controller
             ->when($ignoreRoom, fn ($query) => $query->where('id', '!=', $ignoreRoom->id))
             ->where('slug', $slug)
             ->exists()) {
-            $slug = $baseSlug . '-' . $counter;
+            $slug = $baseSlug.'-'.$counter;
             $counter++;
         }
 

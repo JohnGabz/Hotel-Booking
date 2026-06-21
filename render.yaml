@@ -42,6 +42,24 @@ services:
         value: file
       - key: QUEUE_CONNECTION
         value: sync
+      - key: BROADCAST_CONNECTION
+        value: pusher
+      - key: PUSHER_APP_ID
+        sync: false
+      - key: PUSHER_APP_KEY
+        sync: false
+      - key: PUSHER_APP_SECRET
+        sync: false
+      - key: PUSHER_APP_CLUSTER
+        value: ap1
+      - key: PUSHER_SCHEME
+        value: https
+      - key: PUSHER_PORT
+        value: "443"
+      - key: VITE_PUSHER_APP_KEY
+        sync: false
+      - key: VITE_PUSHER_APP_CLUSTER
+        value: ap1
       - key: CACHE_STORE
         value: file
       - key: FILESYSTEM_DISK
@@ -72,4 +90,6 @@ services:
         value: https://api.xendit.co
       - key: XENDIT_WEBHOOK_VERIFICATION_TOKEN
         sync: false
+
+
 

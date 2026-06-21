@@ -2,7 +2,7 @@
 
 @section('content')
 <section class="section-shell pt-8 sm:pt-10">
-    <div class="site-shell">
+    <div class="site-shell" data-realtime-fragment="guest-dashboard">
         <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
             <div>
                 <span class="eyebrow">My dashboard</span>
@@ -111,3 +111,4 @@
     </div>
 </section>
 @endsection
+
