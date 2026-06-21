@@ -32,6 +32,13 @@ return Application::configure(basePath: dirname(__DIR__))
     ])
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->trustProxies(at: '*');
+
+        // Xendit (and other payment providers) POST to these endpoints without
+        // a Laravel session/CSRF token. They're protected instead by signature
+        // verification inside PaymentController::hasValidSignature().
+        $middleware->validateCsrfTokens(except: [
+            'webhooks/*',
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $renderError = function (Request $request, int $status, string $title, string $message, ?Throwable $exception = null) {
