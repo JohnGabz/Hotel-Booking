@@ -36,7 +36,7 @@ class Room extends Model
 
     public function reviews(): HasMany
     {
-        return $this->hasMany(Review::class)->where('"approved" = true');
+        return $this->hasMany(Review::class)->where('approved', true);
     }
 
     public function scopeAvailable($query)
