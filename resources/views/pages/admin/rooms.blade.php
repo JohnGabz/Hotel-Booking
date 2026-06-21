@@ -634,59 +634,66 @@
             amenities: document.getElementById('edit_room_amenities'),
         };
 
-        document.querySelectorAll('[data-modal-open="edit-room-modal"]').forEach((button) => {
-            button.addEventListener('click', () => {
-                editForm.action = button.dataset.roomUpdateUrl || '#';
-                fields.name.value = button.dataset.roomName || '';
-                fields.description.value = button.dataset.roomDescription || '';
-                fields.capacity.value = button.dataset.roomCapacity || '';
-                fields.price.value = button.dataset.roomPrice || '';
-                fields.status.value = button.dataset.roomStatus || 'available';
+        const populateEditRoomModal = (button) => {
+            if (!editForm || !button) return;
 
-                try {
-                    const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
-                    setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, physicalRooms);
-                } catch {
-                    setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, []);
-                }
+            editForm.action = button.dataset.roomUpdateUrl || '#';
+            fields.name.value = button.dataset.roomName || '';
+            fields.description.value = button.dataset.roomDescription || '';
+            fields.capacity.value = button.dataset.roomCapacity || '';
+            fields.price.value = button.dataset.roomPrice || '';
+            fields.status.value = button.dataset.roomStatus || 'available';
 
-                try {
-                    const amenities = JSON.parse(button.dataset.roomAmenities || '[]');
-                    fields.amenities.value = Array.isArray(amenities) ? amenities.join(', ') : '';
-                } catch {
-                    fields.amenities.value = '';
-                }
+            try {
+                const physicalRooms = JSON.parse(button.dataset.roomPhysicalRooms || '[]');
+                setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, physicalRooms);
+            } catch {
+                setupPhysicalRoomsTable(editPhysicalTableBody, editPhysicalAddRowBtn, editPhysicalTextarea, []);
+            }
 
-                if (editImagesInput) {
-                    editImagesInput.value = '';
-                }
+            try {
+                const amenities = JSON.parse(button.dataset.roomAmenities || '[]');
+                fields.amenities.value = Array.isArray(amenities) ? amenities.join(', ') : '';
+            } catch {
+                fields.amenities.value = '';
+            }
 
-                if (editImageLinksInput) {
-                    editImageLinksInput.value = '';
-                }
+            if (editImagesInput) {
+                editImagesInput.value = '';
+            }
 
-                try {
-                    const images = JSON.parse(button.dataset.roomImages || '[]');
-                    const imageArray = Array.isArray(images) ? images : [];
-                    renderStoredImages(imageArray, currentImagesContainer);
-                } catch {
-                    renderStoredImages([], currentImagesContainer);
-                }
+            if (editImageLinksInput) {
+                editImageLinksInput.value = '';
+            }
 
-                if (uploadPreviewContainer) {
-                    uploadPreviewContainer.innerHTML = '';
-                }
+            try {
+                const images = JSON.parse(button.dataset.roomImages || '[]');
+                const imageArray = Array.isArray(images) ? images : [];
+                renderStoredImages(imageArray, currentImagesContainer);
+            } catch {
+                renderStoredImages([], currentImagesContainer);
+            }
 
-                if (linkPreviewContainer) {
-                    linkPreviewContainer.innerHTML = '';
-                }
+            if (uploadPreviewContainer) {
+                uploadPreviewContainer.innerHTML = '';
+            }
 
-                const editModal = document.getElementById('edit-room-modal');
-                if (typeof window.initImageInputToggles === 'function') {
-                    window.initImageInputToggles(editModal);
-                }
-            });
-        });
+            if (linkPreviewContainer) {
+                linkPreviewContainer.innerHTML = '';
+            }
+
+            const editModal = document.getElementById('edit-room-modal');
+            if (typeof window.initImageInputToggles === 'function') {
+                window.initImageInputToggles(editModal);
+            }
+        };
+
+        document.addEventListener('click', (event) => {
+            const button = event.target.closest('[data-modal-open="edit-room-modal"]');
+            if (!button) return;
+
+            populateEditRoomModal(button);
+        }, true);
 
         if (editImagesInput && uploadPreviewContainer) {
             editImagesInput.addEventListener('change', () => {
