@@ -33,6 +33,10 @@ class PaymentController extends Controller
         $paymentReference = $this->paymentReference($payload);
         $paymentMethod = data_get($payload, 'payment_method') ?? data_get($payload, 'data.payment_method') ?? data_get($payload, 'payment_channel');
 
+        if (str_contains(Str::lower($eventType), 'refund')) {
+            return $this->handleRefundWebhook($request, $payload, $eventId, $eventType);
+        }
+
         $result = DB::transaction(function () use ($provider, $eventId, $eventType, $bookingId, $payload, $status, $paymentReference, $paymentMethod) {
             $existingEvent = WebhookEvent::query()
                 ->where('provider', $provider)
@@ -72,6 +76,9 @@ class PaymentController extends Controller
             if ($isPaid) {
                 $alreadyConfirmed = $booking->payment_status === 'paid' && in_array($booking->status, ['confirmed', 'Confirmed'], true);
                 $booking->confirmPayment($paymentReference, $paymentMethod, $provider, $payload);
+
+                $this->storePaymentRequestId($booking, $payload);
+
                 $webhookEvent->update(['processed_at' => now()]);
 
                 return ['status' => 'ok', 'booking_id' => $booking->id, 'confirmed' => ! $alreadyConfirmed];
@@ -192,5 +199,83 @@ class PaymentController extends Controller
         }
 
         return null;
+    }
+
+    protected function handleRefundWebhook(Request $request, array $payload, string $eventId, string $eventType): JsonResponse
+    {
+        $referenceId = (string) (data_get($payload, 'data.reference_id') ?? data_get($payload, 'reference_id') ?? '');
+        $bookingId = null;
+
+        if (preg_match('/villa-estela-refund-booking-(\d+)/', $referenceId, $matches)) {
+            $bookingId = (int) $matches[1];
+        }
+
+        $invoiceId = data_get($payload, 'data.invoice_id') ?? data_get($payload, 'invoice_id');
+        $refundStatus = Str::lower((string) (data_get($payload, 'data.status') ?? data_get($payload, 'status') ?? ''));
+
+        $booking = $bookingId
+            ? Booking::find($bookingId)
+            : ($invoiceId ? Booking::where('payment_reference', $invoiceId)->first() : null);
+
+        if (! $booking) {
+            Log::warning('Refund webhook could not match booking', [
+                'event' => $eventType,
+                'reference_id' => $referenceId,
+                'invoice_id' => $invoiceId,
+            ]);
+
+            return response()->json(['status' => 'not_found'], 404);
+        }
+
+        if (in_array($refundStatus, ['succeeded', 'success'], true) || str_contains(Str::lower($eventType), 'succeeded')) {
+            $booking->update([
+                'status' => 'cancelled',
+                'payment_status' => 'refunded',
+                'refund_requested_at' => null,
+                'cancelled_at' => $booking->cancelled_at ?? now(),
+            ]);
+
+            Log::info('Refund webhook marked booking refunded', [
+                'booking_id' => $booking->id,
+                'event_id' => $eventId,
+            ]);
+        }
+
+        if (in_array($refundStatus, ['failed'], true) || str_contains(Str::lower($eventType), 'failed')) {
+            Log::error('Refund webhook reported failure', [
+                'booking_id' => $booking->id,
+                'event_id' => $eventId,
+                'payload' => $payload,
+            ]);
+        }
+
+        return response()->json(['status' => 'ok']);
+    }
+
+    protected function storePaymentRequestId(Booking $booking, array $payload): void
+    {
+        $paymentRequestId = data_get($payload, 'payment_request_id')
+            ?? data_get($payload, 'data.payment_request_id')
+            ?? data_get($payload, 'invoice.payment_request_id');
+
+        if (! is_string($paymentRequestId) || $paymentRequestId === '') {
+            return;
+        }
+
+        $transaction = \App\Models\PaymentTransaction::query()
+            ->where('booking_id', $booking->id)
+            ->where('provider', 'xendit')
+            ->latest('id')
+            ->first();
+
+        if (! $transaction) {
+            return;
+        }
+
+        $transaction->update([
+            'payload' => array_merge($transaction->payload ?? [], [
+                'payment_request_id' => $paymentRequestId,
+            ]),
+        ]);
     }
 }

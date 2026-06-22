@@ -25,6 +25,7 @@ use App\Notifications\PaymentStatusUpdatedNotification;
 use App\Support\ActivityLogger;
 use App\Support\ImageInput;
 use App\Support\ImageStorage;
+use App\Support\XenditRefundService;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -1413,12 +1414,27 @@ class AdminController extends Controller
         }
 
         if ($validated['decision'] === 'approve') {
+            $refundService = app(XenditRefundService::class);
+
+            if ($refundService->supportsBooking($booking)) {
+                try {
+                    $refundService->createRefund($booking->fresh());
+                } catch (Throwable $exception) {
+                    Log::error('Xendit refund failed during admin approval', [
+                        'booking_id' => $booking->id,
+                        'message' => $exception->getMessage(),
+                    ]);
+
+                    return back()->with('error', $exception->getMessage());
+                }
+            }
+
             $request->merge(['payment_status' => 'refunded']);
 
             ActivityLogger::log(
                 'refund.approved',
                 'payment',
-                "Refund approved for booking #{$booking->id}.",
+                "Refund approved for booking #{$booking->id}".($refundService->supportsBooking($booking) ? ' via Xendit.' : '.'),
                 $booking
             );
 
