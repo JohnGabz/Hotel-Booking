@@ -23,7 +23,7 @@ class PaymentStatusUpdatedNotification extends Notification
         $statusLabel = $this->paymentStatus === 'paid' ? 'verified' : $this->paymentStatus;
         return [
             'booking_id' => $this->bookingId,
-            'message' => "Your payment status for reservation #{$this->bookingId} ({$this->roomName}) is {$statusLabel}.",
+            'message' => "Payment {$statusLabel} for {$this->roomName}.",
             'action_url' => route('dashboard'),
         ];
     }

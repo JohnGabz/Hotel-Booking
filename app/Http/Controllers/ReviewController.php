@@ -6,6 +6,7 @@ use App\Models\Booking;
 use App\Models\Review;
 use App\Models\Room;
 use App\Notifications\ReviewSubmittedNotification;
+use App\Support\ActivityLogger;
 use App\Support\NotifyAdmins;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -48,6 +49,14 @@ class ReviewController extends Controller
         ]);
 
         NotifyAdmins::send(new ReviewSubmittedNotification($review->id, $room->name, Auth::user()->name, $review->rating));
+
+        ActivityLogger::log(
+            'review.submitted',
+            'booking',
+            "Review submitted for {$room->name}.",
+            $review,
+            ['rating' => $review->rating]
+        );
 
         return back()->with('success', 'Thanks for your review. It will be visible once approved by staff.');
     }

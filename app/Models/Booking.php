@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'source', 'review_token', 'review_token_used_at', 'with_breakfast', 'breakfast_charge'])]
+#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'cancellation_reason', 'cancelled_at', 'refund_requested_at', 'source', 'review_token', 'review_token_used_at', 'with_breakfast', 'breakfast_charge'])]
 class Booking extends Model
 {
     use HasFactory;
@@ -27,6 +27,8 @@ class Booking extends Model
         'total' => 'decimal:2',
         'source' => 'string',
         'review_token_used_at' => 'datetime',
+        'cancelled_at' => 'datetime',
+        'refund_requested_at' => 'datetime',
         'with_breakfast' => 'boolean',
         'breakfast_charge' => 'decimal:2',
     ];
@@ -162,5 +164,56 @@ class Booking extends Model
             && $this->review_token_used_at === null
             && in_array($this->status, ['confirmed', 'Confirmed'], true)
             && $this->check_out->isPast();
+    }
+
+    public function isFinalState(): bool
+    {
+        return in_array($this->status, ['cancelled', 'Payment Failed', 'Payment Expired'], true)
+            || $this->payment_status === 'refunded';
+    }
+
+    public function isCheckedInOrPast(): bool
+    {
+        return $this->check_in->startOfDay()->lte(now()->startOfDay());
+    }
+
+    public function canGuestCancel(): bool
+    {
+        if ($this->isFinalState() || $this->refund_requested_at !== null) {
+            return false;
+        }
+
+        if ($this->isCheckedInOrPast()) {
+            return false;
+        }
+
+        return in_array($this->payment_status, ['pending', 'for_verification', 'failed'], true);
+    }
+
+    public function canGuestRequestRefund(): bool
+    {
+        if ($this->isFinalState() || $this->refund_requested_at !== null) {
+            return false;
+        }
+
+        if ($this->isCheckedInOrPast()) {
+            return false;
+        }
+
+        return $this->payment_status === 'paid'
+            && in_array($this->status, ['confirmed', 'Confirmed'], true);
+    }
+
+    public function guestActionLabel(): ?string
+    {
+        if ($this->canGuestCancel()) {
+            return 'Cancel Booking';
+        }
+
+        if ($this->canGuestRequestRefund()) {
+            return 'Request Refund';
+        }
+
+        return null;
     }
 }

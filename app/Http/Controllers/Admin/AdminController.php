@@ -12,6 +12,7 @@ use App\Events\PaymentStatusUpdated;
 use App\Events\PaymentVerified;
 use App\Events\UserNotificationCreated;
 use App\Http\Controllers\Controller;
+use App\Models\ActivityLog;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
 use App\Models\PhysicalRoom;
@@ -21,6 +22,7 @@ use App\Models\SiteContent;
 use App\Models\User;
 use App\Notifications\BookingCreatedNotification;
 use App\Notifications\PaymentStatusUpdatedNotification;
+use App\Support\ActivityLogger;
 use App\Support\ImageInput;
 use App\Support\ImageStorage;
 use Carbon\Carbon;
@@ -261,6 +263,14 @@ class AdminController extends Controller
             'admin_user_id' => Auth::id(),
             'source' => $booking->source,
         ]);
+
+        ActivityLogger::log(
+            'booking.created',
+            'booking',
+            "Walk-in booking created for {$walkinRoomName}.",
+            $booking,
+            ['source' => Booking::SOURCE_WALK_IN]
+        );
 
         // Send notifications to all admins
         try {
@@ -863,6 +873,12 @@ class AdminController extends Controller
                 ->latest()
                 ->take(12)
                 ->get(),
+            'pendingRefundRequests' => Booking::with(['room', 'user'])
+                ->whereNotNull('refund_requested_at')
+                ->where('payment_status', 'paid')
+                ->latest('refund_requested_at')
+                ->take(12)
+                ->get(),
             'reviews' => Review::where('approved', false)->with(['user', 'room'])->latest()->get(),
             'users' => User::with(['bookings.room'])->latest()->take(10)->get(),
             'siteContent' => $siteContent,
@@ -1321,7 +1337,16 @@ class AdminController extends Controller
             }
         }
 
+        $roomName = $room->name;
         $room->delete();
+
+        ActivityLogger::log(
+            'room.deleted',
+            'room',
+            "Room {$roomName} deleted.",
+            null,
+            ['room_name' => $roomName]
+        );
 
         return redirect()->route('admin.rooms')->with('success', 'Room deleted successfully.');
     }
@@ -1364,7 +1389,98 @@ class AdminController extends Controller
 
         $review->update(['approved' => true]);
 
+        ActivityLogger::log(
+            'review.approved',
+            'admin',
+            "Review #{$review->id} approved.",
+            $review,
+            ['room_id' => $review->room_id]
+        );
+
         return redirect()->route('admin.feedbacks')->with('success', 'Review approved successfully.');
+    }
+
+    public function processRefundRequest(Request $request, Booking $booking): RedirectResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'decision' => 'required|in:approve,reject',
+        ]);
+
+        if ($booking->refund_requested_at === null) {
+            return back()->with('error', 'No refund request exists for this booking.');
+        }
+
+        if ($validated['decision'] === 'approve') {
+            $request->merge(['payment_status' => 'refunded']);
+
+            ActivityLogger::log(
+                'refund.approved',
+                'payment',
+                "Refund approved for booking #{$booking->id}.",
+                $booking
+            );
+
+            return $this->updatePaymentStatus($request, $booking);
+        }
+
+        $reason = $booking->cancellation_reason;
+
+        $booking->update([
+            'refund_requested_at' => null,
+            'cancellation_reason' => null,
+        ]);
+
+        ActivityLogger::log(
+            'refund.rejected',
+            'payment',
+            "Refund request rejected for booking #{$booking->id}.",
+            $booking,
+            ['reason' => $reason]
+        );
+
+        return back()->with('success', 'Refund request rejected.');
+    }
+
+    public function logs(Request $request): View
+    {
+        $search = trim((string) $request->query('search', ''));
+        $module = trim((string) $request->query('module', ''));
+        $action = trim((string) $request->query('action', ''));
+
+        $logsQuery = ActivityLog::query()->with('user')->latest();
+
+        if ($search !== '') {
+            $logsQuery->where(function ($query) use ($search) {
+                $query->where('details', 'like', "%{$search}%")
+                    ->orWhere('action', 'like', "%{$search}%")
+                    ->orWhereHas('user', fn ($userQuery) => $userQuery->where('name', 'like', "%{$search}%"));
+            });
+        }
+
+        if ($module !== '') {
+            $logsQuery->where('module', $module);
+        }
+
+        if ($action !== '') {
+            $logsQuery->where('action', $action);
+        }
+
+        return $this->renderAdminPage('logs', [
+            'logs' => $logsQuery->paginate(20)->withQueryString(),
+            'filters' => [
+                'search' => $search,
+                'module' => $module,
+                'action' => $action,
+            ],
+            'moduleOptions' => ActivityLog::query()->distinct()->orderBy('module')->pluck('module'),
+            'actionOptions' => ActivityLog::query()->distinct()->orderBy('action')->pluck('action'),
+            'seo' => [
+                'title' => 'Logs — '.config('app.name'),
+                'description' => 'System activity and audit logs for Villa Estella.',
+            ],
+        ]);
     }
 
     public function updatePaymentStatus(Request $request, Booking $booking): RedirectResponse
@@ -1395,6 +1511,8 @@ class AdminController extends Controller
                 'status' => $bookingStatus,
                 'payment_status' => $status,
                 'paid_at' => in_array($status, ['pending', 'for_verification', 'failed'], true) ? null : $lockedBooking->paid_at,
+                'refund_requested_at' => $status === 'refunded' ? null : $lockedBooking->refund_requested_at,
+                'cancelled_at' => in_array($status, ['failed', 'refunded'], true) ? ($lockedBooking->cancelled_at ?? now()) : $lockedBooking->cancelled_at,
             ]);
 
             if ($lockedBooking->payment_reference) {
@@ -1427,6 +1545,32 @@ class AdminController extends Controller
         if (in_array($booking->payment_status, ['failed', 'refunded'], true)) {
             event(new PaymentFailed($booking->id));
             event(new BookingCancelled($booking->id));
+        }
+
+        if (in_array($booking->payment_status, ['failed', 'refunded'], true)) {
+            event(new PaymentFailed($booking->id));
+            event(new BookingCancelled($booking->id));
+
+            ActivityLogger::log(
+                $booking->payment_status === 'refunded' ? 'refund.processed' : 'payment.failed',
+                'payment',
+                "Booking #{$booking->id} marked as {$booking->payment_status}.",
+                $booking
+            );
+        } elseif ($confirmed) {
+            ActivityLogger::log(
+                'payment.verified',
+                'payment',
+                "Payment verified for booking #{$booking->id}.",
+                $booking
+            );
+        } else {
+            ActivityLogger::log(
+                'payment.updated',
+                'payment',
+                "Payment status updated to {$booking->payment_status} for booking #{$booking->id}.",
+                $booking
+            );
         }
 
         // Notify guest user

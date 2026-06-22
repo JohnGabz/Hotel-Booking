@@ -547,19 +547,19 @@
 
     /* Global Loader - Updated with new colors */
     .global-loader {
-        @apply pointer-events-none fixed inset-0 z-[70] flex items-center justify-center opacity-0 transition-opacity duration-300 ease-out;
+        @apply pointer-events-none fixed inset-0 z-[70] flex items-center justify-center opacity-0 transition-opacity duration-200 ease-out;
     }
 
     .global-loader__backdrop {
-        @apply absolute inset-0 bg-gray-900/20 backdrop-blur-sm;
+        @apply absolute inset-0 bg-gray-900/10;
     }
 
     .global-loader__panel {
-        @apply relative flex items-center justify-center rounded-2xl border border-white/70 bg-white/95 p-6 shadow-xl transition-all duration-300 ease-out backdrop-blur-md;
+        @apply relative flex items-center justify-center rounded-xl border border-stone-200/80 bg-white/95 p-3 shadow-md transition-all duration-200 ease-out;
     }
 
     .global-loader__ring-wrap {
-        @apply relative flex h-12 w-12 items-center justify-center sm:h-14 sm:w-14;
+        @apply relative flex h-8 w-8 items-center justify-center;
     }
 
     .global-loader__ring {
@@ -568,8 +568,8 @@
 
     .global-loader__track {
         fill: none;
-        stroke: rgba(157, 150, 142, 0.16);
-        stroke-width: 4;
+        stroke: rgba(157, 150, 142, 0.12);
+        stroke-width: 3;
     }
 
     .global-loader__progress {
@@ -578,16 +578,14 @@
         stroke-linecap: round;
         stroke-dasharray: 163;
         stroke-dashoffset: 163;
-        stroke-width: 4;
-        filter: drop-shadow(0 0 12px rgba(255, 117, 81, 0.24));
-        animation: loader-dash 1.2s ease-in-out infinite, loader-spin 1.2s linear infinite;
+        stroke-width: 3;
+        animation: loader-dash 1s ease-in-out infinite, loader-spin 1s linear infinite;
         transform-origin: center;
     }
 
     .global-loader__core {
-        @apply absolute h-2.5 w-2.5 rounded-full bg-brand-primary;
-        box-shadow: 0 0 0 10px rgba(255, 117, 81, 0.12);
-        animation: loader-pulse 1.2s ease-in-out infinite;
+        @apply absolute h-1.5 w-1.5 rounded-full bg-brand-primary;
+        animation: loader-pulse 1s ease-in-out infinite;
     }
 
     html.is-loading .global-loader {

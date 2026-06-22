@@ -15,7 +15,7 @@ class NotificationController extends Controller
             return response()->json(['unread_count' => 0, 'notifications' => []]);
         }
 
-        $notifications = $user->notifications()->latest()->take(5)->get()->map(function ($notif) {
+        $notifications = $user->notifications()->latest()->take(12)->get()->map(function ($notif) {
             return [
                 'id' => $notif->id,
                 'data' => $notif->data,

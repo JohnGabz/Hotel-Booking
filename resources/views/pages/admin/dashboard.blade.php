@@ -185,6 +185,44 @@
             </div>
         @endif
 
+        @if (($pendingRefundRequests ?? collect())->count() > 0)
+            <div class="surface p-6 sm:p-8">
+                <div class="mb-6 flex items-center justify-between">
+                    <h2 class="text-xl font-bold text-stone-950">Refund Requests</h2>
+                    <span class="inline-flex items-center rounded-full bg-red-100 px-3 py-1 text-xs font-bold text-red-700">{{ $pendingRefundRequests->count() }}</span>
+                </div>
+
+                <div class="max-h-96 space-y-3 overflow-y-auto">
+                    @foreach ($pendingRefundRequests->take(5) as $booking)
+                        <article class="rounded-lg border border-stone-200 bg-stone-50 p-4">
+                            <div class="mb-3 flex items-start justify-between gap-3">
+                                <div>
+                                    <p class="text-sm font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
+                                    <p class="text-xs text-stone-600">{{ $booking->room?->name ?? 'Room' }} · ₱{{ number_format($booking->total, 0) }}</p>
+                                    @if ($booking->cancellation_reason)
+                                        <p class="mt-1 text-xs text-stone-500">Reason: {{ Str::limit($booking->cancellation_reason, 120) }}</p>
+                                    @endif
+                                </div>
+                                <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-1 text-xs font-semibold text-red-700">Refund requested</span>
+                            </div>
+                            <div class="flex gap-2">
+                                <form action="{{ route('admin.bookings.refund-request', $booking) }}" method="POST" class="flex-1">
+                                    @csrf
+                                    <input type="hidden" name="decision" value="approve">
+                                    <button type="submit" class="btn-primary w-full py-2 text-xs">Approve refund</button>
+                                </form>
+                                <form action="{{ route('admin.bookings.refund-request', $booking) }}" method="POST" class="flex-1">
+                                    @csrf
+                                    <input type="hidden" name="decision" value="reject">
+                                    <button type="submit" class="btn-secondary w-full py-2 text-xs">Reject</button>
+                                </form>
+                            </div>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        @endif
+
         @if ($reviews->count() > 0)
             <div class="surface p-6 sm:p-8">
                 <div class="mb-6 flex items-center justify-between">

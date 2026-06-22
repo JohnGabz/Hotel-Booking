@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Booking;
 use App\Models\Review;
 use App\Notifications\ReviewSubmittedNotification;
+use App\Support\ActivityLogger;
 use App\Support\NotifyAdmins;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -83,6 +84,14 @@ class ReviewTokenController extends Controller
             $booking->contact_name ?? 'Guest',
             $review->rating
         ));
+
+        ActivityLogger::log(
+            'review.submitted',
+            'booking',
+            "Token review submitted for {$booking->room->name}.",
+            $review,
+            ['booking_id' => $booking->id, 'rating' => $review->rating]
+        );
 
         return view('pages.reviews.submit-via-token', [
             'booking' => $booking,

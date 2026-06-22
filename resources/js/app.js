@@ -716,8 +716,62 @@ document.querySelectorAll('[data-modal-close]').forEach(btn => {
     });
 });
 
-// Generic action buttons (Create/Edit/Delete) open modal if data-modal-open provided
-document.querySelectorAll('.btn-create, .btn-edit, .btn-delete, [data-action-modal]').forEach(btn => {
+// Delete confirmation modal
+document.querySelectorAll('[data-delete-open], .btn-delete').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const deleteUrl = btn.getAttribute('data-delete-url') || btn.getAttribute('data-action-url') || btn.getAttribute('href');
+        if (!deleteUrl || deleteUrl === '#') return;
+
+        const form = document.getElementById('delete-confirm-form');
+        const modal = document.getElementById('delete-confirm-modal');
+        if (!form || !modal) return;
+
+        form.action = deleteUrl;
+
+        let methodInput = form.querySelector('input[name="_method"]');
+        if (!methodInput) {
+            methodInput = document.createElement('input');
+            methodInput.type = 'hidden';
+            methodInput.name = '_method';
+            form.appendChild(methodInput);
+        }
+        methodInput.value = 'DELETE';
+        form.method = 'POST';
+
+        openModalById('delete-confirm-modal');
+    });
+});
+
+// Booking cancel/refund confirmation modal
+document.querySelectorAll('[data-booking-action-open]').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const form = document.getElementById('booking-action-form');
+        const message = document.getElementById('booking-action-message');
+        const submit = document.getElementById('booking-action-submit');
+        const reason = document.getElementById('booking-action-reason');
+        const action = btn.getAttribute('data-booking-action');
+        const url = btn.getAttribute('data-booking-url');
+        const label = btn.getAttribute('data-booking-label') || 'Confirm';
+
+        if (!form || !url) return;
+
+        form.action = url;
+        if (message) {
+            message.textContent = action === 'refund'
+                ? 'Submit a refund request for this booking? Our team will review it shortly.'
+                : 'Cancel this booking? This will release the reserved dates.';
+        }
+        if (submit) submit.textContent = label;
+        if (reason) reason.value = '';
+
+        openModalById('booking-action-modal');
+    });
+});
+
+// Generic action buttons (Create/Edit) open modal if data-modal-open provided
+document.querySelectorAll('.btn-create, .btn-edit, [data-action-modal]').forEach(btn => {
     btn.addEventListener('click', (e) => {
         const target = btn.getAttribute('data-modal-open') || btn.getAttribute('data-action-modal');
         if (!target) return;
@@ -1366,7 +1420,8 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         }
 
         if (notifFooter) {
-            notifFooter.textContent = count === 0 ? 'You’re all caught up' : `${count} unread notification(s)`;
+            const label = count === 1 ? 'unread notification' : 'unread notifications';
+            notifFooter.textContent = count === 0 ? 'You’re all caught up' : `${count} ${label}`;
         }
 
         if (notifMarkAll) {
@@ -1376,7 +1431,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         if (!notifList) return;
 
         if (!data.notifications || data.notifications.length === 0) {
-            notifList.innerHTML = '<div class="px-4 py-6 text-sm text-stone-500 text-center">No new notifications</div>';
+            notifList.innerHTML = '<div class="px-3 py-5 text-xs text-stone-500 text-center">No new notifications</div>';
             return;
         }
 
@@ -1384,7 +1439,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
         data.notifications.forEach(n => {
             const isRead = n.read_at !== null;
             const div = document.createElement('div');
-            div.className = `flex items-start gap-3 px-4 py-3.5 text-sm hover:bg-stone-50 transition border-b border-stone-100 last:border-0 relative ${isRead ? 'text-stone-500' : 'bg-brand-primary/[0.02] text-stone-900 font-medium'}`;
+            div.className = `flex items-start gap-2.5 px-3 py-2.5 text-xs hover:bg-stone-50 transition border-b border-stone-100 last:border-0 relative ${isRead ? 'text-stone-500' : 'bg-brand-primary/[0.02] text-stone-800'}`;
             div.setAttribute('data-notif-id', n.id);
 
             // Unread dot
@@ -1399,7 +1454,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             }
 
             const infoDiv = document.createElement('div');
-            infoDiv.className = 'flex-1 min-w-0 pr-6';
+            infoDiv.className = 'flex-1 min-w-0 pr-5';
 
             const p = document.createElement('p');
             p.className = 'leading-snug';
@@ -1407,12 +1462,13 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             const link = document.createElement('a');
             link.href = n.data?.action_url || '#';
             link.textContent = n.data?.message || '';
-            link.className = 'hover:underline block text-stone-800 font-medium';
+            link.className = 'hover:underline block text-stone-800 line-clamp-2';
+            link.title = n.data?.message || '';
             p.appendChild(link);
             infoDiv.appendChild(p);
 
             const timeP = document.createElement('p');
-            timeP.className = 'text-[11px] text-stone-400 mt-1.5 flex items-center gap-1 font-semibold uppercase tracking-wider';
+            timeP.className = 'text-[10px] text-stone-400 mt-1 flex items-center gap-1 font-medium uppercase tracking-wide';
             timeP.innerHTML = `<svg class="h-3 w-3 inline" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg> <span>${n.created_at_human}</span>`;
             infoDiv.appendChild(timeP);
 
@@ -1421,7 +1477,7 @@ if (heroBackgroundUpload && heroBackgroundPreview) {
             if (!isRead) {
                 const btn = document.createElement('button');
                 btn.type = 'button';
-                btn.className = 'notif-read-btn absolute right-3 top-3.5 text-stone-400 hover:text-brand-primary transition p-1 hover:bg-stone-100 rounded-full';
+                btn.className = 'notif-read-btn absolute right-2 top-2.5 text-stone-400 hover:text-brand-primary transition p-0.5 hover:bg-stone-100 rounded-full';
                 btn.title = 'Mark as read';
                 btn.innerHTML = `<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>`;
                 btn.setAttribute('data-id', n.id);

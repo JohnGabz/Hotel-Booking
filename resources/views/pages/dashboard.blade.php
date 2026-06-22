@@ -78,9 +78,36 @@
                                     <div class="mt-4 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
                                         Payment proof submitted. Waiting for admin verification.
                                     </div>
+                                @elseif ($booking->refund_requested_at)
+                                    <div class="mt-4 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                                        Refund requested{{ $booking->refund_requested_at ? ' on ' . $booking->refund_requested_at->format('M j, Y') : '' }}. Waiting for admin review.
+                                    </div>
                                 @elseif ($booking->payment_status === 'paid')
                                     <div class="mt-4 rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
                                         Payment verified{{ $booking->paid_at ? ' on ' . $booking->paid_at->format('M j, Y g:i A') : '' }}.
+                                    </div>
+                                @endif
+
+                                @if ($actionLabel = $booking->guestActionLabel())
+                                    <div class="mt-4 flex flex-wrap gap-2">
+                                        <button
+                                            type="button"
+                                            class="btn-secondary text-sm"
+                                            data-booking-action-open
+                                            data-booking-action="{{ $actionLabel === 'Cancel Booking' ? 'cancel' : 'refund' }}"
+                                            data-booking-url="{{ $actionLabel === 'Cancel Booking' ? route('bookings.cancel', $booking) : route('bookings.request-refund', $booking) }}"
+                                            data-booking-label="{{ $actionLabel }}"
+                                        >
+                                            {{ $actionLabel }}
+                                        </button>
+                                    </div>
+                                @elseif ($booking->isFinalState())
+                                    <div class="mt-4 rounded-[1rem] border border-stone-200 bg-stone-100 px-4 py-3 text-sm text-stone-600">
+                                        This booking is closed and can no longer be changed.
+                                    </div>
+                                @elseif ($booking->isCheckedInOrPast() && ! $booking->isFinalState())
+                                    <div class="mt-4 rounded-[1rem] border border-stone-200 bg-stone-100 px-4 py-3 text-sm text-stone-600">
+                                        Check-in has started. Cancellation and refunds are no longer available online.
                                     </div>
                                 @endif
                             </div>
@@ -110,5 +137,7 @@
         </div>
     </div>
 </section>
+
+<x-booking-action-modal />
 @endsection
 

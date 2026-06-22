@@ -99,11 +99,7 @@
                     @forelse ($room->physicalRooms as $physicalRoom)
                         <div class="flex items-center justify-between rounded-lg border border-stone-200 px-3 py-2 text-sm">
                             <span>{{ $physicalRoom->name }} <span class="text-stone-400">({{ $physicalRoom->code }})</span></span>
-                            <form method="POST" action="{{ route('physical-rooms.destroy', $physicalRoom) }}" onsubmit="return confirm('Remove this physical room?')">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" class="text-xs text-red-600 hover:underline">Remove</button>
-                            </form>
+                            <button type="button" data-delete-open data-delete-url="{{ route('physical-rooms.destroy', $physicalRoom) }}" class="text-xs text-red-600 hover:underline">Remove</button>
                         </div>
                     @empty
                         <p class="text-sm text-stone-500">No physical units yet.</p>

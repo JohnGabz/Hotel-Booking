@@ -131,7 +131,7 @@
                                data-room-physical-rooms='@json($room->physicalRooms->map(fn ($physicalRoom) => ['id' => $physicalRoom->id, 'name' => $physicalRoom->name, 'status' => $physicalRoom->status])->values())'
                                data-room-update-url="{{ route('admin.rooms.update', $room) }}"
                                class="btn-secondary btn-edit">Edit</a>
-                            <a href="#" data-modal-open="generic-action-modal" data-modal-title="Delete room" data-action-url="{{ route('admin.rooms.destroy', $room) }}" data-action-method="DELETE" class="btn-secondary btn-delete">Delete</a>
+                            <a href="#" data-delete-open data-delete-url="{{ route('admin.rooms.destroy', $room) }}" class="btn-secondary btn-delete">Delete</a>
                         </div>
                     </div>
                 </article>

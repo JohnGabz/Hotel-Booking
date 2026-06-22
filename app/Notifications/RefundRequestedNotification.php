@@ -5,11 +5,11 @@ namespace App\Notifications;
 use Illuminate\Bus\Queueable;
 use Illuminate\Notifications\Notification;
 
-class PaymentProofUploadedNotification extends Notification
+class RefundRequestedNotification extends Notification
 {
     use Queueable;
 
-    public function __construct(public int $bookingId, public string $guestName, public string $referenceNumber)
+    public function __construct(public int $bookingId, public string $roomName, public string $guestName)
     {
     }
 
@@ -22,8 +22,8 @@ class PaymentProofUploadedNotification extends Notification
     {
         return [
             'booking_id' => $this->bookingId,
-            'message' => "Payment proof received for booking #{$this->bookingId}.",
-            'action_url' => route('admin.bookings') . '?status=pending',
+            'message' => "Refund requested for {$this->roomName} (#{$this->bookingId}).",
+            'action_url' => route('admin.bookings').'?status=confirmed',
         ];
     }
 }

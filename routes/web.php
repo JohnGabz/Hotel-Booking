@@ -66,6 +66,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [BookingController::class, 'dashboard'])->name('dashboard');
         Route::post('/bookings/{booking}/payment-proof', [BookingController::class, 'uploadPaymentProof'])->name('bookings.payment-proof');
         Route::post('/bookings/{booking}/pay', [App\Http\Controllers\PaymentController::class, 'create'])->name('bookings.pay');
+        Route::post('/bookings/{booking}/cancel', [BookingController::class, 'cancel'])->name('bookings.cancel');
+        Route::post('/bookings/{booking}/request-refund', [BookingController::class, 'requestRefund'])->name('bookings.request-refund');
     });
 
     Route::post('/rooms/{room}/physical-rooms', [PhysicalRoomController::class, 'store'])->name('physical-rooms.store');
@@ -92,6 +94,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/rooms/{room}/status', [AdminController::class, 'updateRoomStatus'])->name('rooms.status');
         Route::post('/reviews/{review}/approve', [AdminController::class, 'approveReview'])->name('reviews.approve');
         Route::post('/bookings/{booking}/payment-status', [AdminController::class, 'updatePaymentStatus'])->name('bookings.payment-status');
+        Route::post('/bookings/{booking}/refund-request', [AdminController::class, 'processRefundRequest'])->name('bookings.refund-request');
+        Route::get('/logs', [AdminController::class, 'logs'])->name('logs');
         Route::post('/site-content', [AdminController::class, 'updateSiteContent'])->name('site-content.update');
         Route::post('/site-content/{section}', [AdminController::class, 'updateSiteContentSection'])->name('site-content.section.update');
         Route::get('/settings/landing/{section}/edit', [AdminController::class, 'landingSectionEdit'])->name('settings.landing.edit');

@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Events\AdminNotificationCreated;
+use App\Events\BookingCancelled;
 use App\Events\BookingCreated;
+use App\Events\BookingStatusChanged;
 use App\Events\PaymentStatusUpdated;
 use App\Models\Booking;
 use App\Models\PaymentTransaction;
@@ -11,6 +13,8 @@ use App\Models\Room;
 use App\Models\User;
 use App\Notifications\BookingCreatedNotification;
 use App\Notifications\PaymentProofUploadedNotification;
+use App\Notifications\RefundRequestedNotification;
+use App\Support\ActivityLogger;
 use App\Support\ImageStorage;
 use App\Support\NotifyAdmins;
 use Carbon\Carbon;
@@ -21,6 +25,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
 use Throwable;
 
@@ -101,6 +106,14 @@ class BookingController extends Controller
         ]);
 
         NotifyAdmins::send(new BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
+
+        ActivityLogger::log(
+            'booking.created',
+            'booking',
+            "Online booking created for {$room->name}.",
+            $booking,
+            ['source' => Booking::SOURCE_ONLINE]
+        );
 
         try {
             event(new BookingCreated($booking->id));
@@ -193,6 +206,107 @@ class BookingController extends Controller
         event(new PaymentStatusUpdated($booking->id));
 
         return redirect()->route('dashboard')->with('success', 'Payment proof uploaded. Our staff will verify your payment shortly.');
+    }
+
+    public function cancel(Request $request, Booking $booking): RedirectResponse
+    {
+        $this->ensureGuestOwnsBooking($booking);
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            DB::transaction(function () use ($booking, $validated) {
+                $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+                if (! $lockedBooking->canGuestCancel()) {
+                    throw ValidationException::withMessages([
+                        'booking' => 'This booking is no longer eligible for cancellation.',
+                    ]);
+                }
+
+                $lockedBooking->update([
+                    'status' => 'cancelled',
+                    'payment_status' => 'failed',
+                    'cancellation_reason' => $validated['cancellation_reason'] ?? null,
+                    'cancelled_at' => now(),
+                ]);
+            });
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors())->with('error', 'This booking cannot be cancelled.');
+        }
+
+        $booking->refresh();
+
+        ActivityLogger::log(
+            'booking.cancelled',
+            'booking',
+            "Guest cancelled booking #{$booking->id}.",
+            $booking,
+            ['reason' => $validated['cancellation_reason'] ?? null]
+        );
+
+        event(new BookingCancelled($booking->id));
+        event(new BookingStatusChanged($booking->id));
+        event(new PaymentStatusUpdated($booking->id));
+
+        return redirect()->route('dashboard')->with('success', 'Your booking has been cancelled.');
+    }
+
+    public function requestRefund(Request $request, Booking $booking): RedirectResponse
+    {
+        $this->ensureGuestOwnsBooking($booking);
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'nullable|string|max:500',
+        ]);
+
+        try {
+            DB::transaction(function () use ($booking, $validated) {
+                $lockedBooking = Booking::query()->whereKey($booking->id)->lockForUpdate()->firstOrFail();
+
+                if (! $lockedBooking->canGuestRequestRefund()) {
+                    throw ValidationException::withMessages([
+                        'booking' => 'This booking is not eligible for a refund request.',
+                    ]);
+                }
+
+                $lockedBooking->update([
+                    'refund_requested_at' => now(),
+                    'cancellation_reason' => $validated['cancellation_reason'] ?? null,
+                ]);
+            });
+        } catch (ValidationException $exception) {
+            return back()->withErrors($exception->errors())->with('error', 'This booking is not eligible for a refund request.');
+        }
+
+        $booking->refresh()->loadMissing('room');
+
+        ActivityLogger::log(
+            'refund.requested',
+            'payment',
+            "Refund requested for booking #{$booking->id}.",
+            $booking,
+            ['reason' => $validated['cancellation_reason'] ?? null]
+        );
+
+        NotifyAdmins::send(new RefundRequestedNotification(
+            $booking->id,
+            $booking->room?->name ?? 'Room',
+            $booking->contact_name ?? Auth::user()?->name ?? 'Guest'
+        ));
+
+        event(new AdminNotificationCreated);
+
+        return redirect()->route('dashboard')->with('success', 'Your refund request has been submitted. Our team will review it shortly.');
+    }
+
+    protected function ensureGuestOwnsBooking(Booking $booking): void
+    {
+        if ((int) $booking->user_id !== (int) Auth::id()) {
+            abort(403);
+        }
     }
 
     protected function bookingSupportsSource(): bool

@@ -23,7 +23,7 @@ class BookingCreatedNotification extends Notification
         $type = $this->isAdminAction ? 'Walk-in' : 'Online';
         return [
             'booking_id' => $this->bookingId,
-            'message' => "New {$type} booking #{$this->bookingId} created by {$this->guestName} for {$this->roomName}.",
+            'message' => "New {$type} booking for {$this->roomName}.",
             'action_url' => route('admin.bookings') . '?room=all',
         ];
     }
