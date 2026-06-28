@@ -62,7 +62,7 @@ class BookingController extends Controller
             $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
             $guestsCount = 1; // Default for public flow
 
-            $breakfastCharge = $withBreakfast ? (50 * $guestsCount * $nights) : 0;
+            $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
             $total = ($lockedRoom->price * $nights) + $breakfastCharge;
 
             $payload = [

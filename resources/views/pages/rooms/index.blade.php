@@ -84,7 +84,7 @@
                             </div>
                         @endif
 
-                        <div class="mt-6 flex items-center justify-between gap-4 pt-2 mt-auto">
+                        <div class="mt-8 flex items-center justify-between gap-4 pt-6 mt-auto">
                             <a href="{{ route('rooms.show', $room) }}" class="btn-primary px-4 py-2.5 text-sm">View Room</a>
                             @if ($room->status !== 'available')
                                 <span class="text-xs uppercase tracking-[0.2em] text-rose-600">Unavailable</span>

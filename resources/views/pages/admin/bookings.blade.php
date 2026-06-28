@@ -266,6 +266,13 @@
             </div>
         </div>
 
+        <div class="form-group">
+            <label class="form-label" for="walkin_physical_room_id">Physical room <span class="text-stone-400">(optional, auto-assigned if empty)</span></label>
+            <select id="walkin_physical_room_id" name="physical_room_id" class="form-input">
+                <option value="">Auto-assign</option>
+            </select>
+        </div>
+
         <div class="grid gap-4 md:grid-cols-2">
             <div class="form-group">
                 <label class="form-label" for="walkin_contact_name">Contact name</label>
@@ -305,7 +312,7 @@
             <label class="flex items-center gap-3 cursor-pointer select-none">
                 <input type="checkbox" id="walkin_with_breakfast" name="with_breakfast" value="1" class="h-5 w-5 rounded border-stone-300 text-brand-primary focus:ring-brand-primary">
                 <span class="text-sm font-medium text-stone-900">
-                    Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 per guest per night)</span>
+                    Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 x room capacity per night)</span>
                 </span>
             </label>
         </div>
@@ -331,11 +338,41 @@
         const checkIn = document.getElementById('walkin_check_in');
         const checkOut = document.getElementById('walkin_check_out');
         const roomSelect = document.getElementById('walkin_room_id');
+        const physicalRoomSelect = document.getElementById('walkin_physical_room_id');
         const openButtons = document.querySelectorAll('[data-modal-open="walkin-booking-modal"]');
 
-
-
         if (!form || !errors || !checkIn || !checkOut) return;
+
+        const updatePhysicalRooms = async () => {
+            if (!physicalRoomSelect || !roomSelect) return;
+            const roomId = roomSelect.value;
+            const checkInVal = checkIn.value;
+            const checkOutVal = checkOut.value;
+
+            if (!roomId || !checkInVal || !checkOutVal || checkOutVal <= checkInVal) {
+                physicalRoomSelect.innerHTML = '<option value="">Auto-assign</option>';
+                return;
+            }
+
+            try {
+                const response = await fetch(`/admin/bookings/available-physical-rooms?room_id=${roomId}&check_in=${checkInVal}&check_out=${checkOutVal}`, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                });
+                if (response.ok) {
+                    const rooms = await response.json();
+                    let html = '<option value="">Auto-assign</option>';
+                    rooms.forEach(r => {
+                        html += `<option value="${r.id}">${r.name} (${r.code})</option>`;
+                    });
+                    physicalRoomSelect.innerHTML = html;
+                }
+            } catch (err) {
+                console.error('Failed to fetch available physical rooms:', err);
+            }
+        };
 
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -378,10 +415,16 @@
                 if (roomId && roomSelect) {
                     roomSelect.value = roomId;
                 }
+                updatePhysicalRooms();
             });
         });
 
-        checkIn.addEventListener('change', syncCheckOutMin);
+        checkIn.addEventListener('change', () => {
+            syncCheckOutMin();
+            updatePhysicalRooms();
+        });
+        checkOut.addEventListener('change', updatePhysicalRooms);
+        roomSelect.addEventListener('change', updatePhysicalRooms);
 
         form.addEventListener('submit', async (event) => {
             if (!window.fetchWithoutLoader) return;

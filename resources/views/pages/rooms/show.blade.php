@@ -28,6 +28,7 @@
             data-availability-url="{{ route('rooms.availability', $room) }}"
             data-form-enabled="{{ $room->status === 'available' ? '1' : '0' }}"
             data-room-price="{{ $room->price }}"
+            data-room-capacity="{{ $room->capacity }}"
         >
         </div>
 
@@ -199,7 +200,17 @@
                                             </div>
                                             <div class="room-calendar-cell-status">
                                                 <span class="room-calendar-status-dot {{ $statusDotClasses }}" aria-hidden="true"></span>
-                                                <span class="room-calendar-status-label">{{ $day['status'] === 'open' ? $day['availableCount'] . ' open' : $statusLabel }}</span>
+                                                <span class="room-calendar-status-label">
+                                                    @if ($day['status'] === 'open')
+                                                        @if (auth()->check() && auth()->user()->is_admin)
+                                                            {{ $day['availableCount'] }} open
+                                                        @else
+                                                            Open
+                                                        @endif
+                                                    @else
+                                                        {{ $statusLabel }}
+                                                    @endif
+                                                </span>
                                             </div>
                                         </button>
                                     @endforeach
@@ -401,7 +412,7 @@
                 <label class="flex items-center gap-3 cursor-pointer select-none">
                     <input type="checkbox" id="with_breakfast" name="with_breakfast" value="1" {{ old('with_breakfast') ? 'checked' : '' }} class="h-5 w-5 rounded border-stone-300 text-brand-primary focus:ring-brand-primary">
                     <span class="text-sm font-medium text-stone-905 text-stone-900">
-                        Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 per guest per night)</span>
+                        Include Breakfast <span class="text-xs text-stone-500 font-normal">(₱50 x room capacity per night)</span>
                     </span>
                 </label>
             </div>
@@ -558,7 +569,8 @@
             }
 
             const withBreakfast = withBreakfastInput && withBreakfastInput.checked;
-            const breakfastTotal = withBreakfast ? (50 * 1 * nights) : 0; // 1 guest for online flow
+            const roomCapacity = parseFloat(meta.dataset.roomCapacity || '1');
+            const breakfastTotal = withBreakfast ? (50 * roomCapacity * nights) : 0;
 
             if (summaryBreakfastRow) {
                 summaryBreakfastRow.classList.toggle('hidden', !withBreakfast);

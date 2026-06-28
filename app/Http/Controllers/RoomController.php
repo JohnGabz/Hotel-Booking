@@ -174,15 +174,20 @@ class RoomController extends Controller
             $isAvailable = $availableCount > 0;
         }
 
-        return response()->json([
+        $responseData = [
             'room_status' => $room->status,
             'available' => $isAvailable,
-            'available_physical_rooms' => $availableCount,
             'message' => $isAvailable
                 ? 'This room type is available for the selected dates.'
                 : 'All rooms of this type are unavailable for the selected dates.',
             'checked_at' => now()->toIso8601String(),
-        ]);
+        ];
+
+        if (Auth::check() && Auth::user()->is_admin) {
+            $responseData['available_physical_rooms'] = $availableCount;
+        }
+
+        return response()->json($responseData);
     }
 
     protected function buildBookingCalendar(Room $room, ?string $monthInput): array

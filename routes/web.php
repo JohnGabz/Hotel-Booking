@@ -88,6 +88,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('feedbacks');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::post('/bookings/walkin', [AdminController::class, 'adminStoreWalkin'])->name('bookings.walkin');
+        Route::get('/bookings/available-physical-rooms', [AdminController::class, 'availablePhysicalRooms'])->name('bookings.available-physical-rooms');
         Route::post('/rooms', [AdminController::class, 'storeRoom'])->name('rooms.store');
         Route::put('/rooms/{room}', [AdminController::class, 'updateRoom'])->name('rooms.update');
         Route::delete('/rooms/{room}', [AdminController::class, 'destroyRoom'])->name('rooms.destroy');

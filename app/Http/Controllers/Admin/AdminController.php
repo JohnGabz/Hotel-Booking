@@ -184,6 +184,7 @@ class AdminController extends Controller
             'status' => 'nullable|in:pending,confirmed,for_verification',
             'notes' => 'nullable|string|max:2000',
             'with_breakfast' => 'nullable|boolean',
+            'physical_room_id' => 'nullable|exists:physical_rooms,id',
         ]);
 
         $walkinRoomName = null;
@@ -198,12 +199,26 @@ class AdminController extends Controller
                 ]);
             }
 
-            $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
+            if (!empty($validated['physical_room_id'])) {
+                $assignedPhysicalRoom = PhysicalRoom::findOrFail($validated['physical_room_id']);
+                if ($assignedPhysicalRoom->room_id !== $lockedRoom->id) {
+                    throw ValidationException::withMessages([
+                        'physical_room_id' => 'The selected physical room does not belong to the selected room type.',
+                    ]);
+                }
+                if ($assignedPhysicalRoom->status !== 'available' || Booking::overlapsPhysicalRoom($assignedPhysicalRoom->id, $validated['check_in'], $validated['check_out'])) {
+                    throw ValidationException::withMessages([
+                        'physical_room_id' => 'The selected physical room is not available for these dates.',
+                    ]);
+                }
+            } else {
+                $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
 
-            if (! $assignedPhysicalRoom) {
-                throw ValidationException::withMessages([
-                    'check_in' => 'All physical rooms under this room type are reserved for the selected dates.',
-                ]);
+                if (! $assignedPhysicalRoom) {
+                    throw ValidationException::withMessages([
+                        'check_in' => 'All physical rooms under this room type are reserved for the selected dates.',
+                    ]);
+                }
             }
 
             $inputStatus = $validated['status'] ?? 'pending';
@@ -218,7 +233,7 @@ class AdminController extends Controller
 
             $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
             $guestsCount = (int) $validated['guests'];
-            $breakfastCharge = $withBreakfast ? (50 * $guestsCount * $nights) : 0;
+            $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
             $total = ($lockedRoom->price * $nights) + $breakfastCharge;
 
             $payload = [
@@ -308,6 +323,31 @@ class AdminController extends Controller
         }
 
         return redirect()->route('admin.bookings')->with('success', 'Walk-in booking created successfully.');
+    }
+
+    public function availablePhysicalRooms(Request $request): JsonResponse
+    {
+        $this->ensureAdmin();
+
+        $validated = $request->validate([
+            'room_id' => 'required|exists:rooms,id',
+            'check_in' => 'required|date',
+            'check_out' => 'required|date|after:check_in',
+        ]);
+
+        $room = Room::findOrFail($validated['room_id']);
+        
+        $physicalRooms = $room->availablePhysicalRooms()
+            ->get()
+            ->filter(fn (PhysicalRoom $pr) => ! Booking::overlapsPhysicalRoom($pr->id, $validated['check_in'], $validated['check_out']))
+            ->values()
+            ->map(fn (PhysicalRoom $pr) => [
+                'id' => $pr->id,
+                'name' => $pr->name,
+                'code' => $pr->code,
+            ]);
+
+        return response()->json($physicalRooms);
     }
 
     public function rooms(Request $request): View
@@ -1025,7 +1065,18 @@ class AdminController extends Controller
             'about' => ['about_heading', 'about_body', 'about_image'],
             'amenities' => ['facilities_title', 'facilities_intro', 'facility_1_label', 'facility_2_label', 'facility_3_label', 'facility_4_label'],
             'gallery' => ['gallery_title', 'gallery_intro', 'gallery_card_1_title', 'gallery_card_1_text', 'gallery_card_2_title', 'gallery_card_2_text', 'gallery_image_1', 'gallery_image_2', 'gallery_image_3', 'gallery_image_4'],
-            'location' => ['location_title', 'location_intro', 'location_address_line1', 'location_phone', 'location_email'],
+            'location' => [
+                'location_title',
+                'location_intro',
+                'location_map_url',
+                'location_address_line1',
+                'location_address_line2',
+                'location_phone',
+                'location_email',
+                'location_hours_1',
+                'location_hours_2',
+                'location_direction_url',
+            ],
             default => collect($this->landingPageSectionsFieldKeys($sectionId))->take(4)->all(),
         };
     }
