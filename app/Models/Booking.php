@@ -65,7 +65,11 @@ class Booking extends Model
     {
         return $this->hasMany(WebhookEvent::class);
     }
-
+    
+    public function reviews(): HasMany
+    {
+        return $this->hasMany(Review::class);
+    }
     public function scopeOverlapping($query, int $roomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES)
     {
         return $query
