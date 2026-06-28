@@ -49,7 +49,9 @@
         </form>
     </section>
 
-    <section class="space-y-6">
+    <div class="grid gap-6 lg:grid-cols-4 items-start">
+        <!-- Left Column: Calendar & Table -->
+        <div class="lg:col-span-3 space-y-6">
         <div class="surface p-6 sm:p-8">
                 <div class="flex items-start justify-between gap-3">
                     <div>
@@ -160,6 +162,7 @@
                         @forelse ($bookings as $booking)
                             <tr class="align-top transition hover:bg-stone-50/80 cursor-pointer"
                                 data-booking-id="{{ $booking->id }}"
+                                data-status="{{ strtolower($booking->status) }}"
                                 data-room-name="{{ $booking->room?->name ?? 'Room type' }}"
                                 data-guest-name="{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}"
                                 data-check-in="{{ $booking->check_in->format('F j') }}"
@@ -207,6 +210,10 @@
                 </table>
             </div>
         </div>
+        </div>
+
+        <!-- Right Column: Details & Actions (Sticky) -->
+        <div class="lg:col-span-1 space-y-6 lg:sticky lg:top-6">
 
         <div class="surface p-6 sm:p-8">
                 <span class="eyebrow">Booking detail</span>
@@ -220,6 +227,12 @@
                         <div class="rounded-2xl bg-stone-50 p-4">Payment status: <strong id="detail-payment-status">{{ ucfirst(str_replace('_', ' ', $primaryBooking->payment_status)) }}</strong></div>
                         <div class="rounded-2xl bg-stone-50 p-4">Guests: <strong id="detail-guests">{{ $primaryBooking->guests }}</strong></div>
                     </div>
+
+                    <form id="detail-confirm-form" action="{{ $primaryBooking ? route('admin.bookings.payment-status', $primaryBooking) : '' }}" method="POST" class="mt-4 {{ $primaryBooking && strtolower($primaryBooking->status) !== 'confirmed' ? '' : 'hidden' }}">
+                        @csrf
+                        <input type="hidden" name="payment_status" value="paid">
+                        <button type="submit" class="btn-primary w-full py-3">Confirm Reservation</button>
+                    </form>
                 @else
                     <p class="mt-4 text-sm text-stone-500">No booking details available yet.</p>
                 @endif
@@ -232,7 +245,8 @@
                     <a href="{{ route('admin.rooms') }}" class="btn-secondary w-full justify-start">Review room availability</a>
                 </div>
         </div>
-    </section>
+        </div>
+    </div>
 </div>
 
 <x-modal id="walkin-booking-modal" title="Add walk-in booking" size="max-w-3xl">
@@ -472,6 +486,8 @@
         // Interactive row clicking for booking details
         document.querySelectorAll('tr[data-booking-id]').forEach(row => {
             row.addEventListener('click', () => {
+                const bookingId = row.dataset.bookingId;
+                const status = row.dataset.status;
                 const roomName = row.dataset.roomName;
                 const guestName = row.dataset.guestName;
                 const checkIn = row.dataset.checkIn;
@@ -487,6 +503,7 @@
                 const detailPaymentMethod = document.getElementById('detail-payment-method');
                 const detailPaymentStatus = document.getElementById('detail-payment-status');
                 const detailGuests = document.getElementById('detail-guests');
+                const detailConfirmForm = document.getElementById('detail-confirm-form');
 
                 if (detailRoomName) detailRoomName.textContent = roomName;
                 if (detailGuestDates) detailGuestDates.textContent = `${guestName} · ${checkIn} - ${checkOut}`;
@@ -494,6 +511,15 @@
                 if (detailPaymentMethod) detailPaymentMethod.textContent = paymentMethod;
                 if (detailPaymentStatus) detailPaymentStatus.textContent = paymentStatus;
                 if (detailGuests) detailGuests.textContent = guests;
+
+                if (detailConfirmForm) {
+                    detailConfirmForm.action = `/admin/bookings/${bookingId}/payment-status`;
+                    if (status !== 'confirmed') {
+                        detailConfirmForm.classList.remove('hidden');
+                    } else {
+                        detailConfirmForm.classList.add('hidden');
+                    }
+                }
 
                 // Highlight active row
                 document.querySelectorAll('tr[data-booking-id]').forEach(r => r.classList.remove('bg-brand-primary/5'));

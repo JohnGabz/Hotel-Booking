@@ -333,13 +333,21 @@
                         <span class="eyebrow">Leave a review</span>
                         <form action="{{ route('reviews.store', $room) }}" method="POST" class="mt-5 space-y-4">
                             @csrf
-                            <div class="form-group">
-                                <label class="form-label" for="rating">Rating</label>
-                                <select id="rating" name="rating" class="form-input" required>
-                                    @for ($star = 5; $star >= 1; $star--)
-                                        <option value="{{ $star }}" {{ old('rating') == $star ? 'selected' : '' }}>{{ $star }} stars</option>
+                            <div class="space-y-2">
+                                <label class="form-label font-semibold">Rating</label>
+                                <div class="flex items-center gap-2 pt-1" id="star-rating-container">
+                                    @for ($i = 1; $i <= 5; $i++)
+                                        <button type="button" data-star="{{ $i }}" class="text-stone-300 hover:text-amber-500 hover:scale-110 transition focus:outline-none" aria-label="Rate {{ $i }} star{{ $i > 1 ? 's' : '' }}">
+                                            <svg class="h-8 w-8 fill-current" viewBox="0 0 20 20" fill="currentColor">
+                                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                                            </svg>
+                                        </button>
                                     @endfor
-                                </select>
+                                </div>
+                                <input type="hidden" name="rating" id="rating-input" value="{{ old('rating') }}" required>
+                                @error('rating')
+                                    <p class="form-error">{{ $message }}</p>
+                                @enderror
                             </div>
                             <div class="form-group">
                                 <label class="form-label" for="comment">Comment</label>
@@ -376,11 +384,11 @@
             </button>
         </div>
 
-        <form action="{{ route('bookings.store', $room) }}" method="POST" class="space-y-4 p-6 sm:p-8" id="booking-form">
+        <form action="{{ route('bookings.store', $room) }}" method="POST" class="space-y-4 p-6 sm:p-8" id="booking-form" data-no-loader>
             @csrf
             <div id="modal-availability-banner" class="hidden rounded-lg border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
 
-            <div class="grid gap-4 sm:grid-cols-2">
+            <div class="grid gap-4 sm:grid-cols-3">
                 <div class="form-group">
                     <label class="form-label" for="check_in">Check-in</label>
                     <input type="date" id="check_in" name="check_in" value="{{ old('check_in') }}" class="form-input" required min="{{ now()->toDateString() }}">
@@ -388,6 +396,10 @@
                 <div class="form-group">
                     <label class="form-label" for="check_out">Check-out</label>
                     <input type="date" id="check_out" name="check_out" value="{{ old('check_out') }}" class="form-input" required min="{{ now()->addDay()->toDateString() }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="guests">Guests</label>
+                    <input type="number" id="guests" name="guests" value="{{ old('guests', 1) }}" class="form-input" required min="1" max="{{ $room->capacity }}">
                 </div>
             </div>
 
@@ -655,6 +667,48 @@
                     renderBanner(false, 'Unable to connect. Please check your internet connection and try again.');
                 }
             });
+        }
+
+        // Star rating logic
+        const stars = document.querySelectorAll('[data-star]');
+        const ratingInput = document.getElementById('rating-input');
+
+        if (stars.length > 0 && ratingInput) {
+            const updateStars = (rating) => {
+                stars.forEach(star => {
+                    const starValue = parseInt(star.getAttribute('data-star'), 10);
+                    if (starValue <= rating) {
+                        star.classList.remove('text-stone-300');
+                        star.classList.add('text-amber-500');
+                    } else {
+                        star.classList.remove('text-amber-500');
+                        star.classList.add('text-stone-300');
+                    }
+                });
+            };
+
+            stars.forEach(star => {
+                star.addEventListener('click', () => {
+                    const ratingValue = parseInt(star.getAttribute('data-star'), 10);
+                    ratingInput.value = ratingValue;
+                    updateStars(ratingValue);
+                });
+
+                star.addEventListener('mouseover', () => {
+                    const hoverValue = parseInt(star.getAttribute('data-star'), 10);
+                    updateStars(hoverValue);
+                });
+
+                star.addEventListener('mouseout', () => {
+                    const currentValue = parseInt(ratingInput.value, 10) || 0;
+                    updateStars(currentValue);
+                });
+            });
+
+            const initialRating = parseInt(ratingInput.value, 10) || 0;
+            if (initialRating > 0) {
+                updateStars(initialRating);
+            }
         }
 
         // Run initially

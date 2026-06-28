@@ -41,6 +41,7 @@ class BookingController extends Controller
             'contact_phone' => 'required|string|max:80',
             'payment_method' => 'required|in:gcash,landbank,xendit',
             'with_breakfast' => 'nullable|boolean',
+            'guests' => 'required|integer|min:1',
         ]);
 
         $booking = DB::transaction(function () use ($room, $validated) {
@@ -48,6 +49,12 @@ class BookingController extends Controller
 
             if ($lockedRoom->status !== 'available') {
                 return null;
+            }
+
+            if ($validated['guests'] > $lockedRoom->capacity) {
+                throw ValidationException::withMessages([
+                    'guests' => 'The number of guests exceeds the maximum capacity of this room type.',
+                ]);
             }
 
             $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
@@ -60,7 +67,7 @@ class BookingController extends Controller
             $nights = max(1, $nights);
 
             $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
-            $guestsCount = 1; // Default for public flow
+            $guestsCount = (int) $validated['guests'];
 
             $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
             $total = ($lockedRoom->price * $nights) + $breakfastCharge;
@@ -328,9 +335,23 @@ class BookingController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
-        $recentRooms = Room::available()->take(3)->get();
+        $eligibleBookings = Booking::with('room')
+            ->where('user_id', Auth::id())
+            ->whereIn('status', ['Confirmed', 'confirmed'])
+            ->where('payment_status', 'paid')
+            ->whereDate('check_out', '<', now())
+            ->whereDoesntHave('reviews')
+            ->orderByDesc('check_out')
+            ->get();
 
-        return view('pages.dashboard', compact('bookings', 'recentRooms'), [
+        $recentRooms = Room::whereHas('bookings', function ($q) {
+            $q->where('user_id', Auth::id())
+              ->whereIn('status', ['Confirmed', 'confirmed'])
+              ->where('payment_status', 'paid')
+              ->whereDate('check_out', '<', now());
+        })->distinct()->take(3)->get();
+
+        return view('pages.dashboard', compact('bookings', 'eligibleBookings', 'recentRooms'), [
             'seo' => [
                 'title' => 'Dashboard — '.config('app.name'),
                 'description' => 'Manage your reservations and reviews at Villa Estella.',

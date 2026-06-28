@@ -54,6 +54,7 @@ class PaymentController extends Controller
         $invoiceUrl = rtrim((string) config('services.xendit.invoice_base_url', 'https://api.xendit.co'), '/').'/v2/invoices';
 
         $response = Http::withBasicAuth($secretKey, '')
+            ->timeout(10)
             ->acceptJson()
             ->withHeaders(['X-Idempotency-Key' => $externalId])
             ->post($invoiceUrl, $payload);
