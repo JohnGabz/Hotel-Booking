@@ -145,6 +145,7 @@ class AdminController extends Controller
             ->when($status === 'confirmed', fn ($query) => $query->whereIn('status', ['confirmed', 'Confirmed']))
             ->when($status === 'pending', fn ($query) => $query->whereIn('status', ['pending', 'Pending Payment']))
             ->when($status === 'cancelled', fn ($query) => $query->whereIn('status', ['cancelled', 'Payment Failed', 'Payment Expired']))
+            ->when($status === 'refund_requested', fn ($query) => $query->whereNotNull('refund_requested_at'))
             ->when($roomFilter !== 'all' && $roomFilter !== null, fn ($query) => $query->where('room_id', $roomFilter))
             ->when($dateFrom, fn ($query) => $query->whereDate('check_in', '>=', $dateFrom))
             ->when($dateTo, fn ($query) => $query->whereDate('check_out', '<=', $dateTo))

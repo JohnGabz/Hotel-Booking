@@ -2,7 +2,7 @@
 
 @section('content')
 @php
-    $statusOptions = ['all', 'confirmed', 'pending', 'cancelled'];
+    $statusOptions = ['all', 'confirmed', 'pending', 'cancelled', 'refund_requested'];
 @endphp
 
 <div class="space-y-8" data-realtime-fragment="admin-bookings">
@@ -29,7 +29,9 @@
                 <label class="form-label" for="booking_status">Status</label>
                 <select id="booking_status" name="status" class="form-input">
                     @foreach ($statusOptions as $option)
-                        <option value="{{ $option }}" @selected(($filters['status'] ?? 'all') === $option)>{{ ucfirst($option) }}</option>
+                        <option value="{{ $option }}" @selected(($filters['status'] ?? 'all') === $option)>
+                            {{ $option === 'refund_requested' ? 'Refund Requests' : ucfirst($option) }}
+                        </option>
                     @endforeach
                 </select>
             </div>
@@ -160,7 +162,8 @@
                     </thead>
                     <tbody class="divide-y divide-stone-100">
                         @forelse ($bookings as $booking)
-                            <tr class="align-top transition hover:bg-stone-50/80 cursor-pointer"
+                            @php($primaryBooking = $bookings->first())
+                            <tr class="align-top transition hover:bg-stone-50/80 cursor-pointer {{ ($primaryBooking && $primaryBooking->id === $booking->id) ? 'bg-brand-primary/5 active-booking-row' : '' }}"
                                 data-booking-id="{{ $booking->id }}"
                                 data-status="{{ strtolower($booking->status) }}"
                                 data-room-name="{{ $booking->room?->name ?? 'Room type' }}"
@@ -171,6 +174,8 @@
                                 data-payment-method="{{ strtoupper($booking->payment_method) }}"
                                 data-payment-status="{{ ucfirst(str_replace('_', ' ', $booking->payment_status)) }}"
                                 data-guests="{{ $booking->guests }}"
+                                data-refund-requested-at="{{ $booking->refund_requested_at ? $booking->refund_requested_at->format('F j, Y g:i A') : '' }}"
+                                data-cancellation-reason="{{ $booking->cancellation_reason ?? '' }}"
                             >
                                 <td class="px-5 py-4" data-label="Guest">
                                     <p class="font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
@@ -195,9 +200,16 @@
                                 </td>
                                 <td class="px-5 py-4 text-stone-600" data-label="Dates">{{ $booking->check_in->format('M j') }} - {{ $booking->check_out->format('M j') }}</td>
                                 <td class="px-5 py-4" data-label="Status">
-                                    <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $booking->status === 'confirmed' ? 'bg-emerald-100 text-emerald-700' : ($booking->status === 'pending' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-700') }}">
-                                        {{ ucfirst($booking->status) }}
-                                    </span>
+                                    <div class="flex flex-col items-start gap-1">
+                                        <span class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold {{ $booking->status === 'confirmed' || $booking->status === 'Confirmed' ? 'bg-emerald-100 text-emerald-700' : ($booking->status === 'pending' || $booking->status === 'Pending Payment' ? 'bg-amber-100 text-amber-800' : 'bg-stone-100 text-stone-700') }}">
+                                            {{ $booking->status }}
+                                        </span>
+                                        @if ($booking->refund_requested_at)
+                                            <span class="inline-flex items-center rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold text-rose-700">
+                                                Refund Requested
+                                            </span>
+                                        @endif
+                                    </div>
                                 </td>
                                 <td class="px-5 py-4 font-medium text-stone-950" data-label="Amount">₱{{ number_format($booking->total, 0) }}</td>
                             </tr>
@@ -233,6 +245,21 @@
                         <input type="hidden" name="payment_status" value="paid">
                         <button type="submit" class="btn-primary w-full py-3">Confirm Reservation</button>
                     </form>
+
+                    <!-- Refund Request Section -->
+                    <div id="detail-refund-section" class="mt-4 border-t border-stone-100 pt-4 {{ $primaryBooking && $primaryBooking->refund_requested_at ? '' : 'hidden' }}">
+                        <span class="text-xs font-semibold uppercase tracking-wider text-rose-600">Pending Refund Request</span>
+                        <div class="mt-2 rounded-2xl bg-rose-50 p-4 text-sm text-stone-700 space-y-2">
+                            <div>Requested: <strong id="detail-refund-date">{{ $primaryBooking && $primaryBooking->refund_requested_at ? $primaryBooking->refund_requested_at->format('F j, Y g:i A') : '' }}</strong></div>
+                            <div>Reason: <span id="detail-refund-reason" class="italic">{{ $primaryBooking ? $primaryBooking->cancellation_reason ?? 'No reason provided.' : '' }}</span></div>
+                        </div>
+
+                        <form id="detail-refund-form" action="{{ $primaryBooking ? route('admin.bookings.refund-request', $primaryBooking) : '' }}" method="POST" class="mt-3 flex gap-2" data-no-loader>
+                            @csrf
+                            <button type="submit" name="decision" value="approve" class="btn-primary flex-1 py-2 text-xs bg-rose-600 border-rose-600 hover:bg-rose-700 hover:border-rose-700 text-white">Approve Refund</button>
+                            <button type="submit" name="decision" value="reject" class="btn-secondary flex-1 py-2 text-xs">Reject</button>
+                        </form>
+                    </div>
                 @else
                     <p class="mt-4 text-sm text-stone-500">No booking details available yet.</p>
                 @endif
@@ -277,7 +304,7 @@
         <div class="form-group">
             <label class="form-label" for="walkin_physical_room_id">Physical room <span class="text-stone-400">(optional, auto-assigned if empty)</span></label>
             <select id="walkin_physical_room_id" name="physical_room_id" class="form-input">
-                <option value="">Auto-assign</option>
+                <option value="">Select dates first to choose physical room...</option>
             </select>
         </div>
 
@@ -358,7 +385,7 @@
             const checkOutVal = checkOut.value;
 
             if (!roomId || !checkInVal || !checkOutVal || checkOutVal <= checkInVal) {
-                physicalRoomSelect.innerHTML = '<option value="">Auto-assign</option>';
+                physicalRoomSelect.innerHTML = '<option value="">Select dates first to choose physical room...</option>';
                 return;
             }
 
@@ -371,10 +398,15 @@
                 });
                 if (response.ok) {
                     const rooms = await response.json();
-                    let html = '<option value="">Auto-assign</option>';
-                    rooms.forEach(r => {
-                        html += `<option value="${r.id}">${r.name} (${r.code})</option>`;
-                    });
+                    let html = '';
+                    if (rooms.length === 0) {
+                        html = '<option value="">No physical rooms available for these dates</option>';
+                    } else {
+                        html = '<option value="">Auto-assign</option>';
+                        rooms.forEach(r => {
+                            html += `<option value="${r.id}">${r.name} (${r.code})</option>`;
+                        });
+                    }
                     physicalRoomSelect.innerHTML = html;
                 }
             } catch (err) {
@@ -491,6 +523,9 @@
                 const paymentStatus = row.dataset.paymentStatus;
                 const guests = row.dataset.guests;
 
+                const refundRequestedAt = row.dataset.refundRequestedAt;
+                const cancellationReason = row.dataset.cancellationReason;
+
                 const detailRoomName = document.getElementById('detail-room-name');
                 const detailGuestDates = document.getElementById('detail-guest-dates');
                 const detailPhysicalRoom = document.getElementById('detail-physical-room');
@@ -498,6 +533,10 @@
                 const detailPaymentStatus = document.getElementById('detail-payment-status');
                 const detailGuests = document.getElementById('detail-guests');
                 const detailConfirmForm = document.getElementById('detail-confirm-form');
+                const detailRefundSection = document.getElementById('detail-refund-section');
+                const detailRefundDate = document.getElementById('detail-refund-date');
+                const detailRefundReason = document.getElementById('detail-refund-reason');
+                const detailRefundForm = document.getElementById('detail-refund-form');
 
                 if (detailRoomName) detailRoomName.textContent = roomName;
                 if (detailGuestDates) detailGuestDates.textContent = `${guestName} · ${checkIn} - ${checkOut}`;
@@ -515,9 +554,20 @@
                     }
                 }
 
+                if (detailRefundSection) {
+                    if (refundRequestedAt) {
+                        detailRefundSection.classList.remove('hidden');
+                        if (detailRefundDate) detailRefundDate.textContent = refundRequestedAt;
+                        if (detailRefundReason) detailRefundReason.textContent = cancellationReason || 'No reason provided.';
+                        if (detailRefundForm) detailRefundForm.action = `/admin/bookings/${bookingId}/refund-request`;
+                    } else {
+                        detailRefundSection.classList.add('hidden');
+                    }
+                }
+
                 // Highlight active row
-                document.querySelectorAll('tr[data-booking-id]').forEach(r => r.classList.remove('bg-brand-primary/5'));
-                row.classList.add('bg-brand-primary/5');
+                document.querySelectorAll('tr[data-booking-id]').forEach(r => r.classList.remove('bg-brand-primary/5', 'active-booking-row'));
+                row.classList.add('bg-brand-primary/5', 'active-booking-row');
             });
         });
 

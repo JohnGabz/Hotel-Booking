@@ -89,15 +89,15 @@
     @else
         <section class="grid gap-6 lg:grid-cols-3">
             @forelse ($rooms as $room)
-                <article class="surface overflow-hidden">
+                <article class="surface overflow-hidden flex flex-col h-full">
                     @php
                         $roomImage = collect($room->images ?? [])->first();
                         $roomImage = $resolveRoomImage($roomImage) ?? $roomImages[$loop->index % count($roomImages)];
                     @endphp
-                    <div class="h-56 overflow-hidden bg-stone-200">
+                    <div class="h-56 overflow-hidden bg-stone-200 shrink-0">
                         <img src="{{ $roomImage }}" alt="{{ $room->name }}" class="h-full w-full object-cover transition duration-500 hover:scale-105" loading="lazy" decoding="async" sizes="(min-width: 1024px) 33vw, 100vw">
                     </div>
-                    <div class="p-6">
+                    <div class="p-6 flex-1 flex flex-col">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <h2 class="text-2xl font-semibold text-stone-950">{{ $room->name }}</h2>
@@ -107,15 +107,15 @@
                                     · {{ $room->physicalRooms->where('status', 'available')->count() }} available
                                 </p>
                             </div>
-                            <div class="flex flex-col items-end gap-2">
+                            <div class="flex flex-col items-end gap-2 shrink-0">
                                 <span class="badge-primary">₱{{ number_format($room->price, 0) }}</span>
                                 @if ($room->status === 'maintenance')
                                     <span class="rounded-full bg-amber-200 px-3 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-amber-950 ring-1 ring-amber-400">Maintenance</span>
                                 @endif
                             </div>
                         </div>
-                        <p class="mt-4 text-sm leading-7 text-stone-600">{{ $room->description }}</p>
-                        <div class="mt-6 flex flex-wrap gap-2">
+                        <p class="mt-4 text-sm leading-7 text-stone-600 flex-1">{{ $room->description }}</p>
+                        <div class="mt-8 pt-6 border-t border-stone-100 flex flex-wrap gap-2 mt-auto">
                             <a href="{{ route('rooms.show', $room->slug) }}" class="btn-primary">View room</a>
                             <a href="#"
                                data-modal-open="edit-room-modal"
