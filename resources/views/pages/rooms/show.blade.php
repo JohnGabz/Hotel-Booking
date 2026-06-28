@@ -344,11 +344,6 @@
                         <p class="mt-4 text-stone-600">Submit a review after your confirmed stay at this room.</p>
                     </div>
                 @endif
-            @else
-                <div class="card h-fit">
-                    <span class="eyebrow">Guest access</span>
-                    <p class="mt-4 text-stone-600">Please <a href="{{ route('login') }}" class="font-semibold text-amber-700">login</a> to reserve and review rooms.</p>
-                </div>
             @endauth
         </div>
     </div>
