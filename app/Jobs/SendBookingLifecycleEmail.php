@@ -39,9 +39,18 @@ class SendBookingLifecycleEmail implements ShouldQueue
             $body = "Hi {$booking->contact_name},\n\nReservation #{$booking->id} has been received and is pending payment verification.";
         }
 
-        Mail::raw($body, function ($message) use ($booking, $subject) {
-            $message->to($booking->contact_email, $booking->contact_name)
-                ->subject($subject);
-        });
+        try {
+            Mail::raw($body, function ($message) use ($booking, $subject) {
+                $message->to($booking->contact_email, $booking->contact_name)
+                    ->subject($subject);
+            });
+        } catch (\Throwable $exception) {
+            \Illuminate\Support\Facades\Log::error('SendBookingLifecycleEmail job failed to send email', [
+                'booking_id' => $booking->id,
+                'event_name' => $this->eventName,
+                'exception' => $exception::class,
+                'message' => $exception->getMessage(),
+            ]);
+        }
     }
 }
