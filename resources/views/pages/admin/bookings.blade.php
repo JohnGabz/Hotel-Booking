@@ -52,26 +52,26 @@
     <div class="grid gap-6 lg:grid-cols-4 items-start">
         <!-- Left Column: Calendar & Table -->
         <div class="lg:col-span-3 space-y-6">
-        <div class="surface p-6 sm:p-8">
+        <div class="surface p-6 sm:p-8" id="admin-calendar-card">
                 <div class="flex items-start justify-between gap-3">
                     <div>
                         <span class="eyebrow">Room calendar</span>
                         <p class="mt-3 text-sm text-stone-600">Inspect occupancy directly inside the bookings tab.</p>
                     </div>
-                    <form method="GET" action="{{ route('admin.bookings') }}">
-                        <select name="room" class="form-input min-w-40" onchange="this.form.submit()">
+                    <div>
+                        <select name="room" id="calendar-room-select" class="form-input min-w-40">
                             @foreach ($rooms as $r)
                                 <option value="{{ $r->id }}" @selected(($selectedRoom?->id ?? null) === $r->id)>{{ $r->name }}</option>
                             @endforeach
                         </select>
-                    </form>
+                    </div>
                 </div>
 
                 @if ($selectedRoom && $calendar)
                     <div class="mt-5 flex items-center justify-between gap-2">
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary calendar-nav-btn px-4 py-2 text-sm" aria-label="Previous month">&larr;</a>
                         <span class="rounded-full bg-stone-100 px-4 py-2 text-sm font-semibold text-stone-700">{{ $calendar['label'] }}</span>
-                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
+                        <a href="{{ route('admin.bookings', ['room' => $selectedRoom->id, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary calendar-nav-btn px-4 py-2 text-sm" aria-label="Next month">&rarr;</a>
                     </div>
 
                     <div class="admin-calendar-weekdays" role="presentation" aria-hidden="true">
@@ -238,13 +238,7 @@
                 @endif
         </div>
 
-        <div class="surface p-6 sm:p-8">
-                <span class="eyebrow">Actions</span>
-                <div class="mt-4 space-y-3">
-                    <a href="{{ route('admin.reports') }}" class="btn-secondary w-full justify-start">Open reports</a>
-                    <a href="{{ route('admin.rooms') }}" class="btn-secondary w-full justify-start">Review room availability</a>
-                </div>
-        </div>
+
         </div>
     </div>
 </div>
@@ -369,7 +363,7 @@
             }
 
             try {
-                const response = await fetch(`/admin/bookings/available-physical-rooms?room_id=${roomId}&check_in=${checkInVal}&check_out=${checkOutVal}`, {
+                const response = await fetch(`{{ route('admin.bookings.available-physical-rooms') }}?room_id=${roomId}&check_in=${checkInVal}&check_out=${checkOutVal}`, {
                     headers: {
                         'Accept': 'application/json',
                         'X-Requested-With': 'XMLHttpRequest',
@@ -526,6 +520,66 @@
                 row.classList.add('bg-brand-primary/5');
             });
         });
+
+        // AJAX calendar navigation and room change
+        const calendarCard = document.getElementById('admin-calendar-card');
+
+        async function loadCalendar(url) {
+            if (!calendarCard) return;
+            calendarCard.classList.add('opacity-50');
+            calendarCard.style.pointerEvents = 'none';
+
+            try {
+                const response = await fetch(url, {
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) throw new Error('Failed to load calendar');
+
+                const html = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                const newCalendar = doc.getElementById('admin-calendar-card');
+                if (newCalendar) {
+                    calendarCard.innerHTML = newCalendar.innerHTML;
+                    // Update URL bar
+                    window.history.pushState({}, '', url);
+                    // Re-bind listeners
+                    attachCalendarListeners();
+                }
+            } catch (err) {
+                console.error(err);
+            } finally {
+                calendarCard.classList.remove('opacity-50');
+                calendarCard.style.pointerEvents = '';
+            }
+        }
+
+        function attachCalendarListeners() {
+            const select = document.getElementById('calendar-room-select');
+            if (select) {
+                select.addEventListener('change', () => {
+                    const roomId = select.value;
+                    const url = new URL(window.location.href);
+                    url.searchParams.set('room', roomId);
+                    loadCalendar(url.toString());
+                });
+            }
+
+            const navLinks = document.querySelectorAll('.calendar-nav-btn');
+            navLinks.forEach(link => {
+                link.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    loadCalendar(link.href);
+                });
+            });
+        }
+
+        // Initialize listeners
+        attachCalendarListeners();
     })();
 </script>
 @endsection

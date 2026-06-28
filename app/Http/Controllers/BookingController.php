@@ -44,103 +44,97 @@ class BookingController extends Controller
             'guests' => 'required|integer|min:1',
         ]);
 
-        $booking = DB::transaction(function () use ($room, $validated) {
-            $lockedRoom = Room::query()->whereKey($room->id)->lockForUpdate()->firstOrFail();
+        try {
+            $checkoutUrl = DB::transaction(function () use ($room, $validated, $request) {
+                $lockedRoom = Room::query()->whereKey($room->id)->lockForUpdate()->firstOrFail();
 
-            if ($lockedRoom->status !== 'available') {
-                return null;
-            }
+                if ($lockedRoom->status !== 'available') {
+                    throw new \Exception('This room is currently unavailable for new bookings.');
+                }
 
-            if ($validated['guests'] > $lockedRoom->capacity) {
-                throw ValidationException::withMessages([
-                    'guests' => 'The number of guests exceeds the maximum capacity of this room type.',
+                if ($validated['guests'] > $lockedRoom->capacity) {
+                    throw ValidationException::withMessages([
+                        'guests' => 'The number of guests exceeds the maximum capacity of this room type.',
+                    ]);
+                }
+
+                $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
+
+                if (! $assignedPhysicalRoom) {
+                    throw ValidationException::withMessages([
+                        'check_in' => 'The selected dates are already reserved. Please choose different dates.',
+                    ]);
+                }
+
+                $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
+                $nights = max(1, $nights);
+
+                $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
+                $guestsCount = (int) $validated['guests'];
+
+                $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
+                $total = ($lockedRoom->price * $nights) + $breakfastCharge;
+
+                $payload = [
+                    'user_id' => Auth::id(),
+                    'room_id' => $lockedRoom->id,
+                    'physical_room_id' => $assignedPhysicalRoom->id,
+                    'check_in' => $validated['check_in'],
+                    'check_out' => $validated['check_out'],
+                    'guests' => $guestsCount,
+                    'contact_name' => $validated['contact_name'],
+                    'contact_email' => $validated['contact_email'],
+                    'contact_phone' => $validated['contact_phone'],
+                    'status' => 'Pending Payment',
+                    'payment_method' => $validated['payment_method'],
+                    'payment_status' => 'pending',
+                    'total' => $total,
+                    'with_breakfast' => $withBreakfast,
+                    'breakfast_charge' => $breakfastCharge,
+                ];
+
+                if ($this->bookingSupportsSource()) {
+                    $payload['source'] = Booking::SOURCE_ONLINE;
+                }
+
+                $booking = Booking::create($payload);
+
+                Log::info('Booking stored from public flow', [
+                    'booking_id' => $booking->id,
+                    'room_id' => $booking->room_id,
+                    'user_id' => $booking->user_id,
+                    'source' => $booking->source,
                 ]);
-            }
 
-            $assignedPhysicalRoom = $lockedRoom->availablePhysicalRoomFor($validated['check_in'], $validated['check_out'], true);
+                NotifyAdmins::send(new BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
 
-            if (! $assignedPhysicalRoom) {
-                return false;
-            }
+                ActivityLogger::log(
+                    'booking.created',
+                    'booking',
+                    "Online booking created for {$room->name}.",
+                    $booking,
+                    ['source' => Booking::SOURCE_ONLINE]
+                );
 
-            $nights = Carbon::parse($validated['check_in'])->diffInDays(Carbon::parse($validated['check_out']));
-            $nights = max(1, $nights);
+                try {
+                    event(new BookingCreated($booking->id));
+                } catch (Throwable $exception) {
+                    Log::error('BookingCreated side effect failed after booking was stored', [
+                        'booking_id' => $booking->id,
+                        'exception' => $exception::class,
+                        'message' => $exception->getMessage(),
+                    ]);
+                }
 
-            $withBreakfast = (bool) ($validated['with_breakfast'] ?? false);
-            $guestsCount = (int) $validated['guests'];
-
-            $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
-            $total = ($lockedRoom->price * $nights) + $breakfastCharge;
-
-            $payload = [
-                'user_id' => Auth::id(),
-                'room_id' => $lockedRoom->id,
-                'physical_room_id' => $assignedPhysicalRoom->id,
-                'check_in' => $validated['check_in'],
-                'check_out' => $validated['check_out'],
-                'guests' => $guestsCount,
-                'contact_name' => $validated['contact_name'],
-                'contact_email' => $validated['contact_email'],
-                'contact_phone' => $validated['contact_phone'],
-                'status' => 'Pending Payment',
-                'payment_method' => $validated['payment_method'],
-                'payment_status' => 'pending',
-                'total' => $total,
-                'with_breakfast' => $withBreakfast,
-                'breakfast_charge' => $breakfastCharge,
-            ];
-
-            if ($this->bookingSupportsSource()) {
-                $payload['source'] = Booking::SOURCE_ONLINE;
-            }
-
-            return Booking::create($payload);
-        });
-
-        if ($booking === null) {
-            return back()->with('error', 'This room is currently unavailable for new bookings.');
-        }
-
-        if ($booking === false) {
-            return back()->withErrors(['check_in' => 'The selected dates are already reserved. Please choose different dates.']);
-        }
-
-        Log::info('Booking stored from public flow', [
-            'booking_id' => $booking->id,
-            'room_id' => $booking->room_id,
-            'user_id' => $booking->user_id,
-            'source' => $booking->source,
-        ]);
-
-        NotifyAdmins::send(new BookingCreatedNotification($booking->id, $room->name, $booking->contact_name, false));
-
-        ActivityLogger::log(
-            'booking.created',
-            'booking',
-            "Online booking created for {$room->name}.",
-            $booking,
-            ['source' => Booking::SOURCE_ONLINE]
-        );
-
-        try {
-            event(new BookingCreated($booking->id));
-        } catch (Throwable $exception) {
-            Log::error('BookingCreated side effect failed after booking was stored', [
-                'booking_id' => $booking->id,
-                'exception' => $exception::class,
-                'message' => $exception->getMessage(),
-            ]);
-        }
-
-        try {
-            $paymentController = new \App\Http\Controllers\PaymentController();
-            $checkoutUrl = $paymentController->getOrCreateCheckoutUrl($booking);
+                $paymentController = new \App\Http\Controllers\PaymentController();
+                return $paymentController->getOrCreateCheckoutUrl($booking);
+            });
+        } catch (ValidationException $e) {
+            throw $e;
         } catch (Throwable $e) {
-            Log::error('Public booking Xendit session creation failed, deleting booking', [
-                'booking_id' => $booking->id,
+            Log::error('Public booking creation failed', [
                 'error' => $e->getMessage(),
             ]);
-            $booking->delete();
 
             if ($request->expectsJson()) {
                 return response()->json(['errors' => ['payment' => [$e->getMessage()]]], 422);
