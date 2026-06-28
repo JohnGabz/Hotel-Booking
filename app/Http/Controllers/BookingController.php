@@ -340,10 +340,10 @@ class BookingController extends Controller
 
         $recentRooms = Room::whereHas('bookings', function ($q) {
             $q->where('user_id', Auth::id())
-              ->whereIn('status', ['Confirmed', 'confirmed'])
-              ->where('payment_status', 'paid')
-              ->whereDate('check_out', '<', now());
-        })->distinct()->take(3)->get();
+            ->whereIn('status', ['Confirmed', 'confirmed'])
+            ->where('payment_status', 'paid')
+            ->whereDate('check_out', '<', now());
+        })->groupBy('id')->take(3)->get();
 
         return view('pages.dashboard', compact('bookings', 'eligibleBookings', 'recentRooms'), [
             'seo' => [
