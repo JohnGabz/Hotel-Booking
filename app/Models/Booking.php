@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'cancellation_reason', 'cancelled_at', 'refund_requested_at', 'source', 'review_token', 'review_token_used_at', 'with_breakfast', 'breakfast_charge'])]
+#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'cancellation_reason', 'cancelled_at', 'refund_requested_at', 'source', 'review_token', 'review_token_used_at', 'manage_token', 'with_breakfast', 'breakfast_charge'])]
 class Booking extends Model
 {
     use HasFactory;
@@ -104,6 +104,7 @@ class Booking extends Model
     public function confirmPayment(?string $reference = null, ?string $method = null, ?string $provider = null, ?array $payload = null): void
     {
         $token = $this->review_token ?: Str::random(48);
+        $manageToken = $this->manage_token ?: Str::random(48);
 
         $this->forceFill([
             'status' => 'Confirmed',
@@ -112,6 +113,7 @@ class Booking extends Model
             'payment_method' => $method ?: $this->payment_method,
             'paid_at' => $this->paid_at ?: now(),
             'review_token' => $token,
+            'manage_token' => $manageToken,
         ])->save();
 
         PaymentTransaction::updateOrCreate(
@@ -153,6 +155,15 @@ class Booking extends Model
     {
         $token = Str::random(48);
         $this->review_token = $token;
+        $this->save();
+
+        return $token;
+    }
+
+    public function generateManageToken(): string
+    {
+        $token = Str::random(48);
+        $this->manage_token = $token;
         $this->save();
 
         return $token;

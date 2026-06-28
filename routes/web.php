@@ -109,6 +109,9 @@ Route::post('/admin/dev-reset', [AdminController::class, 'resetDatabase'])
 Route::middleware('throttle:10,1')->group(function () {
     Route::get('/reviews/submit-via-token/{token}', [App\Http\Controllers\ReviewTokenController::class, 'show'])->name('reviews.submit-via-token');
     Route::post('/reviews/submit-via-token/{token}', [App\Http\Controllers\ReviewTokenController::class, 'store'])->name('reviews.submit-via-token.store');
+
+    Route::get('/bookings/manage/{token}', [App\Http\Controllers\BookingManageController::class, 'show'])->name('bookings.manage');
+    Route::post('/bookings/manage/{token}/refund', [App\Http\Controllers\BookingManageController::class, 'requestRefund'])->name('bookings.manage.refund');
 });
 
 Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])

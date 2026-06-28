@@ -28,8 +28,12 @@ class SendBookingLifecycleEmail implements ShouldQueue
                 $booking->generateReviewToken();
                 $booking->refresh();
             }
+            if (!$booking->manage_token) {
+                $booking->generateManageToken();
+                $booking->refresh();
+            }
             $subject = 'Your Villa Estella booking is confirmed';
-            $body = "Hi {$booking->contact_name},\n\nYour booking #{$booking->id} for {$booking->room?->name} is confirmed. We look forward to welcoming you.\n\nOnce your stay is complete, you can leave a review here: " . route('reviews.submit-via-token', $booking->review_token);
+            $body = "Hi {$booking->contact_name},\n\nYour booking #{$booking->id} for {$booking->room?->name} is confirmed. We look forward to welcoming you.\n\nManage your booking (request a refund if needed): " . route('bookings.manage', $booking->manage_token) . "\n\nOnce your stay is complete, you can leave a review here: " . route('reviews.submit-via-token', $booking->review_token);
         } else {
             $subject = 'Villa Estella reservation received';
             $body = "Hi {$booking->contact_name},\n\nReservation #{$booking->id} has been received and is pending payment verification.";
