@@ -40,6 +40,12 @@ class SendBookingLifecycleEmail implements ShouldQueue
         }
 
         try {
+            \Illuminate\Support\Facades\Log::info('SendBookingLifecycleEmail debug', [
+                'mail_from' => config('mail.from.address'),
+                'mail_mailer' => config('mail.default'),
+                'recipient' => $booking->contact_email,
+                'booking_id' => $booking->id,
+            ]);
             Mail::raw($body, function ($message) use ($booking, $subject) {
                 $message->to($booking->contact_email, $booking->contact_name)
                     ->subject($subject);
