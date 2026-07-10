@@ -630,7 +630,7 @@
                     data.available_rooms.forEach(room => {
                         const opt = document.createElement('option');
                         opt.value = room.id;
-                        opt.textContent = `${room.name} — ₱${parseFloat(room.price).toLocaleString()}/night`;
+                        opt.textContent = room.name;
                         opt.setAttribute('data-price', room.price);
                         opt.setAttribute('data-capacity', room.capacity);
                         if (String(room.id) === String(currentSelected)) {

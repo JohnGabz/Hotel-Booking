@@ -12,12 +12,22 @@ class AvailabilityController extends Controller
 {
     public function check(Request $request): JsonResponse
     {
-        $validated = $request->validate([
+        $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
             'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
             'room_id' => 'nullable|integer|exists:rooms,id',
             'guests' => 'nullable|integer|min:1|max:20',
         ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'available' => false,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
 
         $checkIn = Carbon::parse($validated['check_in'])->toDateString();
         $checkOut = Carbon::parse($validated['check_out'])->toDateString();
