@@ -32,7 +32,7 @@ jobs:
       image: semgrep/semgrep
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Run Semgrep scan
         run: |
@@ -52,14 +52,14 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
 
       - name: Upload Semgrep artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: semgrep-results
           path: semgrep-results.sarif
@@ -71,7 +71,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'dependency-check'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Prepare reports directory
         run: mkdir -p reports
@@ -94,14 +94,14 @@ jobs:
 
       - name: Upload Dependency-Check SARIF
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: reports/dependency-check-report.sarif
           category: dependency-check
 
       - name: Upload Dependency-Check results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dependency-check-report
           path: reports/
@@ -113,7 +113,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'trivy'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Build Docker image
         run: docker build -t villa-estella:${{ github.sha }} .
@@ -151,14 +151,14 @@ jobs:
 
       - name: Upload Trivy SARIF
         if: always() && hashFiles('reports/trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: reports/trivy-results.sarif
           category: trivy
 
       - name: Upload Trivy results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: trivy-results
           path: reports/
@@ -170,7 +170,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'zap'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Start app stack
         run: docker compose up -d --build db app
@@ -198,7 +198,7 @@ jobs:
 
       - name: Upload ZAP results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: zap-results
           path: |
@@ -220,7 +220,7 @@ jobs:
       SELECTED_SCANNER: ${{ github.event_name == 'workflow_dispatch' && inputs.scanner || 'all' }}
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v5
 
       - name: Generate summary
         run: |
