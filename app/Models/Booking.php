@@ -227,7 +227,7 @@ class Booking extends Model
             return false;
         }
 
-        return in_array($this->payment_status, ['pending', 'partially_paid', 'for_verification', 'failed'], true);
+        return in_array($this->payment_status, ['pending', 'paid', 'partially_paid', 'for_verification', 'failed'], true);
     }
 
     public function canGuestRequestRefund(): bool
@@ -259,6 +259,8 @@ class Booking extends Model
 
     public function isWithinCancellationWindow(): bool
     {
-        return now()->diffInDays($this->check_in, false) < 3;
+        $daysUntilCheckIn = now()->diffInDays($this->check_in, false);
+
+        return $daysUntilCheckIn >= 0 && $daysUntilCheckIn < 3;
     }
 }

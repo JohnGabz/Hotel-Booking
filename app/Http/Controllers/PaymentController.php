@@ -53,6 +53,10 @@ class PaymentController extends Controller
             ? round((float) ($booking->total - $booking->amount_paid), 2)
             : round((float) ($booking->total * 0.5), 2);
 
+        if ($amount <= 0) {
+            throw new \Exception('This booking has already been fully paid. No further payment is required.');
+        }
+
         $externalId = $isBalancePayment
             ? 'villa-estela-booking-balance-'.$booking->id
             : 'villa-estela-booking-'.$booking->id;
@@ -130,9 +134,15 @@ class PaymentController extends Controller
 
     protected function existingCheckoutUrl(Booking $booking): ?string
     {
+        $isBalancePayment = $booking->amount_paid > 0;
+        $expectedExternalId = $isBalancePayment
+            ? 'villa-estela-booking-balance-'.$booking->id
+            : 'villa-estela-booking-'.$booking->id;
+
         $transaction = PaymentTransaction::query()
             ->where('booking_id', $booking->id)
             ->where('provider', 'xendit')
+            ->where('transaction_id', $expectedExternalId)
             ->whereIn('status', ['pending', 'created', 'processing'])
             ->latest('id')
             ->first();
