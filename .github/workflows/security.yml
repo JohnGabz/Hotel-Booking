@@ -32,7 +32,7 @@ jobs:
       image: semgrep/semgrep
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
 
       - name: Run Semgrep scan
         run: |
@@ -52,14 +52,14 @@ jobs:
 
       - name: Upload Semgrep SARIF
         if: always() && hashFiles('semgrep-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9
         with:
           sarif_file: semgrep-results.sarif
           category: semgrep
 
       - name: Upload Semgrep artifact
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: semgrep-results
           path: semgrep-results.sarif
@@ -71,7 +71,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'dependency-check'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
 
       - name: Prepare reports directory
         run: mkdir -p reports
@@ -94,14 +94,14 @@ jobs:
 
       - name: Upload Dependency-Check SARIF
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9
         with:
           sarif_file: reports/dependency-check-report.sarif
           category: dependency-check
 
       - name: Upload Dependency-Check results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: dependency-check-report
           path: reports/
@@ -113,7 +113,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'trivy'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
 
       - name: Build Docker image
         run: docker build -t villa-estella:${{ github.sha }} .
@@ -151,14 +151,14 @@ jobs:
 
       - name: Upload Trivy SARIF
         if: always() && hashFiles('reports/trivy-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@99df26d4f13ea111d4ec1a7dddef6063f76b97e9
         with:
           sarif_file: reports/trivy-results.sarif
           category: trivy
 
       - name: Upload Trivy results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: trivy-results
           path: reports/
@@ -170,7 +170,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'zap'
     steps:
       - name: Checkout code
-        uses: actions/checkout@v5
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
 
       - name: Start app stack
         run: docker compose up -d --build db app
@@ -190,7 +190,7 @@ jobs:
           exit 1
 
       - name: Run OWASP ZAP Baseline Scan
-        uses: zaproxy/action-baseline@v0.15.0
+        uses: zaproxy/action-baseline@de8ad967d3548d44ef623df22cf95c3b0baf8b25
         with:
           target: http://127.0.0.1:8000
           allow_issue_writing: false
@@ -198,7 +198,7 @@ jobs:
 
       - name: Upload ZAP results
         if: always()
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
         with:
           name: zap-results
           path: |
@@ -220,7 +220,7 @@ jobs:
       SELECTED_SCANNER: ${{ github.event_name == 'workflow_dispatch' && inputs.scanner || 'all' }}
     steps:
       - name: Download all artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c
 
       - name: Generate summary
         run: |
