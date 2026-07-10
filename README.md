@@ -34,6 +34,26 @@ php artisan migrate
 php artisan test
 ```
 
+## Alpha Security Testing
+
+The repository now includes a GitHub Actions workflow at [`.github/workflows/security.yml`](.github/workflows/security.yml) that runs four checks:
+
+- Semgrep for code scanning
+- OWASP Dependency-Check against `composer.lock`
+- Trivy against the built Docker image
+- OWASP ZAP against the running app on `http://127.0.0.1:8000`
+
+To get the best Dependency-Check results, add an optional GitHub secret named `NVD_API_KEY`. The workflow will still run without it, but NVD lookups can be slower.
+
+If you want to try the runtime scan locally before pushing, start the app stack with Docker and verify the app is reachable:
+
+```bash
+docker compose up -d --build db app
+curl http://127.0.0.1:8000
+```
+
+The GitHub Actions workflow handles the scanners end to end, stores the reports as artifacts, and uploads SARIF so findings also appear in GitHub's security views.
+
 ## Learning Laravel
 
 Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.

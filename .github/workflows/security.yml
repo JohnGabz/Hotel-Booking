@@ -1,0 +1,246 @@
+name: Alpha Security Testing Pipeline
+
+on:
+  push:
+    branches: [main, develop, staging]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      scanner:
+        description: Select one scanner to run manually, or run all scanners.
+        required: true
+        default: all
+        type: choice
+        options:
+          - all
+          - semgrep
+          - dependency-check
+          - trivy
+          - zap
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  semgrep:
+    name: Semgrep SAST
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'semgrep'
+    container:
+      image: semgrep/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Semgrep scan
+        run: |
+          semgrep scan \
+            --config auto \
+            --config p/php \
+            --config p/security-audit \
+            --sarif \
+            --output semgrep-results.sarif \
+            --severity WARNING \
+            --error \
+            --exclude vendor \
+            --exclude node_modules \
+            --exclude storage \
+            --exclude public/build \
+            .
+
+      - name: Upload Semgrep SARIF
+        if: always() && hashFiles('semgrep-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: semgrep-results.sarif
+          category: semgrep
+
+      - name: Upload Semgrep artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: semgrep-results
+          path: semgrep-results.sarif
+          retention-days: 30
+
+  dependency-check:
+    name: OWASP Dependency-Check
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'dependency-check'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare reports directory
+        run: mkdir -p reports
+
+      - name: Run OWASP Dependency-Check
+        run: |
+          docker run --rm \
+            -e NVD_API_KEY="${{ secrets.NVD_API_KEY }}" \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            owasp/dependency-check:latest \
+            --scan /src/composer.lock \
+            --project villa-estella \
+            --out /src/reports \
+            --format HTML \
+            --format JSON \
+            --format SARIF \
+            --failOnCVSS 7 \
+            --enableExperimental
+
+      - name: Upload Dependency-Check SARIF
+        if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/dependency-check-report.sarif
+          category: dependency-check
+
+      - name: Upload Dependency-Check results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dependency-check-report
+          path: reports/
+          retention-days: 30
+
+  trivy:
+    name: Trivy Container Scan
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'trivy'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t villa-estella:${{ github.sha }} .
+
+      - name: Prepare Trivy reports directory
+        run: mkdir -p reports
+
+      - name: Run Trivy table scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            aquasec/trivy:latest \
+            image \
+            --severity HIGH,CRITICAL \
+            --format table \
+            --output /src/reports/trivy-results.txt \
+            villa-estella:${{ github.sha }}
+
+      - name: Run Trivy SARIF scan
+        continue-on-error: true
+        run: |
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "${{ github.workspace }}:/src" \
+            -w /src \
+            aquasec/trivy:latest \
+            image \
+            --severity HIGH,CRITICAL \
+            --format sarif \
+            --output /src/reports/trivy-results.sarif \
+            villa-estella:${{ github.sha }}
+
+      - name: Upload Trivy SARIF
+        if: always() && hashFiles('reports/trivy-results.sarif') != ''
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: reports/trivy-results.sarif
+          category: trivy
+
+      - name: Upload Trivy results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-results
+          path: reports/
+          retention-days: 30
+
+  zap:
+    name: OWASP ZAP DAST
+    runs-on: ubuntu-latest
+    if: github.event_name != 'workflow_dispatch' || inputs.scanner == 'all' || inputs.scanner == 'zap'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Start app stack
+        run: docker compose up -d --build db app
+
+      - name: Wait for the application
+        run: |
+          for i in $(seq 1 40); do
+            if curl -fsS -o /dev/null -w "%{http_code}" http://127.0.0.1:8000 | grep -qE "200|302"; then
+              exit 0
+            fi
+
+            echo "Waiting for the app to become ready ($i/40)..."
+            sleep 5
+          done
+
+          docker compose logs --tail 50 app
+          exit 1
+
+      - name: Run OWASP ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          target: http://127.0.0.1:8000
+          allow_issue_writing: false
+          fail_action: true
+
+      - name: Upload ZAP results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-results
+          path: |
+            report_html.html
+            report_json.json
+            report_md.md
+          retention-days: 30
+
+      - name: Cleanup containers
+        if: always()
+        run: docker compose down -v --remove-orphans
+
+  summary:
+    name: Security Summary
+    runs-on: ubuntu-latest
+    needs: [semgrep, dependency-check, trivy, zap]
+    if: always()
+    env:
+      SELECTED_SCANNER: ${{ github.event_name == 'workflow_dispatch' && inputs.scanner || 'all' }}
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+
+      - name: Generate summary
+        run: |
+          echo "# Alpha Security Testing Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Selected scanner: $SELECTED_SCANNER" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "| Tool | Type | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|------|------|--------|" >> $GITHUB_STEP_SUMMARY
+          if [ "$SELECTED_SCANNER" = "all" ] || [ "$SELECTED_SCANNER" = "semgrep" ]; then
+            echo "| Semgrep | SAST (Code) | ${{ needs.semgrep.result == 'success' && 'Passed' || 'Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$SELECTED_SCANNER" = "all" ] || [ "$SELECTED_SCANNER" = "dependency-check" ]; then
+            echo "| Dependency-Check | SCA (Composer) | ${{ needs.dependency-check.result == 'success' && 'Passed' || 'Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$SELECTED_SCANNER" = "all" ] || [ "$SELECTED_SCANNER" = "trivy" ]; then
+            echo "| Trivy | Container Scan | ${{ needs.trivy.result == 'success' && 'Passed' || 'Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          if [ "$SELECTED_SCANNER" = "all" ] || [ "$SELECTED_SCANNER" = "zap" ]; then
+            echo "| OWASP ZAP | DAST (Runtime) | ${{ needs.zap.result == 'success' && 'Passed' || 'Issues Found' }} |" >> $GITHUB_STEP_SUMMARY
+          fi
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Download the detailed reports from the workflow artifacts." >> $GITHUB_STEP_SUMMARY
