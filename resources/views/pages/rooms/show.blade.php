@@ -81,213 +81,42 @@
                 <div class="bg-white p-6 text-stone-900 sm:p-8 lg:p-10">
                     <div class="flex items-start justify-between gap-4">
                         <div>
-                            <p class="eyebrow">Start your stay</p>
-                            <h2 class="mt-4 text-4xl text-stone-950">Reserve this room</h2>
+                            <p class="eyebrow font-medium text-stone-500">Start your stay</p>
+                            <h2 class="mt-4 text-4xl font-semibold text-stone-950">Reserve this room</h2>
                         </div>
                         <div class="rounded-full bg-amber-100 px-4 py-2 text-sm font-semibold text-amber-800">
                             ₱{{ number_format($room->price, 0) }}/night
                         </div>
                     </div>
 
-                    <div class="mt-6 grid gap-4 sm:grid-cols-3">
-                        <div class="rounded-[1.5rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Capacity</p>
+                    <div class="mt-6 grid grid-cols-2 gap-4">
+                        <div class="rounded-[1.5rem] bg-stone-50 p-4 border border-stone-100">
+                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500 font-medium">Capacity</p>
                             <p class="mt-2 text-lg font-semibold text-stone-950">{{ $room->capacity }} guests</p>
                         </div>
-                        <div class="rounded-[1.5rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Status</p>
+                        <div class="rounded-[1.5rem] bg-stone-50 p-4 border border-stone-100">
+                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500 font-medium">Status</p>
                             <p class="mt-2 text-lg font-semibold text-stone-950">{{ ucfirst($room->status) }}</p>
-                        </div>
-                        <div class="rounded-[1.5rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Rating</p>
-                            <p class="mt-2 text-lg font-semibold text-stone-950">4.9 / 5</p>
                         </div>
                     </div>
 
-                    <div class="rounded-[1.5rem] border-2 border-dashed border-stone-300 bg-stone-50 px-6 py-8 text-center">
-                        <p class="text-lg font-semibold text-stone-700">Select dates on the calendar</p>
-                        <p class="mt-2 text-sm text-stone-600">Click on an open date to start your booking, then add your contact details in the modal that appears.</p>
+                    <div class="mt-8">
+                        <button type="button" id="open-room-availability-btn" class="w-full bg-brand-primary hover:bg-brand-secondary text-white px-6 py-4 rounded-xl font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5 text-center">
+                            Reserve / Book Room
+                        </button>
+                    </div>
+
+                    <div class="mt-6 border-t border-stone-200 pt-6 text-xs text-stone-500 space-y-2 leading-relaxed">
+                        <div class="flex items-center gap-2 font-semibold text-stone-700">
+                            <svg class="w-4.5 h-4.5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                            Down Payment & Cancellation Policy
+                        </div>
+                        <p>
+                            A 50% deposit down payment is required to confirm bookings and reservations. If cancelled within 3 days prior to your check-in date, a 50% cancellation penalty applies.
+                        </p>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="mt-10 grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
-            <section class="surface p-6 sm:p-8">
-                <div
-                    id="room-calendar"
-                    class="room-calendar-shell"
-                    data-calendar-swipe
-                    data-calendar-prev-url="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}"
-                    data-calendar-next-url="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}"
-                >
-                    <div class="room-calendar-header">
-                        <div>
-                            <span class="eyebrow">Booking calendar</span>
-                            <h2 class="mt-4 text-3xl font-semibold text-stone-950">Open and occupied dates</h2>
-                            <p class="mt-3 max-w-2xl text-sm leading-7 text-stone-600">Scan the month to see when at least one physical room under this room type is open.</p>
-                        </div>
-                        <div class="room-calendar-nav">
-                            <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['previousMonth']]) }}" class="btn-secondary ajax-calendar-nav px-3 py-2 text-sm" data-no-loader aria-label="Previous month">&larr;</a>
-                            <span class="room-calendar-month">{{ $calendar['label'] }}</span>
-                            <a href="{{ route('rooms.show', ['room' => $room, 'month' => $calendar['nextMonth']]) }}" class="btn-secondary ajax-calendar-nav px-3 py-2 text-sm" data-no-loader aria-label="Next month">&rarr;</a>
-                        </div>
-                    </div>
-
-                    <div class="room-calendar-scroll">
-                        <div class="room-calendar-track">
-                            <div class="room-calendar-weekdays" role="presentation" aria-hidden="true">
-                                <span>Mon</span>
-                                <span>Tue</span>
-                                <span>Wed</span>
-                                <span>Thu</span>
-                                <span>Fri</span>
-                                <span>Sat</span>
-                                <span>Sun</span>
-                            </div>
-
-                            <div class="room-calendar-grid" role="grid" aria-label="Room booking calendar">
-                                @foreach ($calendar['weeks'] as $week)
-                                    @foreach ($week as $day)
-                                        @php
-                                            $cellClasses = match ($day['status']) {
-                                                'open' => 'border-emerald-300 bg-emerald-50 text-emerald-700',
-                                                'occupied' => 'border-[#B6424F]/45 bg-[#B6424F]/12 text-[#8F3340]',
-                                                'unavailable' => 'border-[#9FAAAC]/45 bg-[#9FAAAC]/18 text-[#56656A]',
-                                                'past' => 'border-[#989B88]/45 bg-[#989B88]/18 text-[#6D715F]',
-                                                default => 'border-stone-300 bg-stone-100 text-stone-500',
-                                            };
-
-                                            $statusDotClasses = match ($day['status']) {
-                                                'open' => 'bg-emerald-500',
-                                                'occupied' => 'bg-[#B6424F]',
-                                                'unavailable' => 'bg-[#9FAAAC]',
-                                                'past' => 'bg-[#989B88]',
-                                                default => 'bg-stone-400',
-                                            };
-
-                                            $statusLabel = match ($day['status']) {
-                                                'open' => 'Open',
-                                                'occupied' => 'Booked',
-                                                'unavailable' => 'Closed',
-                                                'past' => 'Past',
-                                                default => 'Other',
-                                            };
-
-                                            $ariaStatusLabel = match ($day['status']) {
-                                                'open' => 'Open',
-                                                'occupied' => 'Occupied',
-                                                'unavailable' => 'Unavailable',
-                                                'past' => 'Past',
-                                                default => 'Other month',
-                                            };
-                                        @endphp
-                                        <button
-                                            type="button"
-                                            class="room-calendar-cell {{ $cellClasses }} {{ $day['isToday'] ? 'ring-2 ring-[#B6424F] ring-offset-1 ring-offset-white' : '' }} {{ $day['isCurrentMonth'] ? '' : 'opacity-50' }}"
-                                            data-calendar-day
-                                            data-date="{{ $day['date']->format('Y-m-d') }}"
-                                            data-status="{{ $day['status'] }}"
-                                            data-current-month="{{ $day['isCurrentMonth'] ? '1' : '0' }}"
-                                            data-selectable="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? '1' : '0' }}"
-                                            role="gridcell"
-                                            aria-label="{{ $day['date']->format('F j, Y') }} - {{ $ariaStatusLabel }}"
-                                            aria-disabled="{{ $day['status'] === 'open' && $day['isCurrentMonth'] ? 'false' : 'true' }}"
-                                            title="{{ $day['date']->format('M j, Y') }} - {{ $ariaStatusLabel }}"
-                                        >
-                                            <div class="room-calendar-cell-top">
-                                                <span class="room-calendar-day-number">{{ $day['date']->format('j') }}</span>
-                                            </div>
-                                            <div class="room-calendar-cell-status">
-                                                <span class="room-calendar-status-dot {{ $statusDotClasses }}" aria-hidden="true"></span>
-                                                <span class="room-calendar-status-label">
-                                                    @if ($day['status'] === 'open')
-                                                        @if (auth()->check() && auth()->user()->is_admin)
-                                                            {{ $day['availableCount'] }} open
-                                                        @else
-                                                            Open
-                                                        @endif
-                                                    @else
-                                                        {{ $statusLabel }}
-                                                    @endif
-                                                </span>
-                                            </div>
-                                        </button>
-                                    @endforeach
-                                @endforeach
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div id="calendar-selected-bar" class="calendar-selected-bar hidden" aria-live="polite">
-                    <p class="text-sm font-semibold text-stone-900">Selected date: <span id="calendar-selected-date">None</span></p>
-                    <p class="text-xs text-stone-600">Choose an open date to start booking.</p>
-                </div>
-            </section>
-
-            <aside class="space-y-6">
-                <div class="surface p-6 sm:p-8">
-                    <span class="eyebrow">Legend</span>
-                    <div class="mt-5 space-y-3 text-sm text-stone-600">
-                        <div class="flex items-center gap-3">
-                            <span class="h-3 w-3 rounded-full bg-emerald-500"></span>
-                            <span>At least one physical room is open for booking</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="h-3 w-3 rounded-full bg-rose-500"></span>
-                            <span>Occupied by a confirmed stay</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="h-3 w-3 rounded-full bg-slate-400"></span>
-                            <span>Room unavailable (maintenance or closed)</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="h-3 w-3 rounded-full bg-gray-400"></span>
-                            <span>Past dates</span>
-                        </div>
-                        <div class="flex items-center gap-3">
-                            <span class="h-3 w-3 rounded-full bg-stone-400"></span>
-                            <span>Outside the selected month</span>
-                        </div>
-                    </div>
-
-                    <div class="mt-6 grid gap-3 sm:grid-cols-4">
-                        <div class="rounded-[1.25rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Open days</p>
-                            <p class="mt-2 text-2xl font-semibold text-stone-950">{{ $calendar['summary']['open'] }}</p>
-                        </div>
-                        <div class="rounded-[1.25rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Occupied</p>
-                            <p class="mt-2 text-2xl font-semibold text-stone-950">{{ $calendar['summary']['occupied'] }}</p>
-                        </div>
-                        <div class="rounded-[1.25rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Unavailable</p>
-                            <p class="mt-2 text-2xl font-semibold text-stone-950">{{ $calendar['summary']['unavailable'] }}</p>
-                        </div>
-                        <div class="rounded-[1.25rem] bg-stone-50 p-4">
-                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Past</p>
-                            <p class="mt-2 text-2xl font-semibold text-stone-950">{{ $calendar['summary']['past'] }}</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="surface p-6 sm:p-8">
-                    <span class="eyebrow">Booked ranges</span>
-                    @if ($calendar['bookings']->isEmpty())
-                        <p class="mt-4 text-sm text-stone-600">No confirmed bookings overlap with this month yet.</p>
-                    @else
-                        <div class="mt-5 space-y-3">
-                            @foreach ($calendar['bookings']->take(4) as $booking)
-                                <div class="rounded-[1.25rem] border border-stone-200 bg-stone-50 p-4">
-                                    <p class="text-sm font-semibold text-stone-950">{{ $booking['check_in']->format('M j') }} - {{ $booking['check_out']->format('M j, Y') }}</p>
-                                    <p class="mt-1 text-xs uppercase tracking-[0.18em] text-stone-500">Confirmed stay</p>
-                                </div>
-                            @endforeach
-                        </div>
-                    @endif
-                </div>
-            </aside>
         </div>
 
         <div class="mt-10 grid gap-8 lg:grid-cols-[1.1fr_0.9fr]">
@@ -479,12 +308,230 @@
     </div>
 </div>
 
+<!-- Availability Check Modal -->
+<div id="room-availability-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-stone-900/60 backdrop-blur-sm hidden transition-all duration-300" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-stone-200 overflow-hidden transform transition-all scale-95 duration-300">
+        <div class="absolute top-4 right-4 z-10">
+            <button type="button" id="close-room-availability-modal" class="btn-icon bg-stone-100 hover:bg-stone-200 text-stone-700 rounded-full p-2" aria-label="Close modal">
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+            </button>
+        </div>
+
+        <div class="p-6 sm:p-8">
+            <div id="modal-form-state">
+                <h3 id="modal-title" class="text-2xl font-display font-bold text-stone-900 mb-2">Check Availability</h3>
+                <p class="text-sm text-stone-600 mb-6">Select your dates to verify availability for this room.</p>
+                
+                <form id="room-availability-form" class="space-y-4">
+                    <input type="hidden" name="room_id" value="{{ $room->id }}">
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-2">Check-in</label>
+                        <input type="date" name="check_in" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition" required min="{{ now()->toDateString() }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-2">Check-out</label>
+                        <input type="date" name="check_out" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition" required min="{{ now()->addDay()->toDateString() }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-2">Guests</label>
+                        <input type="number" name="guests" value="1" min="1" max="{{ $room->capacity }}" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition" required>
+                    </div>
+                    <button type="submit" class="w-full bg-brand-primary hover:bg-brand-secondary text-white px-6 py-3.5 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl mt-4">
+                        Check Availability
+                      </button>
+                </form>
+            </div>
+
+            <!-- Available State -->
+            <div id="modal-available-state" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="p-2 bg-emerald-100 text-emerald-700 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </span>
+                    <h3 class="text-2xl font-display font-bold text-stone-900">Room is Available!</h3>
+                </div>
+                
+                <div class="bg-stone-50 rounded-xl p-5 border border-stone-200/60 space-y-3 mb-6">
+                    <p class="text-lg font-bold text-stone-900" id="modal-room-name">{{ $room->name }}</p>
+                    <div class="grid grid-cols-2 gap-4 text-sm text-stone-600">
+                        <div>Dates: <span class="font-semibold text-stone-950" id="modal-dates"></span></div>
+                        <div>Nights: <span class="font-semibold text-stone-950" id="modal-nights"></span></div>
+                        <div>Total: <span class="font-semibold text-stone-950" id="modal-total"></span></div>
+                        <div>50% Deposit: <span class="font-semibold text-brand-primary animate-pulse" id="modal-deposit"></span></div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-800 space-y-2 mb-6">
+                    <p class="font-semibold flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Important Policies & Rules
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>A 50% down payment is required to secure the reservation or booking.</li>
+                        <li>Cancellation penalty: Cancellations within 3 days of check-in will apply a 50% penalty of the total amount.</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="btn-reserve-action" class="btn-secondary w-full justify-center py-3 text-sm font-semibold">Reserve Room</button>
+                    <button id="btn-book-action" class="btn-primary w-full justify-center py-3 text-sm font-semibold">Book Room</button>
+                </div>
+            </div>
+
+            <!-- Unavailable State -->
+            <div id="modal-unavailable-state" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="p-2 bg-rose-100 text-rose-700 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </span>
+                    <h3 class="text-2xl font-display font-bold text-stone-900">Room is Unavailable</h3>
+                </div>
+
+                <p class="text-sm text-stone-600 mb-6" id="modal-unavailable-message">
+                    The selected room is unfortunately fully booked for your dates.
+                </p>
+
+                <!-- Next Available Suggestion -->
+                <div id="modal-suggestion-box" class="hidden bg-stone-50 rounded-xl p-5 border border-stone-200/60 mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">Suggested Dates</p>
+                    <p class="text-sm font-medium text-stone-900 mb-3" id="suggestion-dates-text"></p>
+                    <button type="button" id="btn-apply-suggestion" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-secondary">
+                        Use suggested dates
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
 <script>
     (() => {
-        // Modal management
+        // Elements for Availability Check Modal
+        const availModal = document.getElementById('room-availability-modal');
+        const openAvailBtn = document.getElementById('open-room-availability-btn');
+        const closeAvailBtn = document.getElementById('close-room-availability-modal');
+        const availForm = document.getElementById('room-availability-form');
+        const availFormState = document.getElementById('modal-form-state');
+        const availAvailableState = document.getElementById('modal-available-state');
+        const availUnavailableState = document.getElementById('modal-unavailable-state');
+
+        const openAvailModal = () => {
+            availFormState.classList.remove('hidden');
+            availAvailableState.classList.add('hidden');
+            availUnavailableState.classList.add('hidden');
+            availModal.classList.remove('hidden');
+            setTimeout(() => availModal.querySelector('.relative').classList.remove('scale-95'), 50);
+        };
+
+        const closeAvailModal = () => {
+            availModal.querySelector('.relative').classList.add('scale-95');
+            setTimeout(() => availModal.classList.add('hidden'), 200);
+        };
+
+        if (openAvailBtn) openAvailBtn.addEventListener('click', openAvailModal);
+        if (closeAvailBtn) closeAvailBtn.addEventListener('click', closeAvailModal);
+
+        if (availModal) {
+            availModal.addEventListener('click', (e) => {
+                if (e.target === availModal) closeAvailModal();
+            });
+        }
+
+        // Handle Availability Form Submit
+        if (availForm) {
+            availForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const checkInInput = availForm.querySelector('input[name="check_in"]');
+                const checkOutInput = availForm.querySelector('input[name="check_out"]');
+                const guestsInput = availForm.querySelector('input[name="guests"]');
+
+                const checkIn = checkInInput.value;
+                const checkOut = checkOutInput.value;
+                const guests = guestsInput.value;
+                const roomId = "{{ $room->id }}";
+
+                if (!checkIn || !checkOut) return;
+
+                try {
+                    const response = await fetch(`/availability/check?check_in=${checkIn}&check_out=${checkOut}&room_id=${roomId}&guests=${guests}`);
+                    if (!response.ok) return;
+                    const data = await response.json();
+
+                    availFormState.classList.add('hidden');
+                    if (data.available) {
+                        availAvailableState.classList.remove('hidden');
+                        availUnavailableState.classList.add('hidden');
+
+                        const price = parseFloat("{{ $room->price }}");
+                        const nights = Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+                        const total = price * nights;
+                        const deposit = total * 0.5;
+
+                        document.getElementById('modal-dates').textContent = `${checkIn} to ${checkOut}`;
+                        document.getElementById('modal-nights').textContent = `${nights} night(s)`;
+                        document.getElementById('modal-total').textContent = `₱${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+                        document.getElementById('modal-deposit').textContent = `₱${deposit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+                        const handleRedirect = (bookingType) => {
+                            if (window.VillaRealtime && window.VillaRealtime.userId) {
+                                // Close availability check modal
+                                closeAvailModal();
+
+                                // Populate checkout forms
+                                const checkoutCheckIn = document.getElementById('check_in');
+                                const checkoutCheckOut = document.getElementById('check_out');
+                                const checkoutGuests = document.getElementById('guests');
+                                const checkoutBookingType = document.getElementById('booking_type');
+
+                                if (checkoutCheckIn) checkoutCheckIn.value = checkIn;
+                                if (checkoutCheckOut) checkoutCheckOut.value = checkOut;
+                                if (checkoutGuests) checkoutGuests.value = guests;
+                                if (checkoutBookingType) checkoutBookingType.value = bookingType;
+
+                                // Recalculate breakdown and open
+                                calculateBreakdown();
+                                checkAvailability();
+                                openModal();
+                            } else {
+                                window.location.href = `/register?room_id=${roomId}&check_in=${checkIn}&check_out=${checkOut}&guests=${guests}&booking_type=${bookingType}`;
+                            }
+                        };
+
+                        document.getElementById('btn-reserve-action').onclick = () => handleRedirect('reservation');
+                        document.getElementById('btn-book-action').onclick = () => handleRedirect('booking');
+                    } else {
+                        availAvailableState.classList.add('hidden');
+                        availUnavailableState.classList.remove('hidden');
+
+                        // Suggestions
+                        const suggestionBox = document.getElementById('modal-suggestion-box');
+                        if (data.suggestions && data.suggestions.length > 0) {
+                            suggestionBox.classList.remove('hidden');
+                            const sug = data.suggestions[0];
+                            document.getElementById('suggestion-dates-text').textContent = `${sug.start} to ${sug.end}`;
+                            document.getElementById('btn-apply-suggestion').onclick = () => {
+                                checkInInput.value = sug.start;
+                                checkOutInput.value = sug.end;
+
+                                availUnavailableState.classList.add('hidden');
+                                availFormState.classList.remove('hidden');
+                                availForm.dispatchEvent(new Event('submit'));
+                            };
+                        } else {
+                            suggestionBox.classList.add('hidden');
+                        }
+                    }
+                } catch (err) {
+                    console.error(err);
+                }
+            });
+        }
+
+        // Checkout Modal management
         const modal = document.getElementById('booking-modal');
         const closeBtn = document.getElementById('close-booking-modal');
         const cancelBtn = document.getElementById('cancel-booking-btn');
@@ -503,15 +550,6 @@
         }
 
         const openModal = () => {
-            if (!window.VillaRealtime || !window.VillaRealtime.userId) {
-                // Redirect to register
-                const checkIn = checkInInput.value;
-                const checkOut = checkOutInput.value;
-                const roomId = "{{ $room->id }}";
-                const type = bookingTypeSelect ? bookingTypeSelect.value : 'booking';
-                window.location.href = `/register?room_id=${roomId}&check_in=${checkIn}&check_out=${checkOut}&guests=1&booking_type=${type}`;
-                return;
-            }
             updateButtonText();
             window.VillaModal?.open ? window.VillaModal.open(modal) : modal.classList.remove('hidden');
         };
@@ -523,14 +561,13 @@
         if (closeBtn) closeBtn.addEventListener('click', closeModal);
         if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
 
-        // Close on backdrop click
         if (modal) {
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) closeModal();
             });
         }
 
-        // Availability check
+        // Availability check for checkout modal
         const checkInInput = document.getElementById('check_in');
         const checkOutInput = document.getElementById('check_out');
         const banner = document.getElementById('modal-availability-banner');
@@ -642,9 +679,8 @@
         if (withBreakfastInput) {
             withBreakfastInput.addEventListener('change', calculateBreakdown);
         }
-        setInterval(checkAvailability, 30000);
 
-        // Expose modal open/populate for calendar
+        // Expose modal open/populate
         window.bookingModal = {
             open: openModal,
             setDates: (checkIn, checkOut) => {
@@ -663,14 +699,8 @@
         if (bookingForm && loadingOverlay) {
             bookingForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
-
-                // Clear previous errors
                 banner.classList.add('hidden');
-
-                // Show loading overlay
                 loadingOverlay.classList.remove('hidden');
-                if (loadingTitle) loadingTitle.textContent = "Processing your booking...";
-                if (loadingDesc) loadingDesc.textContent = "We are creating your reservation and setting up your secure checkout session. Please do not close this window.";
 
                 const formData = new FormData(bookingForm);
 
@@ -695,15 +725,13 @@
                     }
 
                     if (data.checkout_url) {
-                        if (loadingTitle) loadingTitle.textContent = "Redirecting to payment...";
-                        if (loadingDesc) loadingDesc.textContent = "We are transferring you to Xendit's secure payment gateway. Please wait...";
                         window.location.href = data.checkout_url;
                     } else {
                         window.location.reload();
                     }
                 } catch (err) {
                     loadingOverlay.classList.add('hidden');
-                    renderBanner(false, 'Unable to connect. Please check your internet connection and try again.');
+                    renderBanner(false, 'Unable to connect. Please check your connection.');
                 }
             });
         }
