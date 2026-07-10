@@ -13,28 +13,62 @@ class AvailabilityController extends Controller
     public function check(Request $request): JsonResponse
     {
         $validated = $request->validate([
-            'check_in' => 'required|date',
+            'check_in' => 'required|date|after_or_equal:today',
             'check_out' => 'required|date|after:check_in',
+            'room_id' => 'nullable|integer|exists:rooms,id',
             'guests' => 'nullable|integer|min:1|max:20',
         ]);
 
-        $checkIn = Carbon::parse($validated['check_in'])->startOfDay();
-        $checkOut = Carbon::parse($validated['check_out'])->startOfDay();
+        $checkIn = Carbon::parse($validated['check_in'])->toDateString();
+        $checkOut = Carbon::parse($validated['check_out'])->toDateString();
 
         // Number of nights
-        $nights = $checkIn->diffInDays($checkOut);
+        $nights = Carbon::parse($checkIn)->diffInDays(Carbon::parse($checkOut));
+        $nights = max(1, $nights);
+
+        if ($request->filled('room_id')) {
+            $room = Room::find($request->input('room_id'));
+            $isAvailable = $room && $room->isAvailableFor($checkIn, $checkOut);
+
+            return response()->json([
+                'available' => $isAvailable,
+                'room' => $room ? [
+                    'id' => $room->id,
+                    'name' => $room->name,
+                    'slug' => $room->slug,
+                    'type_label' => $room->type_label,
+                    'price' => $room->price,
+                    'capacity' => $room->capacity,
+                    'description' => $room->description,
+                ] : null,
+                'message' => $isAvailable
+                    ? 'This room type is available for the selected dates.'
+                    : 'This room type is unavailable for the selected dates.'
+            ]);
+        }
 
         $rooms = Room::where('status', 'available')->get();
-        $availableRoom = $rooms->first(
-            fn (Room $room) => $room->isAvailableFor($checkIn->toDateString(), $checkOut->toDateString())
-        );
+        $availableRooms = $rooms->filter(
+            fn (Room $room) => $room->isAvailableFor($checkIn, $checkOut)
+        )->map(fn (Room $room) => [
+            'id' => $room->id,
+            'name' => $room->name,
+            'type_label' => $room->type_label,
+            'price' => $room->price,
+            'capacity' => $room->capacity,
+        ])->values();
 
-        $result = ['available' => (bool) $availableRoom, 'suggestions' => []];
+        $anyAvailable = $availableRooms->isNotEmpty();
+        $result = [
+            'available' => $anyAvailable,
+            'available_rooms' => $availableRooms,
+            'suggestions' => [],
+        ];
 
-        if (! $availableRoom) {
+        if (! $anyAvailable) {
             // Suggest next available start date within next 30 days
-            $searchStart = $checkOut->copy()->addDay();
-            $limit = $checkOut->copy()->addDays(30);
+            $searchStart = Carbon::parse($checkOut)->addDay();
+            $limit = Carbon::parse($checkOut)->addDays(30);
 
             while ($searchStart->lte($limit)) {
                 $searchEnd = $searchStart->copy()->addDays($nights);

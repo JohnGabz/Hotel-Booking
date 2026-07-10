@@ -3,129 +3,205 @@
 @section('content')
 <section class="section-shell pt-8 sm:pt-10">
     <div class="site-shell" data-realtime-fragment="guest-dashboard">
-        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+        <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between mb-8">
             <div>
                 <span class="eyebrow">My dashboard</span>
-                <h1 class="mt-4 responsive-title">Your reservations at a glance.</h1>
+                <h1 class="mt-4 responsive-title text-stone-950">Your reservations at a glance.</h1>
             </div>
             <a href="{{ route('rooms.index') }}" class="btn-primary">Book a room</a>
         </div>
 
-        <div class="mt-10 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <div class="card">
-                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">Bookings</p>
-                <p class="mt-4 text-4xl font-semibold text-stone-950">{{ $bookings->count() }}</p>
+        <!-- Cancellation and Down Payment Policy -->
+        <div class="mb-8 rounded-xl border border-amber-200 bg-amber-50/70 p-5 text-amber-900 shadow-sm">
+            <h3 class="text-sm font-semibold flex items-center gap-1.5 mb-2">
+                <svg class="w-5 h-5 text-amber-700 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                Villa Booking & Cancellation Policy
+            </h3>
+            <ul class="list-disc pl-5 text-xs space-y-1 text-amber-800 leading-relaxed">
+                <li><strong>Deposit Obligation:</strong> A 50% down payment is required for all reservations and bookings.</li>
+                <li><strong>Remaining Balance:</strong> Outstanding balances must be paid prior to check-in. You can pay the balance online below.</li>
+                <li><strong>Cancellation Penalty:</strong> Cancellations made 3 days or more prior to your check-in date are eligible for full refund. Cancellations made less than 3 days before check-in will incur a <strong>50% cancellation penalty</strong> of the booking total.</li>
+            </ul>
+        </div>
+
+        <!-- Statistics grid -->
+        <div class="grid gap-4 sm:grid-cols-3 mb-8">
+            <div class="card p-5 bg-white border border-stone-200 shadow-sm rounded-xl">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500 font-medium">All Bookings</p>
+                <p class="mt-2 text-3xl font-semibold text-stone-950">{{ $bookings->count() }}</p>
             </div>
-            <div class="card">
-                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">Upcoming</p>
-                <p class="mt-4 text-4xl font-semibold text-stone-950">{{ $bookings->where('status', 'confirmed')->count() }}</p>
+            <div class="card p-5 bg-white border border-stone-200 shadow-sm rounded-xl">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500 font-medium">Upcoming Bookings</p>
+                <p class="mt-2 text-3xl font-semibold text-stone-950">{{ $upcomingBookings->count() }}</p>
             </div>
-            <div class="card">
-                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">Rooms to review</p>
-                <p class="mt-4 text-4xl font-semibold text-stone-950">{{ $recentRooms->count() }}</p>
-            </div>
-            <div class="card">
-                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">Guest access</p>
-                <p class="mt-4 text-4xl font-semibold text-stone-950">Active</p>
+            <div class="card p-5 bg-white border border-stone-200 shadow-sm rounded-xl">
+                <p class="text-xs uppercase tracking-[0.25em] text-stone-500 font-medium">Rooms to Review</p>
+                <p class="mt-2 text-3xl font-semibold text-stone-950">{{ $eligibleBookings->count() }}</p>
             </div>
         </div>
 
-        <div class="mt-10 grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
-            <div class="card">
-                <span class="eyebrow">Upcoming bookings</span>
-                @if ($bookings->isEmpty())
-                    <p class="mt-4 text-stone-600">You don’t have any reservations yet. Start by browsing rooms.</p>
+        <!-- Tabs Navigation -->
+        <div class="border-b border-stone-200 mb-6 flex gap-4">
+            <button onclick="switchTab('upcoming')" id="tab-btn-upcoming" class="tab-btn pb-3 px-1 text-sm font-semibold border-b-2 transition-all duration-300 border-brand-primary text-brand-primary">
+                Upcoming Bookings ({{ $upcomingBookings->count() }})
+            </button>
+            <button onclick="switchTab('history')" id="tab-btn-history" class="tab-btn pb-3 px-1 text-sm font-semibold border-b-2 transition-all duration-300 border-transparent text-stone-500 hover:text-stone-900">
+                Full Booking History ({{ $bookings->count() }})
+            </button>
+            <button onclick="switchTab('reviews')" id="tab-btn-reviews" class="tab-btn pb-3 px-1 text-sm font-semibold border-b-2 transition-all duration-300 border-transparent text-stone-500 hover:text-stone-900">
+                Rooms to Review ({{ $eligibleBookings->count() }})
+            </button>
+        </div>
+
+        <!-- Tab Contents -->
+        <div class="bg-white rounded-xl border border-stone-200 shadow-sm overflow-hidden mb-12">
+            <!-- Upcoming Bookings Tab -->
+            <div id="tab-content-upcoming" class="tab-pane">
+                @if ($upcomingBookings->isEmpty())
+                    <div class="p-8 text-center text-stone-500">
+                        <p>You don't have any upcoming reservations. Start by browsing rooms.</p>
+                        <a href="{{ route('rooms.index') }}" class="inline-block mt-4 text-sm font-semibold text-brand-primary hover:underline">Browse Rooms &rarr;</a>
+                    </div>
                 @else
-                    <div class="mt-5 space-y-4">
-                        @foreach ($bookings as $booking)
-                            <div class="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-5">
-                                <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                                    <div>
-                                        <p class="text-lg font-semibold text-stone-950">{{ $booking->room->name }}</p>
-                                        <p class="mt-1 text-sm text-stone-500">{{ $booking->check_in->format('M j') }} — {{ $booking->check_out->format('M j, Y') }}</p>
-                                    </div>
-                                    <span class="badge-primary">{{ ucfirst($booking->status) }}</span>
-                                </div>
-                                <div class="mt-4 flex flex-col gap-2 text-sm text-stone-600 sm:flex-row sm:items-center sm:justify-between">
-                                    <p>{{ $booking->guests }} guest(s) · ₱{{ number_format($booking->total, 0) }}</p>
-                                    <p class="uppercase tracking-[0.2em]">{{ strtoupper($booking->payment_method) }} · {{ strtoupper($booking->payment_status) }}</p>
-                                </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-stone-50 border-b border-stone-200 text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                                    <th class="p-4">Room Type</th>
+                                    <th class="p-4">Stay Dates</th>
+                                    <th class="p-4">Guests</th>
+                                    <th class="p-4">Total</th>
+                                    <th class="p-4">Amount Paid</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4 text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-100 text-stone-800">
+                                @foreach ($upcomingBookings as $booking)
+                                    <tr class="hover:bg-stone-50/50 transition">
+                                        <td class="p-4 font-semibold text-stone-950">{{ $booking->room->name }}</td>
+                                        <td class="p-4">
+                                            {{ $booking->check_in->format('M j') }} &mdash; {{ $booking->check_out->format('M j, Y') }}
+                                        </td>
+                                        <td class="p-4 text-stone-600">{{ $booking->guests }}</td>
+                                        <td class="p-4 font-medium">₱{{ number_format($booking->total, 2) }}</td>
+                                        <td class="p-4 font-medium text-emerald-700">₱{{ number_format($booking->amount_paid, 2) }}</td>
+                                        <td class="p-4">
+                                            @php
+                                                $badgeClass = match (strtolower($booking->status)) {
+                                                    'confirmed' => 'bg-emerald-100 text-emerald-800',
+                                                    'reserved' => 'bg-blue-100 text-blue-800',
+                                                    'pending payment' => 'bg-amber-100 text-amber-800',
+                                                    default => 'bg-stone-100 text-stone-800',
+                                                };
+                                            @endphp
+                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $badgeClass }}">{{ ucfirst($booking->status) }}</span>
+                                        </td>
+                                        <td class="p-4 text-right space-x-2 whitespace-nowrap">
+                                            @if ($booking->amount_paid < $booking->total && !in_array(strtolower($booking->status), ['cancelled', 'payment failed'], true))
+                                                <form action="{{ route('bookings.pay', $booking) }}" method="POST" class="inline">
+                                                    @csrf
+                                                    <button type="submit" class="btn-primary text-xs py-1.5 px-3">Pay Balance</button>
+                                                </form>
+                                                
+                                                @if ($booking->payment_method !== 'xendit')
+                                                    <button type="button" onclick="openUploadProofModal({{ $booking->id }}, '{{ route('bookings.payment-proof', $booking) }}')" class="btn-secondary text-xs py-1.5 px-3">Upload Proof</button>
+                                                @endif
+                                            @endif
 
-                                @if (in_array($booking->payment_status, ['pending', 'failed'], true))
-                                    <div class="mt-4 grid gap-3 rounded-[1rem] border border-stone-200 bg-white p-4">
-                                        <form action="{{ route('bookings.pay', $booking) }}" method="POST" class="flex gap-2 items-center">
-                                            @csrf
-                                            <button type="submit" class="btn-primary">Pay now with Xendit test mode</button>
-                                        </form>
+                                            @if ($booking->payment_status === 'for_verification')
+                                                <span class="text-xs text-amber-600 font-semibold block sm:inline">Verifying Proof...</span>
+                                            @endif
 
-                                        <form action="{{ route('bookings.payment-proof', $booking) }}" method="POST" enctype="multipart/form-data" class="grid gap-3">
-                                            @csrf
-                                            <p class="text-xs uppercase tracking-[0.2em] text-stone-500">Or upload payment proof</p>
-                                            <div class="grid gap-3 sm:grid-cols-2">
-                                                <div class="form-group">
-                                                    <label class="form-label" for="payment_reference_{{ $booking->id }}">Reference number</label>
-                                                    <input id="payment_reference_{{ $booking->id }}" name="payment_reference" class="form-input" required>
-                                                </div>
-                                                <div class="form-group">
-                                                    <label class="form-label" for="payment_proof_{{ $booking->id }}">Proof image</label>
-                                                    <input id="payment_proof_{{ $booking->id }}" name="payment_proof" type="file" accept="image/*" class="form-input" required>
-                                                </div>
-                                            </div>
-                                            <button type="submit" class="btn-secondary">Submit payment proof</button>
-                                        </form>
-                                    </div>
-                                @elseif ($booking->payment_status === 'for_verification')
-                                    <div class="mt-4 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                                        Payment proof submitted. Waiting for admin verification.
-                                    </div>
-                                @elseif ($booking->refund_requested_at)
-                                    <div class="mt-4 rounded-[1rem] border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-                                        Refund requested{{ $booking->refund_requested_at ? ' on ' . $booking->refund_requested_at->format('M j, Y') : '' }}. Waiting for admin review.
-                                    </div>
-                                @elseif ($booking->payment_status === 'paid')
-                                    <div class="mt-4 rounded-[1rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">
-                                        Payment verified{{ $booking->paid_at ? ' on ' . $booking->paid_at->format('M j, Y g:i A') : '' }}.
-                                    </div>
-                                @endif
-
-                                @if ($actionLabel = $booking->guestActionLabel())
-                                    <div class="mt-4 flex flex-wrap gap-2">
-                                        <button
-                                            type="button"
-                                            class="btn-secondary text-sm"
-                                            data-booking-action-open
-                                            data-booking-action="{{ $actionLabel === 'Cancel Booking' ? 'cancel' : 'refund' }}"
-                                            data-booking-url="{{ $actionLabel === 'Cancel Booking' ? route('bookings.cancel', $booking) : route('bookings.request-refund', $booking) }}"
-                                            data-booking-label="{{ $actionLabel }}"
-                                        >
-                                            {{ $actionLabel }}
-                                        </button>
-                                    </div>
-                                @elseif ($booking->isFinalState())
-                                    <div class="mt-4 rounded-[1rem] border border-stone-200 bg-stone-100 px-4 py-3 text-sm text-stone-600">
-                                        This booking is closed and can no longer be changed.
-                                    </div>
-                                @elseif ($booking->isCheckedInOrPast() && ! $booking->isFinalState())
-                                    <div class="mt-4 rounded-[1rem] border border-stone-200 bg-stone-100 px-4 py-3 text-sm text-stone-600">
-                                        Check-in has started. Cancellation and refunds are no longer available online.
-                                    </div>
-                                @endif
-                            </div>
-                        @endforeach
+                                            @if ($actionLabel = $booking->guestActionLabel())
+                                                <button
+                                                    type="button"
+                                                    class="btn-secondary text-xs py-1.5 px-3"
+                                                    data-booking-action-open
+                                                    data-booking-action="{{ $actionLabel === 'Cancel Booking' ? 'cancel' : 'refund' }}"
+                                                    data-booking-url="{{ $actionLabel === 'Cancel Booking' ? route('bookings.cancel', $booking) : route('bookings.request-refund', $booking) }}"
+                                                    data-booking-label="{{ $actionLabel }}"
+                                                >
+                                                    {{ $actionLabel }}
+                                                </button>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
                     </div>
                 @endif
             </div>
 
-            <div class="space-y-8">
-                <div class="card">
-                    <span class="eyebrow">Review eligibility</span>
-                    @if ($eligibleBookings->isEmpty())
-                        <p class="mt-4 text-stone-600">You don't have any rooms eligible for review at the moment. Reviews are available after a completed, confirmed stay.</p>
-                    @else
-                        <p class="mt-4 text-stone-600">You have completed stays ready for your feedback! Click a room below to share your experience.</p>
-                        <div class="mt-5 space-y-3">
+            <!-- Full History Tab -->
+            <div id="tab-content-history" class="tab-pane hidden">
+                @if ($bookings->isEmpty())
+                    <div class="p-8 text-center text-stone-500">
+                        <p>No bookings found in your history.</p>
+                    </div>
+                @else
+                    <div class="overflow-x-auto">
+                        <table class="w-full text-left border-collapse text-sm">
+                            <thead>
+                                <tr class="bg-stone-50 border-b border-stone-200 text-xs font-semibold text-stone-500 uppercase tracking-wider">
+                                    <th class="p-4">Room Type</th>
+                                    <th class="p-4">Stay Dates</th>
+                                    <th class="p-4">Guests</th>
+                                    <th class="p-4">Total</th>
+                                    <th class="p-4">Amount Paid</th>
+                                    <th class="p-4">Status</th>
+                                    <th class="p-4">Payment</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-stone-100 text-stone-800">
+                                @foreach ($bookings as $booking)
+                                    <tr class="hover:bg-stone-50/50 transition">
+                                        <td class="p-4 font-semibold text-stone-950">{{ $booking->room->name }}</td>
+                                        <td class="p-4">
+                                            {{ $booking->check_in->format('M j, Y') }} &mdash; {{ $booking->check_out->format('M j, Y') }}
+                                        </td>
+                                        <td class="p-4 text-stone-600">{{ $booking->guests }}</td>
+                                        <td class="p-4 font-medium">₱{{ number_format($booking->total, 2) }}</td>
+                                        <td class="p-4 font-medium text-emerald-700">₱{{ number_format($booking->amount_paid, 2) }}</td>
+                                        <td class="p-4">
+                                            @php
+                                                $badgeClass = match (strtolower($booking->status)) {
+                                                    'confirmed' => 'bg-emerald-100 text-emerald-800',
+                                                    'reserved' => 'bg-blue-100 text-blue-800',
+                                                    'pending payment' => 'bg-amber-100 text-amber-800',
+                                                    'cancelled' => 'bg-rose-100 text-rose-800',
+                                                    default => 'bg-stone-100 text-stone-800',
+                                                };
+                                            @endphp
+                                            <span class="inline-flex px-2 py-0.5 rounded-full text-xs font-semibold {{ $badgeClass }}">{{ ucfirst($booking->status) }}</span>
+                                        </td>
+                                        <td class="p-4">
+                                            <span class="text-xs uppercase font-semibold text-stone-500">{{ $booking->payment_status ?: 'pending' }}</span>
+                                            @if ($booking->cancellation_penalty > 0)
+                                                <span class="block text-[10px] text-rose-600 font-bold mt-0.5">Penalty: ₱{{ number_format($booking->cancellation_penalty, 2) }}</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+            </div>
+
+            <!-- Review Eligibility Tab -->
+            <div id="tab-content-reviews" class="tab-pane hidden">
+                @if ($eligibleBookings->isEmpty())
+                    <div class="p-8 text-center text-stone-500">
+                        <p>No completed stays are currently eligible for review.</p>
+                    </div>
+                @else
+                    <div class="p-6">
+                        <p class="text-sm text-stone-600 mb-4">Click a room below to share your experience from your completed stays.</p>
+                        <div class="grid gap-4 md:grid-cols-2">
                             @foreach ($eligibleBookings as $booking)
-                                <div class="rounded-[1.5rem] border border-stone-200 bg-stone-50 p-4 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                                <div class="rounded-xl border border-stone-200 bg-stone-50 p-5 flex items-center justify-between gap-4">
                                     <div>
                                         <p class="font-semibold text-stone-950">{{ $booking->room?->name }}</p>
                                         <p class="text-xs text-stone-500">Stay ended {{ $booking->check_out->format('M j, Y') }}</p>
@@ -143,26 +219,31 @@
                                 </div>
                             @endforeach
                         </div>
-                    @endif
-                </div>
-
-                @if ($recentRooms->isNotEmpty())
-                    <div class="card">
-                        <span class="eyebrow">Recent rooms</span>
-                        <div class="mt-5 grid gap-3">
-                            @foreach ($recentRooms as $room)
-                                <a href="{{ route('rooms.show', $room) }}" class="rounded-[1.5rem] border border-stone-200 bg-white p-4 transition hover:border-amber-300 hover:shadow-sm">
-                                    <p class="font-semibold text-stone-950">{{ $room->type_label }}</p>
-                                    <p class="text-sm text-stone-500">See room details and share your experience.</p>
-                                </a>
-                            @endforeach
-                        </div>
                     </div>
                 @endif
             </div>
         </div>
     </div>
 </section>
+
+<!-- Upload Proof Modal -->
+<x-modal id="upload-proof-modal" title="Upload Payment Proof" size="max-w-md">
+    <form id="upload-proof-form" method="POST" action="" enctype="multipart/form-data" class="space-y-4" data-no-loader>
+        @csrf
+        <div class="form-group">
+            <label class="form-label" for="modal_payment_reference">Reference Number</label>
+            <input id="modal_payment_reference" name="payment_reference" class="form-input" required>
+        </div>
+        <div class="form-group">
+            <label class="form-label" for="modal_payment_proof">Proof Image</label>
+            <input id="modal_payment_proof" name="payment_proof" type="file" accept="image/*" class="form-input" required>
+        </div>
+        <div class="flex justify-end gap-3 pt-2">
+            <button type="button" data-modal-close class="btn-secondary">Cancel</button>
+            <button type="submit" class="btn-primary">Submit Proof</button>
+        </div>
+    </form>
+</x-modal>
 
 <x-booking-action-modal />
 
@@ -206,6 +287,28 @@
 
 @push('scripts')
 <script>
+    function switchTab(tabId) {
+        // Toggle tabs
+        document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+        document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+
+        // Toggle buttons
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('border-brand-primary', 'text-brand-primary');
+            btn.classList.add('border-transparent', 'text-stone-500');
+        });
+        const activeBtn = document.getElementById(`tab-btn-${tabId}`);
+        activeBtn.classList.remove('border-transparent', 'text-stone-500');
+        activeBtn.classList.add('border-brand-primary', 'text-brand-primary');
+    }
+
+    function openUploadProofModal(bookingId, uploadUrl) {
+        const modal = document.getElementById('upload-proof-modal');
+        const form = document.getElementById('upload-proof-form');
+        form.action = uploadUrl;
+        window.VillaModal?.open ? window.VillaModal.open(modal) : modal.classList.remove('hidden');
+    }
+
     (() => {
         // Modal population for review modal
         const reviewModal = document.getElementById('dashboard-review-modal');
@@ -275,4 +378,3 @@
     })();
 </script>
 @endpush
-

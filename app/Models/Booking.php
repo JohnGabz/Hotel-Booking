@@ -9,12 +9,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'paid_at', 'total', 'notes', 'cancellation_reason', 'cancelled_at', 'refund_requested_at', 'source', 'review_token', 'review_token_used_at', 'manage_token', 'with_breakfast', 'breakfast_charge'])]
+#[Fillable(['user_id', 'room_id', 'physical_room_id', 'check_in', 'check_out', 'guests', 'contact_name', 'contact_email', 'contact_phone', 'status', 'booking_type', 'payment_method', 'payment_reference', 'payment_proof_path', 'payment_status', 'amount_paid', 'cancellation_penalty', 'paid_at', 'total', 'notes', 'cancellation_reason', 'cancelled_at', 'refund_requested_at', 'source', 'review_token', 'review_token_used_at', 'manage_token', 'with_breakfast', 'breakfast_charge'])]
 class Booking extends Model
 {
     use HasFactory;
 
-    public const BLOCKING_STATUSES = ['pending', 'Pending Payment', 'for_verification', 'confirmed', 'Confirmed'];
+    public const BLOCKING_STATUSES = ['pending', 'Pending Payment', 'for_verification', 'confirmed', 'Confirmed', 'Reserved', 'reserved'];
 
     public const SOURCE_ONLINE = 'online';
 
@@ -25,6 +25,8 @@ class Booking extends Model
         'check_out' => 'date',
         'paid_at' => 'datetime',
         'total' => 'decimal:2',
+        'amount_paid' => 'decimal:2',
+        'cancellation_penalty' => 'decimal:2',
         'source' => 'string',
         'review_token_used_at' => 'datetime',
         'cancelled_at' => 'datetime',
@@ -70,6 +72,7 @@ class Booking extends Model
     {
         return $this->hasMany(Review::class);
     }
+
     public function scopeOverlapping($query, int $roomId, string $checkIn, string $checkOut, array $statuses = self::BLOCKING_STATUSES)
     {
         return $query
@@ -110,14 +113,36 @@ class Booking extends Model
         $token = $this->review_token ?: Str::random(48);
         $manageToken = $this->manage_token ?: Str::random(48);
 
+        $amountPaidThisTime = null;
+        if ($payload) {
+            $amountPaidThisTime = (float) (data_get($payload, 'amount') ?? data_get($payload, 'data.amount') ?? data_get($payload, 'invoice.amount') ?? data_get($payload, 'paid_amount'));
+        }
+
+        if (!$amountPaidThisTime || $amountPaidThisTime <= 0) {
+            $amountPaidThisTime = $this->amount_paid > 0 ? ($this->total - $this->amount_paid) : ($this->total * 0.5);
+        }
+
+        $newAmountPaid = $this->amount_paid + $amountPaidThisTime;
+        $isFullyPaid = $newAmountPaid >= ($this->total - 0.05);
+
+        $newPaymentStatus = $isFullyPaid ? 'paid' : 'partially_paid';
+
+        $newStatus = $this->status;
+        if ($this->status === 'Pending Payment' || $this->status === 'pending') {
+            $newStatus = $this->booking_type === 'reservation' ? 'Reserved' : 'Confirmed';
+        } elseif ($isFullyPaid) {
+            $newStatus = 'Confirmed';
+        }
+
         $this->forceFill([
-            'status' => 'Confirmed',
-            'payment_status' => 'paid',
+            'status' => $newStatus,
+            'payment_status' => $newPaymentStatus,
             'payment_reference' => $reference ?: $this->payment_reference,
             'payment_method' => $method ?: $this->payment_method,
             'paid_at' => $this->paid_at ?: now(),
             'review_token' => $token,
             'manage_token' => $manageToken,
+            'amount_paid' => $newAmountPaid,
         ])->save();
 
         PaymentTransaction::updateOrCreate(
@@ -127,7 +152,7 @@ class Booking extends Model
             ],
             [
                 'provider' => $provider ?: 'manual',
-                'amount' => $this->total,
+                'amount' => $amountPaidThisTime,
                 'status' => 'confirmed',
                 'payment_method' => $method ?: $this->payment_method,
                 'payload' => $payload,
@@ -177,7 +202,7 @@ class Booking extends Model
     {
         return ! empty($this->review_token)
             && $this->review_token_used_at === null
-            && in_array($this->status, ['confirmed', 'Confirmed'], true)
+            && in_array(strtolower($this->status), ['confirmed', 'reserved'], true)
             && $this->check_out->isPast();
     }
 
@@ -202,7 +227,7 @@ class Booking extends Model
             return false;
         }
 
-        return in_array($this->payment_status, ['pending', 'for_verification', 'failed'], true);
+        return in_array($this->payment_status, ['pending', 'partially_paid', 'for_verification', 'failed'], true);
     }
 
     public function canGuestRequestRefund(): bool
@@ -215,8 +240,8 @@ class Booking extends Model
             return false;
         }
 
-        return $this->payment_status === 'paid'
-            && in_array($this->status, ['confirmed', 'Confirmed'], true);
+        return in_array($this->payment_status, ['paid', 'partially_paid'], true)
+            && in_array(strtolower($this->status), ['confirmed', 'reserved'], true);
     }
 
     public function guestActionLabel(): ?string
@@ -230,5 +255,10 @@ class Booking extends Model
         }
 
         return null;
+    }
+
+    public function isWithinCancellationWindow(): bool
+    {
+        return now()->diffInDays($this->check_in, false) < 3;
     }
 }

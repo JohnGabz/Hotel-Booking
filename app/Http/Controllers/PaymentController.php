@@ -48,8 +48,15 @@ class PaymentController extends Controller
             throw new \Exception('Xendit test credentials are not configured yet.');
         }
 
-        $amount = round((float) $booking->total, 2);
-        $externalId = 'villa-estela-booking-'.$booking->id;
+        $isBalancePayment = $booking->amount_paid > 0;
+        $amount = $isBalancePayment 
+            ? round((float) ($booking->total - $booking->amount_paid), 2)
+            : round((float) ($booking->total * 0.5), 2);
+
+        $externalId = $isBalancePayment
+            ? 'villa-estela-booking-balance-'.$booking->id
+            : 'villa-estela-booking-'.$booking->id;
+
         $payload = $this->buildInvoicePayload($booking, $amount, $externalId);
         $invoiceUrl = rtrim((string) config('services.xendit.invoice_base_url', 'https://api.xendit.co'), '/').'/v2/invoices';
 
@@ -88,7 +95,7 @@ class PaymentController extends Controller
                 ],
                 [
                     'provider' => 'xendit',
-                    'amount' => $lockedBooking->total,
+                    'amount' => $lockedBooking->amount_paid > 0 ? ($lockedBooking->total - $lockedBooking->amount_paid) : ($lockedBooking->total * 0.5),
                     'status' => 'pending',
                     'payment_method' => $lockedBooking->payment_method,
                     'payload' => array_merge($data, ['external_id' => $externalId]),
@@ -109,7 +116,7 @@ class PaymentController extends Controller
             'external_id' => $externalId,
             'amount' => $amount,
             'currency' => 'PHP',
-            'description' => 'Booking #'.$booking->id.' - '.$booking->room->name,
+            'description' => 'Booking #'.$booking->id.' - '.$booking->room->name . ($booking->amount_paid > 0 ? ' (Remaining Balance)' : ' (Deposit)'),
             'invoice_duration' => 86400,
             'success_redirect_url' => URL::signedRoute('bookings.success', ['booking' => $booking->id]),
             'failure_redirect_url' => route('rooms.show', ['room' => $booking->room->slug]) . '?payment=failed&booking=' . $booking->id,
@@ -164,17 +171,19 @@ class PaymentController extends Controller
             return response()->json(['status' => 'ignored']);
         }
 
-        $bookingId = (int) preg_replace('/^villa-estela-booking-/', '', (string) $externalId);
+        $bookingId = (int) preg_replace('/^villa-estela-booking-(balance-)?/', '', (string) $externalId);
         $booking = Booking::find($bookingId);
         if (! $booking) {
             return response()->json(['status' => 'not_found'], 404);
         }
 
         if ($status === 'PAID' || $status === 'paid' || str_contains(strtolower((string) $eventType), 'paid')) {
-            $booking->update([
-                'payment_status' => 'paid',
-                'paid_at' => now(),
-            ]);
+            $booking->confirmPayment(
+                data_get($payload, 'id') ?? data_get($payload, 'data.id') ?? data_get($payload, 'invoice.id'),
+                data_get($payload, 'payment_method') ?? data_get($payload, 'data.payment_method') ?? 'xendit',
+                'xendit',
+                $payload
+            );
 
             return response()->json(['status' => 'ok']);
         }

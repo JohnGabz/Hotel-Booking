@@ -36,6 +36,15 @@
                         <label class="form-label" for="password_confirmation">Confirm password</label>
                         <input id="password_confirmation" name="password_confirmation" type="password" class="form-input" autocomplete="new-password" required>
                     </div>
+                    <div class="form-group pt-2">
+                        <label class="flex items-center gap-3 cursor-pointer select-none">
+                            <input type="checkbox" id="terms" name="terms" value="1" class="h-5 w-5 rounded border-stone-300 text-brand-primary focus:ring-brand-primary" required>
+                            <span class="text-sm font-medium text-stone-900">
+                                I agree to the <a href="/faqs" target="_blank" class="text-brand-primary underline">Terms and Conditions</a> and <a href="/faqs" target="_blank" class="text-brand-primary underline">Privacy Policy</a>
+                            </span>
+                        </label>
+                        @error('terms') <p class="form-error">{{ $message }}</p> @enderror
+                    </div>
                     <button type="submit" class="btn-primary w-full">Register</button>
                 </form>
                 <p class="mt-6 text-center text-sm text-slate-600">Already registered? <a href="{{ route('login') }}" class="font-semibold text-brand-primary">Login here</a></p>

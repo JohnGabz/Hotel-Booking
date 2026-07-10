@@ -27,7 +27,6 @@ Route::get('/rooms', [RoomController::class, 'index'])->name('rooms.index');
 Route::get('/rooms/{room:slug}', [RoomController::class, 'show'])->name('rooms.show');
 Route::get('/rooms/{room:slug}/availability', [RoomController::class, 'availability'])->name('rooms.availability');
 Route::get('/bookings/search', [BookingController::class, 'search'])->name('bookings.search');
-Route::post('/rooms/{room:slug}/book', [BookingController::class, 'store'])->name('bookings.store');
 Route::get('/bookings/{booking}/success', [BookingController::class, 'success'])->name('bookings.success')->middleware('signed');
 Route::get('/bookings/{booking}/status', [BookingController::class, 'statusApi'])->name('bookings.status-api');
 
@@ -55,6 +54,21 @@ Route::middleware('auth')->group(function () {
 
         Auth::guard('web')->setUser($request->user()->fresh());
 
+        if (session()->has('pending_booking')) {
+            $pendingBooking = session()->get('pending_booking');
+            $room = \App\Models\Room::find($pendingBooking['room_id']);
+            if ($room) {
+                return redirect()->route('rooms.show', [
+                    'room' => $room->slug,
+                    'check_in' => $pendingBooking['check_in'],
+                    'check_out' => $pendingBooking['check_out'],
+                    'guests' => $pendingBooking['guests'] ?? 1,
+                    'booking_type' => $pendingBooking['booking_type'] ?? 'booking',
+                    'booking_modal' => 1
+                ]);
+            }
+        }
+
         return redirect()->route('dashboard')->with('success', 'Email verified successfully.');
     })->middleware(['signed', 'throttle:6,1'])->name('verification.verify');
     Route::post('/email/verification-notification', [AuthController::class, 'resendVerificationEmail'])
@@ -62,6 +76,7 @@ Route::middleware('auth')->group(function () {
         ->name('verification.send');
 
     Route::middleware('verified')->group(function () {
+        Route::post('/rooms/{room:slug}/book', [BookingController::class, 'store'])->name('bookings.store');
         Route::post('/rooms/{room:slug}/review', [ReviewController::class, 'store'])->name('reviews.store');
         Route::get('/dashboard', [BookingController::class, 'dashboard'])->name('dashboard');
         Route::post('/bookings/{booking}/payment-proof', [BookingController::class, 'uploadPaymentProof'])->name('bookings.payment-proof');
@@ -86,6 +101,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/reports/export', ReportExportController::class)->name('reports.export');
         Route::get('/reports', [AdminController::class, 'reports'])->name('reports');
         Route::get('/feedbacks', [AdminController::class, 'feedbacks'])->name('feedbacks');
+        Route::post('/feedbacks/testimonials', [AdminController::class, 'updateTestimonials'])->name('feedbacks.testimonials.update');
         Route::get('/settings', [AdminController::class, 'settings'])->name('settings');
         Route::post('/bookings/walkin', [AdminController::class, 'adminStoreWalkin'])->name('bookings.walkin');
         Route::get('/bookings/available-physical-rooms', [AdminController::class, 'availablePhysicalRooms'])->name('bookings.available-physical-rooms');

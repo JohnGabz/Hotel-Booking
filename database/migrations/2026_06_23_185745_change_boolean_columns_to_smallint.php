@@ -7,6 +7,11 @@ return new class extends Migration
 {
     public function up(): void
     {
+        $driver = DB::getDriverName();
+        if ($driver !== 'pgsql') {
+            return;
+        }
+
         // Drop the boolean default first -- Postgres can't auto-cast
         // an existing `false`/`true` default to smallint.
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast DROP DEFAULT');
@@ -30,6 +35,11 @@ return new class extends Migration
 
     public function down(): void
     {
+        $driver = DB::getDriverName();
+        if ($driver !== 'pgsql') {
+            return;
+        }
+
         DB::statement('ALTER TABLE bookings ALTER COLUMN with_breakfast DROP DEFAULT');
         DB::statement('
             ALTER TABLE bookings

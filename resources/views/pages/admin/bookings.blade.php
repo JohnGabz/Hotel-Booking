@@ -2,7 +2,15 @@
 
 @section('content')
 @php
-    $statusOptions = ['all', 'confirmed', 'pending', 'cancelled', 'refund_requested'];
+    $statusOptions = [
+        'all' => 'All Statuses',
+        'confirmed' => 'Confirmed',
+        'reserved' => 'Reserved',
+        'pending' => 'Pending Payment',
+        'for_verification' => 'For Verification',
+        'cancelled' => 'Cancelled',
+        'refund_requested' => 'Refund Requests'
+    ];
 @endphp
 
 <div class="space-y-8" data-realtime-fragment="admin-bookings">
@@ -28,9 +36,9 @@
             <div class="form-group">
                 <label class="form-label" for="booking_status">Status</label>
                 <select id="booking_status" name="status" class="form-input">
-                    @foreach ($statusOptions as $option)
-                        <option value="{{ $option }}" @selected(($filters['status'] ?? 'all') === $option)>
-                            {{ $option === 'refund_requested' ? 'Refund Requests' : ucfirst($option) }}
+                    @foreach ($statusOptions as $val => $label)
+                        <option value="{{ $val }}" @selected(($filters['status'] ?? 'all') === $val)>
+                            {{ $label }}
                         </option>
                     @endforeach
                 </select>
@@ -571,43 +579,7 @@
             });
         });
 
-        // AJAX calendar navigation and room change
-        const calendarCard = document.getElementById('admin-calendar-card');
-
-        async function loadCalendar(url) {
-            if (!calendarCard) return;
-            calendarCard.classList.add('opacity-50');
-            calendarCard.style.pointerEvents = 'none';
-
-            try {
-                const response = await fetch(url, {
-                    headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                });
-
-                if (!response.ok) throw new Error('Failed to load calendar');
-
-                const html = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(html, 'text/html');
-
-                const newCalendar = doc.getElementById('admin-calendar-card');
-                if (newCalendar) {
-                    calendarCard.innerHTML = newCalendar.innerHTML;
-                    // Update URL bar
-                    window.history.pushState({}, '', url);
-                    // Re-bind listeners
-                    attachCalendarListeners();
-                }
-            } catch (err) {
-                console.error(err);
-            } finally {
-                calendarCard.classList.remove('opacity-50');
-                calendarCard.style.pointerEvents = '';
-            }
-        }
-
+        // Synchronized calendar navigation and room change
         function attachCalendarListeners() {
             const select = document.getElementById('calendar-room-select');
             if (select) {
@@ -615,7 +587,7 @@
                     const roomId = select.value;
                     const url = new URL(window.location.href);
                     url.searchParams.set('room', roomId);
-                    loadCalendar(url.toString());
+                    window.location.href = url.toString();
                 });
             }
 
@@ -623,7 +595,7 @@
             navLinks.forEach(link => {
                 link.addEventListener('click', (e) => {
                     e.preventDefault();
-                    loadCalendar(link.href);
+                    window.location.href = link.href;
                 });
             });
         }

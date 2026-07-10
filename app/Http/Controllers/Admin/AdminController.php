@@ -143,7 +143,9 @@ class AdminController extends Controller
         $dateTo = $request->query('date_to');
         $filteredBookings = Booking::with(['room', 'physicalRoom', 'user'])
             ->when($status === 'confirmed', fn ($query) => $query->whereIn('status', ['confirmed', 'Confirmed']))
+            ->when($status === 'reserved', fn ($query) => $query->whereIn('status', ['reserved', 'Reserved']))
             ->when($status === 'pending', fn ($query) => $query->whereIn('status', ['pending', 'Pending Payment']))
+            ->when($status === 'for_verification', fn ($query) => $query->where('payment_status', 'for_verification'))
             ->when($status === 'cancelled', fn ($query) => $query->whereIn('status', ['cancelled', 'Payment Failed', 'Payment Expired']))
             ->when($status === 'refund_requested', fn ($query) => $query->whereNotNull('refund_requested_at'))
             ->when($roomFilter !== 'all' && $roomFilter !== null, fn ($query) => $query->where('room_id', $roomFilter))
@@ -789,26 +791,36 @@ class AdminController extends Controller
 
     public function feedbacks(): View
     {
-        $reviews = Review::with(['user', 'room'])->latest()->get();
-        $pendingFeedbacks = $reviews->where('approved', false);
-        $approvedFeedbacks = $reviews->where('approved', true);
-
-        $totalReviews = $reviews->count();
-        $pendingCount = $pendingFeedbacks->count();
-        $averageRating = $reviews->avg('rating') ?? 0;
+        $landingContent = SiteContent::values(SiteContent::landingPageDefaults());
 
         return $this->renderAdminPage('feedbacks', [
-            'reviews' => $reviews,
-            'pendingFeedbacks' => $pendingFeedbacks,
-            'approvedFeedbacks' => $approvedFeedbacks,
-            'totalReviews' => $totalReviews,
-            'pendingCount' => $pendingCount,
-            'averageRating' => round($averageRating, 1),
+            'landingContent' => $landingContent,
             'seo' => [
                 'title' => 'Feedbacks — '.config('app.name'),
-                'description' => 'Review and manage guest feedback.',
+                'description' => 'Configure testimonials for the landing page.',
             ],
         ]);
+    }
+
+    public function updateTestimonials(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'testimonial_1_name' => 'required|string|max:150',
+            'testimonial_1_role' => 'required|string|max:150',
+            'testimonial_1_quote' => 'required|string|max:1000',
+            'testimonial_2_name' => 'required|string|max:150',
+            'testimonial_2_role' => 'required|string|max:150',
+            'testimonial_2_quote' => 'required|string|max:1000',
+            'testimonial_3_name' => 'required|string|max:150',
+            'testimonial_3_role' => 'required|string|max:150',
+            'testimonial_3_quote' => 'required|string|max:1000',
+        ]);
+
+        foreach ($validated as $key => $value) {
+            SiteContent::setValue($key, $value);
+        }
+
+        return redirect()->route('admin.feedbacks')->with('success', 'Testimonials updated successfully.');
     }
 
     public function settings(Request $request): View

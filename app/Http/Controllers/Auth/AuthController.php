@@ -15,8 +15,12 @@ use Illuminate\View\View;
 
 class AuthController extends Controller
 {
-    public function showLoginForm(): View
+    public function showLoginForm(Request $request): View
     {
+        if ($request->has('check_in')) {
+            session(['pending_booking' => $request->only('room_id', 'check_in', 'check_out', 'guests', 'booking_type')]);
+        }
+
         return view('auth.login', [
             'seo' => [
                 'title' => 'Login — ' . config('app.name'),
@@ -45,11 +49,31 @@ class AuthController extends Controller
             return redirect()->route('verification.notice');
         }
 
+        if (session()->has('pending_booking')) {
+            $pendingBooking = session()->get('pending_booking');
+            $room = \App\Models\Room::find($pendingBooking['room_id']);
+            if ($room) {
+                session()->forget('pending_booking');
+                return redirect()->route('rooms.show', [
+                    'room' => $room->slug,
+                    'check_in' => $pendingBooking['check_in'],
+                    'check_out' => $pendingBooking['check_out'],
+                    'guests' => $pendingBooking['guests'] ?? 1,
+                    'booking_type' => $pendingBooking['booking_type'] ?? 'booking',
+                    'booking_modal' => 1
+                ]);
+            }
+        }
+
         return redirect()->intended(route('dashboard'));
     }
 
-    public function showRegisterForm(): View
+    public function showRegisterForm(Request $request): View
     {
+        if ($request->has('check_in')) {
+            session(['pending_booking' => $request->only('room_id', 'check_in', 'check_out', 'guests', 'booking_type')]);
+        }
+
         return view('auth.register', [
             'seo' => [
                 'title' => 'Register — ' . config('app.name'),
@@ -65,6 +89,7 @@ class AuthController extends Controller
             'email' => 'required|email|unique:users,email',
             'contact_number' => ['required', 'string', 'regex:/^([0-9\s\-\+\(\)]*)$/', 'min:7', 'max:20'],
             'password' => 'required|string|min:8|confirmed',
+            'terms' => 'required|accepted',
         ]);
 
         $user = User::create([

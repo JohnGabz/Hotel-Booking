@@ -171,7 +171,7 @@ class PaymentController extends Controller
             return null;
         }
 
-        return (int) preg_replace('/^villa-estela-booking-/', '', (string) $externalId);
+        return (int) preg_replace('/^villa-estela-booking-(balance-)?/', '', (string) $externalId);
     }
 
     protected function paymentReference(array $payload): ?string

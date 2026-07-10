@@ -160,23 +160,13 @@
                 <div class="max-h-96 space-y-3 overflow-y-auto">
                     @forelse ($pendingPayments->take(5) as $booking)
                         <article class="rounded-lg border border-stone-200 bg-stone-50 p-4">
-                            <div class="mb-3 flex items-start justify-between gap-3">
+                            <div class="flex items-start justify-between gap-3">
                                 <div>
                                     <p class="text-sm font-semibold text-stone-950">{{ $booking->contact_name ?? $booking->user?->name ?? 'Guest' }}</p>
-                                    <p class="text-xs text-stone-600">{{ $booking->room?->name ?? 'Room' }} • {{ strtoupper($booking->payment_method) }}</p>
+                                    <p class="text-xs text-stone-600">{{ $booking->room?->name ?? 'Room' }} • {{ strtoupper($booking->payment_method) }} • ₱{{ number_format($booking->total, 0) }}</p>
                                 </div>
                                 <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-1 text-xs font-semibold text-amber-700">{{ ucfirst(str_replace('_', ' ', $booking->payment_status)) }}</span>
                             </div>
-                            <form action="{{ route('admin.bookings.payment-status', $booking) }}" method="POST" class="flex gap-2">
-                                @csrf
-                                <select name="payment_status" class="form-input flex-1 text-xs">
-                                    <option value="pending" @selected($booking->payment_status === 'pending')>Pending</option>
-                                    <option value="for_verification" @selected($booking->payment_status === 'for_verification')>For Verification</option>
-                                    <option value="paid" @selected($booking->payment_status === 'paid')>Paid</option>
-                                    <option value="failed" @selected($booking->payment_status === 'failed')>Failed</option>
-                                </select>
-                                <button type="submit" class="btn-primary px-3 py-2 text-xs">Update</button>
-                            </form>
                         </article>
                     @empty
                         <p class="text-sm text-stone-500">No pending payment records at the moment.</p>

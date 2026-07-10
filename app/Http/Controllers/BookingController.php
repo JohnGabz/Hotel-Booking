@@ -42,6 +42,7 @@ class BookingController extends Controller
             'payment_method' => 'required|in:gcash,landbank,xendit',
             'with_breakfast' => 'nullable|boolean',
             'guests' => 'required|integer|min:1',
+            'booking_type' => 'nullable|in:booking,reservation',
         ]);
 
         try {
@@ -75,6 +76,8 @@ class BookingController extends Controller
                 $breakfastCharge = $withBreakfast ? (50 * $lockedRoom->capacity * $nights) : 0;
                 $total = ($lockedRoom->price * $nights) + $breakfastCharge;
 
+                $bookingType = $validated['booking_type'] ?? 'booking';
+
                 $payload = [
                     'user_id' => Auth::id(),
                     'room_id' => $lockedRoom->id,
@@ -86,9 +89,12 @@ class BookingController extends Controller
                     'contact_email' => $validated['contact_email'],
                     'contact_phone' => $validated['contact_phone'],
                     'status' => 'Pending Payment',
+                    'booking_type' => $bookingType,
                     'payment_method' => $validated['payment_method'],
                     'payment_status' => 'pending',
                     'total' => $total,
+                    'amount_paid' => 0.00,
+                    'cancellation_penalty' => 0.00,
                     'with_breakfast' => $withBreakfast,
                     'breakfast_charge' => $breakfastCharge,
                 ];
@@ -180,7 +186,7 @@ class BookingController extends Controller
                 ],
                 [
                     'provider' => 'manual',
-                    'amount' => $lockedBooking->total,
+                    'amount' => $lockedBooking->amount_paid > 0 ? ($lockedBooking->total - $lockedBooking->amount_paid) : ($lockedBooking->total * 0.5),
                     'status' => 'pending',
                     'payment_method' => $lockedBooking->payment_method,
                     'payload' => ['proof_path' => $proofPath],
@@ -227,9 +233,15 @@ class BookingController extends Controller
                     ]);
                 }
 
+                $penalty = 0.00;
+                if ($lockedBooking->isWithinCancellationWindow()) {
+                    $penalty = (float) $lockedBooking->total * 0.5;
+                }
+
                 $lockedBooking->update([
                     'status' => 'cancelled',
                     'payment_status' => 'failed',
+                    'cancellation_penalty' => $penalty,
                     'cancellation_reason' => $validated['cancellation_reason'] ?? null,
                     'cancelled_at' => now(),
                 ]);
@@ -321,18 +333,40 @@ class BookingController extends Controller
         return $supportsSource;
     }
 
-    public function dashboard(): View
+    public function dashboard()
     {
+        if (session()->has('pending_booking')) {
+            $pendingBooking = session()->get('pending_booking');
+            session()->forget('pending_booking');
+
+            $room = Room::find($pendingBooking['room_id']);
+            if ($room) {
+                return redirect()->route('rooms.show', [
+                    'room' => $room->slug,
+                    'check_in' => $pendingBooking['check_in'],
+                    'check_out' => $pendingBooking['check_out'],
+                    'guests' => $pendingBooking['guests'] ?? 1,
+                    'booking_type' => $pendingBooking['booking_type'] ?? 'booking',
+                    'booking_modal' => 1
+                ]);
+            }
+        }
+
         $bookings = Booking::with('room')
             ->where('user_id', Auth::id())
             ->orderByRaw("CASE WHEN payment_status = 'pending' THEN 0 WHEN payment_status = 'for_verification' THEN 1 ELSE 2 END")
             ->orderByDesc('created_at')
             ->get();
 
+        $upcomingBookings = $bookings->filter(function ($booking) {
+            return $booking->check_out->startOfDay()->gte(now()->startOfDay()) 
+                && !in_array($booking->status, ['cancelled', 'Payment Failed', 'Payment Expired'], true);
+        })->values();
+
         $eligibleBookings = Booking::with('room')
             ->where('user_id', Auth::id())
-            ->whereIn('status', ['Confirmed', 'confirmed'])
-            ->where('payment_status', 'paid')
+            ->whereIn('status', ['Confirmed', 'confirmed', 'Reserved', 'reserved'])
+            ->whereIn('payment_status', ['paid', 'partially_paid'])
             ->whereDate('check_out', '<', now())
             ->whereDoesntHave('reviews')
             ->orderByDesc('check_out')
@@ -340,12 +374,12 @@ class BookingController extends Controller
 
         $recentRooms = Room::whereHas('bookings', function ($q) {
             $q->where('user_id', Auth::id())
-            ->whereIn('status', ['Confirmed', 'confirmed'])
-            ->where('payment_status', 'paid')
+            ->whereIn('status', ['Confirmed', 'confirmed', 'Reserved', 'reserved'])
+            ->whereIn('payment_status', ['paid', 'partially_paid'])
             ->whereDate('check_out', '<', now());
         })->groupBy('id')->take(3)->get();
 
-        return view('pages.dashboard', compact('bookings', 'eligibleBookings', 'recentRooms'), [
+        return view('pages.dashboard', compact('bookings', 'upcomingBookings', 'eligibleBookings', 'recentRooms'), [
             'seo' => [
                 'title' => 'Dashboard — '.config('app.name'),
                 'description' => 'Manage your reservations and reviews at Villa Estella.',

@@ -13,6 +13,7 @@ class PageController extends Controller
 {
     public function home(): View
     {
+        $rooms = Room::available()->get();
         $featuredRooms = Room::available()->take(3)->get();
         $landingContent = SiteContent::values(SiteContent::landingPageDefaults());
 
@@ -66,7 +67,7 @@ class PageController extends Controller
             ['name' => $landingContent['testimonial_3_name'], 'role' => $landingContent['testimonial_3_role'], 'rating' => 5, 'quote' => $landingContent['testimonial_3_quote']],
         ];
 
-        return view('pages.home', compact('featuredRooms', 'services', 'facilities', 'gallery', 'testimonials', 'landingContent', 'heroBackground'), [
+        return view('pages.home', compact('rooms', 'featuredRooms', 'services', 'facilities', 'gallery', 'testimonials', 'landingContent', 'heroBackground'), [
             'seo' => [
                 'title' => config('app.name') . ' — ' . config('seo.tagline'),
                 'description' => config('seo.default_description'),

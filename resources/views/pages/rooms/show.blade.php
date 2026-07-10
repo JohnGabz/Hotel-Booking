@@ -388,7 +388,7 @@
             @csrf
             <div id="modal-availability-banner" class="hidden rounded-lg border px-4 py-3 text-sm" role="status" aria-live="polite"></div>
 
-            <div class="grid gap-4 sm:grid-cols-3">
+            <div class="grid gap-4 sm:grid-cols-4">
                 <div class="form-group">
                     <label class="form-label" for="check_in">Check-in</label>
                     <input type="date" id="check_in" name="check_in" value="{{ old('check_in') }}" class="form-input" required min="{{ now()->toDateString() }}">
@@ -400,6 +400,13 @@
                 <div class="form-group">
                     <label class="form-label" for="guests">Guests</label>
                     <input type="number" id="guests" name="guests" value="{{ old('guests', 1) }}" class="form-input" required min="1" max="{{ $room->capacity }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="booking_type">Type</label>
+                    <select id="booking_type" name="booking_type" class="form-input">
+                        <option value="booking" {{ old('booking_type') === 'booking' ? 'selected' : '' }}>Booking</option>
+                        <option value="reservation" {{ old('booking_type') === 'reservation' ? 'selected' : '' }}>Reservation</option>
+                    </select>
                 </div>
             </div>
 
@@ -445,6 +452,10 @@
                         <span>Total amount</span>
                         <span>₱<span id="summary-total-price">0</span></span>
                     </div>
+                    <div class="flex justify-between font-bold text-brand-primary pt-1">
+                        <span>50% Deposit Required</span>
+                        <span>₱<span id="summary-deposit-price">0</span></span>
+                    </div>
                 </div>
 
                 <div class="border-t border-stone-200 pt-3 mt-1 space-y-2">
@@ -477,8 +488,31 @@
         const modal = document.getElementById('booking-modal');
         const closeBtn = document.getElementById('close-booking-modal');
         const cancelBtn = document.getElementById('cancel-booking-btn');
+        const bookingForm = document.getElementById('booking-form');
+        const bookingTypeSelect = document.getElementById('booking_type');
+        const confirmBtn = document.getElementById('confirm-booking-btn');
+
+        const updateButtonText = () => {
+            if (bookingTypeSelect && confirmBtn) {
+                confirmBtn.textContent = bookingTypeSelect.value === 'reservation' ? 'Confirm Reservation' : 'Confirm Booking';
+            }
+        };
+
+        if (bookingTypeSelect) {
+            bookingTypeSelect.addEventListener('change', updateButtonText);
+        }
 
         const openModal = () => {
+            if (!window.VillaRealtime || !window.VillaRealtime.userId) {
+                // Redirect to register
+                const checkIn = checkInInput.value;
+                const checkOut = checkOutInput.value;
+                const roomId = "{{ $room->id }}";
+                const type = bookingTypeSelect ? bookingTypeSelect.value : 'booking';
+                window.location.href = `/register?room_id=${roomId}&check_in=${checkIn}&check_out=${checkOut}&guests=1&booking_type=${type}`;
+                return;
+            }
+            updateButtonText();
             window.VillaModal?.open ? window.VillaModal.open(modal) : modal.classList.remove('hidden');
         };
 
@@ -553,6 +587,7 @@
         const summaryBreakfastRow = document.getElementById('summary-breakfast-row');
         const summaryBreakfastCharge = document.getElementById('summary-breakfast-charge');
         const summaryTotalPrice = document.getElementById('summary-total-price');
+        const summaryDepositPrice = document.getElementById('summary-deposit-price');
 
         const roomPrice = parseFloat(meta.dataset.roomPrice || '0');
 
@@ -563,6 +598,7 @@
             if (!checkIn || !checkOut) {
                 if (summaryRoomRate) summaryRoomRate.textContent = '0';
                 if (summaryTotalPrice) summaryTotalPrice.textContent = '0';
+                if (summaryDepositPrice) summaryDepositPrice.textContent = '0';
                 return;
             }
 
@@ -595,6 +631,10 @@
             if (summaryTotalPrice) {
                 summaryTotalPrice.textContent = overallTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
             }
+            if (summaryDepositPrice) {
+                const depositTotal = overallTotal * 0.5;
+                summaryDepositPrice.textContent = depositTotal.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+            }
         };
 
         checkInInput.addEventListener('change', () => { checkAvailability(); calculateBreakdown(); });
@@ -616,7 +656,6 @@
         };
 
         // AJAX form submit with loading overlay
-        const bookingForm = document.getElementById('booking-form');
         const loadingOverlay = document.getElementById('booking-loading-overlay');
         const loadingTitle = document.getElementById('loading-overlay-title');
         const loadingDesc = document.getElementById('loading-overlay-desc');
@@ -711,8 +750,28 @@
             }
         }
 
-        // Run initially
-        calculateBreakdown();
+        // Query parameters check for auto-opening modal
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('booking_modal') === '1') {
+            const checkIn = urlParams.get('check_in');
+            const checkOut = urlParams.get('check_out');
+            const guests = urlParams.get('guests') || 1;
+            const bookingType = urlParams.get('booking_type') || 'booking';
+
+            if (checkIn && checkOut) {
+                checkInInput.value = checkIn;
+                checkOutInput.value = checkOut;
+                document.getElementById('guests').value = guests;
+                if (bookingTypeSelect) {
+                    bookingTypeSelect.value = bookingType;
+                }
+                checkAvailability();
+                calculateBreakdown();
+                openModal();
+            }
+        } else {
+            calculateBreakdown();
+        }
     })();
 </script>
 @endpush

@@ -44,9 +44,22 @@
                 <a href="{{ route('admin.bookings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.bookings') ? 'nav-link-active' : '' }}">Bookings</a>
                 <a href="{{ route('admin.rooms') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.rooms') ? 'nav-link-active' : '' }}">Rooms</a>
                 <a href="{{ route('admin.guests') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.guests') ? 'nav-link-active' : '' }}">Guests</a>
-                <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">Reports</a>
+                
+                <details class="group [&_summary::-webkit-details-marker]:hidden" {{ request()->routeIs('admin.reports') || request()->routeIs('admin.logs') ? 'open' : '' }}>
+                    <summary class="flex items-center justify-between nav-link cursor-pointer">
+                        <span class="flex items-center gap-3">
+                            <svg class="w-5 h-5 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            Reports
+                        </span>
+                        <svg class="w-4 h-4 transition-transform duration-200 group-open:-rotate-180 text-stone-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                    </summary>
+                    <div class="mt-1 pl-8 space-y-1">
+                        <a href="{{ route('admin.reports') }}" class="nav-link text-sm py-2 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">Transactions</a>
+                        <a href="{{ route('admin.logs') }}" class="nav-link text-sm py-2 {{ request()->routeIs('admin.logs') ? 'nav-link-active' : '' }}">Logs</a>
+                    </div>
+                </details>
+
                 <a href="{{ route('admin.feedbacks') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.feedbacks') ? 'nav-link-active' : '' }}">Feedbacks</a>
-                <a href="{{ route('admin.logs') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.logs') ? 'nav-link-active' : '' }}">Logs</a>
                 <a href="{{ route('admin.settings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.settings') ? 'nav-link-active' : '' }}">Settings</a>
             </nav>
         </aside>
@@ -56,7 +69,7 @@
     <x-delete-confirm-modal />
 
     <div class="min-h-screen flex flex-col md:flex-row">
-        <aside class="hidden md:block md:w-72 lg:w-80 bg-white border-b md:border-b-0 md:border-r border-stone-200/80 shadow-[0_18px_40px_rgba(80,61,30,0.05)]">
+        <aside class="hidden md:block md:w-60 lg:w-64 bg-white border-b md:border-b-0 md:border-r border-stone-200/80 shadow-[0_18px_40px_rgba(80,61,30,0.05)]">
             <div class="flex items-center px-5 py-5 border-b border-stone-200/80">
                 <div>
                     <p class="font-display text-lg font-semibold tracking-[0.08em] text-stone-950 sm:text-xl">{{ config('app.name') }}</p>
@@ -83,17 +96,28 @@
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a4 4 0 0 0-5-3.87M9 20H4v-2a4 4 0 0 1 5-3.87m9-5a4 4 0 1 0-8 0 4 4 0 0 0 8 0Zm-8-1a4 4 0 1 0-8 0 4 4 0 0 0 8 0Z"></path></svg>
                         Guests
                     </a>
-                    <a href="{{ route('admin.reports') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
-                        Reports
-                    </a>
+
+                    <details class="group [&_summary::-webkit-details-marker]:hidden" {{ request()->routeIs('admin.reports') || request()->routeIs('admin.logs') ? 'open' : '' }}>
+                        <summary class="flex items-center justify-between nav-link cursor-pointer">
+                            <span class="flex items-center gap-3">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                                Reports
+                            </span>
+                            <svg class="w-4 h-4 transition-transform duration-200 group-open:-rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </summary>
+                        <div class="mt-1 pl-8 space-y-1">
+                            <a href="{{ route('admin.reports') }}" class="nav-link text-sm py-2 {{ request()->routeIs('admin.reports') ? 'nav-link-active' : '' }}">
+                                Transactions
+                            </a>
+                            <a href="{{ route('admin.logs') }}" class="nav-link text-sm py-2 {{ request()->routeIs('admin.logs') ? 'nav-link-active' : '' }}">
+                                Logs
+                            </a>
+                        </div>
+                    </details>
+
                     <a href="{{ route('admin.feedbacks') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.feedbacks') ? 'nav-link-active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"></path></svg>
                         Feedbacks
-                    </a>
-                    <a href="{{ route('admin.logs') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.logs') ? 'nav-link-active' : '' }}">
-                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                        Logs
                     </a>
                     <a href="{{ route('admin.settings') }}" class="nav-link flex items-center gap-3 {{ request()->routeIs('admin.settings') ? 'nav-link-active' : '' }}">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>

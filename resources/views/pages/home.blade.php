@@ -128,7 +128,7 @@
                 <h2 class="text-2xl sm:text-3xl font-display font-bold text-stone-900 mb-2">{{ $bookingHeading }}</h2>
                 <p class="text-sm text-stone-600">{{ $bookingSubheading }}</p>
             </div>
-            <form action="{{ url('/bookings/search') }}" method="GET" class="grid gap-4 sm:gap-5 md:grid-cols-5 md:items-end">
+            <form id="landing-availability-form" class="grid gap-4 sm:gap-5 md:grid-cols-5 md:items-end">
                 <div>
                     <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-3">Check-in</label>
                     <input type="date" name="check_in" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition" required>
@@ -147,15 +147,20 @@
                     </select>
                 </div>
                 <div>
-                    <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-3">Rooms</label>
-                    <select name="rooms" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition appearance-none cursor-pointer">
-                        <option value="1">1 Room</option>
-                        <option value="2">2 Rooms</option>
-                        <option value="3">3+ Rooms</option>
-                    </select>
+                    <label class="block text-xs font-semibold text-stone-700 uppercase tracking-[0.15em] mb-3">Room Type</label>
+                    <div class="relative">
+                        <select id="landing-room-select" name="room_id" class="w-full border border-stone-300 rounded-lg px-4 py-3 text-sm text-stone-900 bg-white focus:ring-2 focus:ring-brand-primary focus:border-transparent outline-none transition appearance-none cursor-pointer" required>
+                            @foreach ($rooms as $room)
+                                <option value="{{ $room->id }}" data-price="{{ $room->price }}" data-capacity="{{ $room->capacity }}">{{ $room->name }}</option>
+                            @endforeach
+                        </select>
+                        <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-4 text-stone-500">
+                            <svg class="w-4.5 h-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                        </div>
+                    </div>
                 </div>
                 <button type="submit" class="w-full bg-brand-primary hover:bg-brand-secondary text-white px-6 py-3 rounded-lg font-semibold transition-all duration-300 shadow-lg hover:shadow-xl hover:-translate-y-0.5">
-                    Search
+                    Check Availability
                 </button>
             </form>
         </div>
@@ -494,4 +499,278 @@
         </div>
     </div>
 </section>
+
+<!-- Availability Result Modal -->
+<div id="landing-availability-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+    <!-- Backdrop -->
+    <div class="fixed inset-0 bg-stone-900/60 backdrop-blur-sm" onclick="closeAvailabilityModal()"></div>
+    
+    <!-- Content Card -->
+    <div class="relative bg-white rounded-2xl shadow-2xl border border-stone-200 w-full max-w-xl overflow-hidden transition-all transform scale-95 duration-300">
+        <!-- Close Button -->
+        <button onclick="closeAvailabilityModal()" class="absolute top-4 right-4 text-stone-400 hover:text-stone-700 transition">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+        </button>
+        
+        <div class="p-8">
+            <!-- Available State -->
+            <div id="modal-available-state" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="p-2 bg-emerald-100 text-emerald-700 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path></svg>
+                    </span>
+                    <h3 class="text-2xl font-display font-bold text-stone-900">Room is Available!</h3>
+                </div>
+                
+                <div class="bg-stone-50 rounded-xl p-5 border border-stone-200/60 space-y-3 mb-6">
+                    <p class="text-lg font-bold text-stone-900" id="modal-room-name"></p>
+                    <div class="grid grid-cols-2 gap-4 text-sm text-stone-600">
+                        <div>Dates: <span class="font-semibold text-stone-900" id="modal-dates"></span></div>
+                        <div>Nights: <span class="font-semibold text-stone-900" id="modal-nights"></span></div>
+                        <div>Total: <span class="font-semibold text-stone-900" id="modal-total"></span></div>
+                        <div>50% Deposit: <span class="font-semibold text-brand-primary" id="modal-deposit"></span></div>
+                    </div>
+                </div>
+
+                <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-xs text-amber-800 space-y-2 mb-6">
+                    <p class="font-semibold flex items-center gap-1.5">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                        Important Policies & Rules
+                    </p>
+                    <ul class="list-disc pl-4 space-y-1">
+                        <li>A 50% down payment is required to secure the reservation or booking.</li>
+                        <li>Cancellation penalty: Cancellations within 3 days of check-in will apply a 50% penalty of the total amount.</li>
+                    </ul>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <button id="btn-reserve-action" class="btn-secondary w-full justify-center py-3 text-sm">Reserve Room</button>
+                    <button id="btn-book-action" class="btn-primary w-full justify-center py-3 text-sm">Book Room</button>
+                </div>
+            </div>
+
+            <!-- Unavailable State -->
+            <div id="modal-unavailable-state" class="hidden">
+                <div class="flex items-center gap-3 mb-6">
+                    <span class="p-2 bg-rose-100 text-rose-700 rounded-full">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                    </span>
+                    <h3 class="text-2xl font-display font-bold text-stone-900">Room is Unavailable</h3>
+                </div>
+
+                <p class="text-sm text-stone-600 mb-6">
+                    The selected room type is unfortunately fully booked for your dates. Here are some options:
+                </p>
+
+                <!-- Next Available Suggestion -->
+                <div id="modal-suggestion-box" class="hidden bg-stone-50 rounded-xl p-5 border border-stone-200/60 mb-6">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-2">Suggested Dates</p>
+                    <p class="text-sm font-medium text-stone-900 mb-3" id="suggestion-dates-text"></p>
+                    <button id="btn-apply-suggestion" class="inline-flex items-center gap-1.5 text-sm font-semibold text-brand-primary hover:text-brand-secondary">
+                        Use suggested dates
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                    </button>
+                </div>
+
+                <!-- Other Available Rooms -->
+                <div id="modal-other-rooms-box" class="hidden font-sans">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-stone-500 mb-3">Other Available Rooms for Your Dates</p>
+                    <div class="space-y-3" id="other-rooms-list">
+                        <!-- Dynamic items -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@push('scripts')
+<script>
+    const allRooms = @json($rooms);
+    const isAuthenticated = @json(Auth::check());
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const checkInInput = document.querySelector('input[name="check_in"]');
+        const checkOutInput = document.querySelector('input[name="check_out"]');
+        const roomSelect = document.getElementById('landing-room-select');
+        const form = document.getElementById('landing-availability-form');
+
+        // Set min dates
+        const todayStr = new Date().toISOString().split('T')[0];
+        checkInInput.min = todayStr;
+        
+        checkInInput.addEventListener('change', () => {
+            if (checkInInput.value) {
+                const nextDay = new Date(checkInInput.value);
+                nextDay.setDate(nextDay.getDate() + 1);
+                checkOutInput.min = nextDay.toISOString().split('T')[0];
+                if (checkOutInput.value && checkOutInput.value <= checkInInput.value) {
+                    checkOutInput.value = nextDay.toISOString().split('T')[0];
+                }
+            }
+            updateAvailableRoomsDropdown();
+        });
+
+        checkOutInput.addEventListener('change', () => {
+            updateAvailableRoomsDropdown();
+        });
+
+        async function updateAvailableRoomsDropdown() {
+            if (!checkInInput.value || !checkOutInput.value) return;
+
+            try {
+                const response = await fetch(`/availability/check?check_in=${checkInInput.value}&check_out=${checkOutInput.value}`);
+                if (!response.ok) return;
+                const data = await response.json();
+                
+                if (data.available && data.available_rooms) {
+                    const currentSelected = roomSelect.value;
+                    roomSelect.innerHTML = '';
+                    
+                    data.available_rooms.forEach(room => {
+                        const opt = document.createElement('option');
+                        opt.value = room.id;
+                        opt.textContent = `${room.name} — ₱${parseFloat(room.price).toLocaleString()}/night`;
+                        opt.setAttribute('data-price', room.price);
+                        opt.setAttribute('data-capacity', room.capacity);
+                        if (String(room.id) === String(currentSelected)) {
+                            opt.selected = true;
+                        }
+                        roomSelect.appendChild(opt);
+                    });
+                }
+            } catch (err) {
+                console.error('Failed to update dropdown', err);
+            }
+        }
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const roomId = roomSelect.value;
+            const checkIn = checkInInput.value;
+            const checkOut = checkOutInput.value;
+            const guests = document.querySelector('select[name="guests"]').value;
+
+            if (!roomId || !checkIn || !checkOut) return;
+
+            try {
+                window.VillaLoader?.show();
+                const response = await fetch(`/availability/check?check_in=${checkIn}&check_out=${checkOut}&room_id=${roomId}&guests=${guests}`);
+                window.VillaLoader?.hide();
+                if (!response.ok) throw new Error('Check failed');
+
+                const data = await response.json();
+                showAvailabilityModal(data, roomId, checkIn, checkOut, guests);
+            } catch (err) {
+                window.VillaLoader?.hide();
+                alert('Something went wrong. Please check your dates and try again.');
+            }
+        });
+    });
+
+    function showAvailabilityModal(data, roomId, checkIn, checkOut, guests) {
+        const modal = document.getElementById('landing-availability-modal');
+        const availableState = document.getElementById('modal-available-state');
+        const unavailableState = document.getElementById('modal-unavailable-state');
+        
+        modal.classList.remove('hidden');
+        setTimeout(() => modal.querySelector('.relative').classList.remove('scale-95'), 50);
+
+        if (data.available) {
+            availableState.classList.remove('hidden');
+            unavailableState.classList.add('hidden');
+
+            const room = data.room;
+            const price = parseFloat(room.price);
+            const nights = Math.max(1, Math.round((new Date(checkOut) - new Date(checkIn)) / (1000 * 60 * 60 * 24)));
+            const total = price * nights;
+            const deposit = total * 0.5;
+
+            document.getElementById('modal-room-name').textContent = room.name;
+            document.getElementById('modal-dates').textContent = `${checkIn} to ${checkOut}`;
+            document.getElementById('modal-nights').textContent = `${nights} night(s)`;
+            document.getElementById('modal-total').textContent = `₱${total.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+            document.getElementById('modal-deposit').textContent = `₱${deposit.toLocaleString(undefined, {minimumFractionDigits: 2, maximumFractionDigits: 2})}`;
+
+            const handleRedirect = (bookingType) => {
+                if (isAuthenticated) {
+                    const slugReal = room.slug || 'deluxe-room';
+                    window.location.href = `/rooms/${slugReal}?check_in=${checkIn}&check_out=${checkOut}&guests=${guests}&booking_type=${bookingType}&booking_modal=1`;
+                } else {
+                    const page = 'register';
+                    window.location.href = `/${page}?room_id=${roomId}&check_in=${checkIn}&check_out=${checkOut}&guests=${guests}&booking_type=${bookingType}`;
+                }
+            };
+
+            document.getElementById('btn-reserve-action').onclick = () => handleRedirect('reservation');
+            document.getElementById('btn-book-action').onclick = () => handleRedirect('booking');
+
+        } else {
+            availableState.classList.add('hidden');
+            unavailableState.classList.remove('hidden');
+
+            // Suggestions
+            const suggestionBox = document.getElementById('modal-suggestion-box');
+            if (data.suggestions && data.suggestions.length > 0) {
+                suggestionBox.classList.remove('hidden');
+                const sug = data.suggestions[0];
+                document.getElementById('suggestion-dates-text').textContent = `${sug.start} to ${sug.end}`;
+                document.getElementById('btn-apply-suggestion').onclick = () => {
+                    document.querySelector('input[name="check_in"]').value = sug.start;
+                    document.querySelector('input[name="check_out"]').value = sug.end;
+                    closeAvailabilityModal();
+                    // trigger check
+                    document.getElementById('landing-availability-form').dispatchEvent(new Event('submit'));
+                };
+            } else {
+                suggestionBox.classList.add('hidden');
+            }
+
+            // Other Rooms
+            const otherRoomsBox = document.getElementById('modal-other-rooms-box');
+            const otherRoomsList = document.getElementById('other-rooms-list');
+            otherRoomsList.innerHTML = '';
+            
+            fetch(`/availability/check?check_in=${checkIn}&check_out=${checkOut}`)
+                .then(r => r.json())
+                .then(res => {
+                    if (res.available_rooms && res.available_rooms.length > 0) {
+                        otherRoomsBox.classList.remove('hidden');
+                        res.available_rooms.forEach(r => {
+                            if (String(r.id) !== String(roomId)) {
+                                const row = document.createElement('div');
+                                row.className = 'flex items-center justify-between p-3 bg-stone-50 rounded-lg border border-stone-200/80 mb-2';
+                                row.innerHTML = `
+                                    <div>
+                                        <p class="font-semibold text-stone-900 text-sm">${r.name}</p>
+                                        <p class="text-xs text-stone-500">Capacity: ${r.capacity} guests — ₱${parseFloat(r.price).toLocaleString()}/night</p>
+                                    </div>
+                                    <button class="text-xs bg-brand-primary text-white px-3 py-1.5 rounded font-semibold hover:bg-brand-secondary transition" onclick="selectOtherRoom(${r.id})">
+                                        Select
+                                    </button>
+                                `;
+                                otherRoomsList.appendChild(row);
+                            }
+                        });
+                    } else {
+                        otherRoomsBox.classList.add('hidden');
+                    }
+                });
+        }
+    }
+
+    function selectOtherRoom(roomId) {
+        document.getElementById('landing-room-select').value = roomId;
+        closeAvailabilityModal();
+        document.getElementById('landing-availability-form').dispatchEvent(new Event('submit'));
+    }
+
+    function closeAvailabilityModal() {
+        const modal = document.getElementById('landing-availability-modal');
+        modal.querySelector('.relative').classList.add('scale-95');
+        setTimeout(() => modal.classList.add('hidden'), 200);
+    }
+</script>
+@endpush
 @endsection
