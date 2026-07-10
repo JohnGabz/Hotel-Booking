@@ -137,4 +137,4 @@ Route::post('/webhooks/payments', [WebhookPaymentController::class, 'handle'])
 Route::post('/webhooks/xendit', [WebhookPaymentController::class, 'handle'])
     ->middleware('throttle:60,1')
     ->name('webhooks.xendit');
-Route::post('/availability/check', [AvailabilityController::class, 'check'])->name('availability.check');
+Route::match(['get', 'post'], '/availability/check', [AvailabilityController::class, 'check'])->name('availability.check');
