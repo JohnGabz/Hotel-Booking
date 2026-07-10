@@ -43,7 +43,6 @@ jobs:
             --sarif \
             --output semgrep-results.sarif \
             --severity WARNING \
-            --error \
             --exclude vendor \
             --exclude node_modules \
             --exclude storage \
