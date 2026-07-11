@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.3.xsd">
+
+   <!--
+     CVE-2026-24765 is an unsafe-deserialization RCE in phpunit/phpunit itself
+     (cleanupForCoverage(), PHPT code coverage handling), fixed in 8.5.52 / 9.6.33 /
+     10.5.62 / 11.5.50 / 12.5.8. Dependency-Check is matching the same "phpunit" CPE
+     against the separate phpunit/php-code-coverage and phpunit/php-timer sub-packages,
+     which are not the vulnerable component.
+
+     Before renewing or removing these two suppressions, confirm what version of
+     phpunit/phpunit itself is actually locked in composer.lock and upgrade it if needed
+     — these suppressions do not clear that package, only the two mismatched ones.
+   -->
+   <suppress>
+      <notes><![CDATA[
+      False positive: CVE-2026-24765 affects the phpunit/phpunit test-runner package,
+      not this sub-package. CPE over-match on shared "phpunit" vendor/product string.
+      ]]></notes>
+      <packageUrl regex="true">^pkg:composer/phpunit/php\-code\-coverage@.*$</packageUrl>
+      <cve>CVE-2026-24765</cve>
+   </suppress>
+
+   <suppress>
+      <notes><![CDATA[
+      False positive: CVE-2026-24765 affects the phpunit/phpunit test-runner package,
+      not this sub-package. CPE over-match on shared "phpunit" vendor/product string.
+      ]]></notes>
+      <packageUrl regex="true">^pkg:composer/phpunit/php\-timer@.*$</packageUrl>
+      <cve>CVE-2026-24765</cve>
+   </suppress>
+
+   <!--
+     CVE-2015-10086: Pusher private-channel auth bypass, fixed in pusher-php-server 2.2.1
+     (2015). NVD's CPE record for this advisory has no versionEndExcluding bound, so
+     Dependency-Check flags every version that matches the CPE, including versions many
+     major releases past the fix.
+
+     Confirm the locked version is >= 2.2.1 before renewing this suppression. If a
+     future pusher-php-server version is ever pinned below 2.2.1, this suppression
+     would incorrectly hide a real hit — consider narrowing the packageUrl regex to a
+     version range if that's a concern.
+   -->
+   <suppress>
+      <notes><![CDATA[
+      False positive: CVE-2015-10086 was fixed in pusher/pusher-php-server 2.2.1.
+      NVD CPE lacks a version-end bound, causing over-match against later versions.
+      ]]></notes>
+      <packageUrl regex="true">^pkg:composer/pusher/pusher\-php\-server@.*$</packageUrl>
+      <cve>CVE-2015-10086</cve>
+   </suppress>
+
+</suppressions>
