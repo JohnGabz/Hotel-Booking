@@ -77,17 +77,6 @@ jobs:
           rm -rf .dependency-check-data
           mkdir -p .dependency-check-data reports
 
-      - name: Warm Dependency-Check DB
-        run: |
-          docker run --rm \
-            -e NVD_API_KEY="${{ secrets.NVD_API_KEY }}" \
-            -v "${{ github.workspace }}:/src" \
-            -w /src \
-            owasp/dependency-check:latest \
-            --updateonly \
-            --data /src/.dependency-check-data \
-            --nvdApiKey "${{ secrets.NVD_API_KEY }}"
-
       - name: Run OWASP Dependency-Check
         run: |
           docker run --rm \
@@ -102,7 +91,6 @@ jobs:
             --format JSON \
             --format SARIF \
             --data /src/.dependency-check-data \
-            --noupdate \
             --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
             --failOnCVSS 7 \
             --enableExperimental
