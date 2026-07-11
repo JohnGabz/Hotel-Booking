@@ -73,27 +73,21 @@ jobs:
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
 
       - name: Prepare reports directory
-        run: |
-          rm -rf .dependency-check-data
-          mkdir -p .dependency-check-data reports
+        run: mkdir -p reports
 
       - name: Run OWASP Dependency-Check
-        run: |
-          docker run --rm \
-            -e NVD_API_KEY="${{ secrets.NVD_API_KEY }}" \
-            -v "${{ github.workspace }}:/src" \
-            -w /src \
-            owasp/dependency-check:latest \
-            --scan /src/composer.lock \
-            --project villa-estella \
-            --out /src/reports \
-            --format HTML \
-            --format JSON \
-            --format SARIF \
-            --data /src/.dependency-check-data \
-            --nvdApiKey "${{ secrets.NVD_API_KEY }}" \
-            --failOnCVSS 7 \
+        uses: dependency-check/Dependency-Check_Action@1e54355a8b4c8abaa8cc7d0b70aa655a3bb15a6c
+        with:
+          project: villa-estella
+          path: .
+          format: HTML
+          out: reports
+          args: >
+            --format SARIF
+            --failOnCVSS 7
             --enableExperimental
+            --disableYarnAudit
+            --disableNodeAudit
 
       - name: Upload Dependency-Check SARIF
         if: always() && hashFiles('reports/dependency-check-report.sarif') != ''
